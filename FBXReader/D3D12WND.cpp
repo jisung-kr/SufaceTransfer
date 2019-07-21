@@ -5,6 +5,15 @@ using namespace Microsoft::WRL;
 
 const int gNumFrameResources = 3;
 
+D3D12WND::D3D12WND(HWND wnd) :mhMainWnd(wnd) { 
+	instance = this; 
+
+	WCHAR title[256];
+	GetWindowText(wnd, title, 256);
+
+	mMainWndCaption = title;
+}
+
 Microsoft::WRL::ComPtr<ID3D12Device> D3D12WND::GetD3DDevice() {
 	return md3dDevice;
 }
@@ -133,7 +142,7 @@ void D3D12WND::CalculateFrameStatus() {
 
 		std::wstring fpsStr = std::to_wstring(fps);
 		std::wstring mspfStr = std::to_wstring(mspf);
-		
+
 		std::wstring windowText = mMainWndCaption +
 			L"    fps: " + fpsStr +
 			L"   mspf: " + mspfStr;

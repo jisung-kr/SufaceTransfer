@@ -27,7 +27,7 @@ bool MainWindow::Initialize() {
 	RegisterClass(&wndCls);
 
 	mhMainWnd = CreateWindow(clsName,
-		clsName,
+		mMainWndCaption.c_str(),
 		WS_OVERLAPPEDWINDOW,
 		CW_USEDEFAULT,	//xPos
 		CW_USEDEFAULT,	//yPos
@@ -46,6 +46,7 @@ bool MainWindow::Initialize() {
 	d3dApp->InitDirect3D();
 
 	d3dApp->OnResize();
+
 
 	return true;
 }

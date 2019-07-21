@@ -82,7 +82,7 @@ enum class RenderLayer : int{
 
 class D3D12WND {
 public:
-	D3D12WND(HWND wnd) :mhMainWnd(wnd) { instance = this; }
+	D3D12WND(HWND wnd);
 	virtual ~D3D12WND() = default;
 
 	D3D12WND& operator=(D3D12WND& rhs) = delete;
@@ -99,6 +99,11 @@ public:
 private:
 	D3D12WND* instance = nullptr;
 	HWND mhMainWnd;
+
+	std::wstring mMainWndCaption;
+
+	int mClientWidth = 800; //App Width
+	int mClientHeight = 600; //App Height
 
 	/*------------------------------------------------------------------------------------------------------*/
 	D3D_DRIVER_TYPE md3dDriverType = D3D_DRIVER_TYPE_HARDWARE;
@@ -165,17 +170,12 @@ private:
 
 	//읽고 쓰고 가능한 텍스쳐 
 	Microsoft::WRL::ComPtr<ID3D12Resource> mSurface;
-	int mSufaceSize = mClientHeight * mClientWidth * sizeof(float);
+	SIZE_T mSufaceSize = mClientHeight * mClientWidth * sizeof(float);
 
 	/*------------------------------------------------------------------------------------------------------*/
 	PassConstants mMainPassCB;
 
 	Camera mCamera;
-
-	std::wstring mMainWndCaption;
-
-	int mClientWidth = 800; //App Width
-	int mClientHeight = 600; //App Height
 
 	bool isWire_frame = false;
 
