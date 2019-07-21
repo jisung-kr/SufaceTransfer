@@ -13,14 +13,13 @@ public:
 	virtual ~Server();
 
 private:
-	//Test Comment
-	WSAData mWsaData;	//ю╘╪с©К
+	WSAData mWsaData;	//Л°┬Л├█Л ╘
 	
-	SOCKET mSockServer;	//╣Х╠Б©К ╪рдо
-	SOCKET mSockClient;	//е╛╤Сюл╬Пф╝ ©╛╟А©К ╪рдо
+	SOCKET mSockServer;	//К⌠ёЙ╦╟Л ╘ Л├▄Л╪⌠
+	SOCKET mSockClient;	//М│╢К²╪Л²╢Л√╦М┼╦ Л≈╟Й╡╟Л ╘ Л├▄Л╪⌠
 
-	sockaddr_in mAddrServer;	//╣Х╠Б ╪рдо©К аж╪р
-	sockaddr_in mAddrClient;	//е╛╤С ╪рдо©К аж╪р
+	sockaddr_in mAddrServer;	//К⌠ёЙ╦╟ Л├▄Л╪⌠Л ╘ Лё╪Л├▄
+	sockaddr_in mAddrClient;	//М│╢К²╪ Л├▄Л╪⌠Л ╘ Лё╪Л├▄
 
 public:
 	bool Init();
