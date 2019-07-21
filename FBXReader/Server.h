@@ -13,7 +13,7 @@ public:
 	virtual ~Server();
 
 private:
-
+	//Test Comment
 	WSAData mWsaData;	//윈속용
 	
 	SOCKET mSockServer;	//듣기용 소켓
