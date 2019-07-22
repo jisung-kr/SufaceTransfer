@@ -38,9 +38,12 @@ bool D3D12WND::InitDirect3D() {
 	LogAdapters();
 #endif
 
+	Microsoft::WRL::ComPtr<IDXGIAdapter> adapter = nullptr;
+	mdxgiFactory->EnumAdapters(0, &adapter);
+
 	// Try to create hardware device.
 	HRESULT hardwareResult = D3D12CreateDevice(
-		0,             // default adapter
+		adapter.Get(),             // default adapter
 		D3D_FEATURE_LEVEL_12_0,
 		IID_PPV_ARGS(&md3dDevice));
 
@@ -524,10 +527,9 @@ void D3D12WND::Draw(const GameTimer& gt) {
 	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
 		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE));
 
-	BufferCheck();
-
 	//화면에 그려진 값 mSuface로 Copy
 	mCommandList->CopyResource(mSurface.Get(), CurrentBackBuffer());
+
 
 
 	//배리어 복원
@@ -552,6 +554,7 @@ void D3D12WND::Draw(const GameTimer& gt) {
 	FlushCommandQueue();   
 
 
+	BufferCheck();
 	
 }
 
