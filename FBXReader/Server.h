@@ -15,10 +15,10 @@ private:
 	struct WSAData mWsaData;
 	
 	SOCKET mSockServer;
-	SOCKET mSockClient;	
+	SOCKET mSockClient;
 
 	struct sockaddr_in mAddrServer;
-	struct sockaddr_in mAddrClient;
+	struct sockaddr_in mAddrClient;	
 
 public:
 	bool Init();
