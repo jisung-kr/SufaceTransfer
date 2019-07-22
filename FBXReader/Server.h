@@ -12,13 +12,13 @@ public:
 	virtual ~Server();
 
 private:
-	struct WSAData mWsaData;	//윈속용
+	struct WSAData mWsaData;
 	
-	SOCKET mSockServer;	//듣기용 소켓
-	SOCKET mSockClient;	//클라이언트 연결용 소켓
+	SOCKET mSockServer;	
+	SOCKET mSockClient;
 
-	struct sockaddr_in mAddrServer;	//서버 듣기용 주소
-	struct sockaddr_in mAddrClient;	//클라 연결용 주소
+	struct sockaddr_in mAddrServer;	
+	struct sockaddr_in mAddrClient;	
 
 public:
 	bool Init();

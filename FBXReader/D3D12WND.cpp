@@ -95,7 +95,7 @@ bool D3D12WND::InitDirect3D() {
 	// Reset the command list to prep for initialization commands.
 	ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
 
-	mCamera.SetPosition(0.0f, 2.0f, -15.0f);
+	mCamera.SetPosition(0.0f, 2.0f, -25.0f);
 
 	LoadTextures();
 	BuildRootSignature();
@@ -241,6 +241,7 @@ void D3D12WND::FlushCommandQueue() {
 
 		// Wait until the GPU hits current fence event is fired.
 		WaitForSingleObject(eventHandle, INFINITE);
+
 		CloseHandle(eventHandle);
 	}
 }
@@ -485,7 +486,7 @@ void D3D12WND::Draw(const GameTimer& gt) {
 		D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
 
 	// Clear the back buffer and depth buffer.
-	mCommandList->ClearRenderTargetView(CurrentBackBufferView(), Colors::LightSteelBlue, 0, nullptr);
+	mCommandList->ClearRenderTargetView(CurrentBackBufferView(), Colors::SteelBlue, 0, nullptr);
 	mCommandList->ClearDepthStencilView(DepthStencilView(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
 	// Specify the buffers we are going to render to.
@@ -543,14 +544,13 @@ void D3D12WND::Draw(const GameTimer& gt) {
 	ID3D12CommandList* cmdsLists[] = { mCommandList.Get() };
 	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
 
+	BufferCheck();
+
+
 	ThrowIfFailed(mSwapChain->Present(0, 0));
 	mCurBackBuffer = (mCurBackBuffer + 1) % mSwapChainBufferCount;
 
 	FlushCommandQueue();   
-
-
-	BufferCheck();
-
 	
 }
 
