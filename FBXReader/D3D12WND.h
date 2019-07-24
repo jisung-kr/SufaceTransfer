@@ -167,7 +167,9 @@ private:
 	std::vector<D3D12_INPUT_ELEMENT_DESC> mInputLayout;
 
 	/*------------------------------------------------------------------------------------------------------*/
-
+	//렌더링용 텍스쳐
+	Microsoft::WRL::ComPtr<ID3D12Resource> mRenderTargetTex;
+	Microsoft::WRL::ComPtr<ID3D12Resource> mDepthStencilTex;
 	//읽고 쓰고 가능한 텍스쳐 
 	Microsoft::WRL::ComPtr<ID3D12Resource> mSurface;
 	SIZE_T mSufaceSize = mClientHeight * mClientWidth * sizeof(float);
@@ -216,6 +218,8 @@ public:
 
 	void BuildSurfaceTexture();
 	void BufferCheck();
+
+	void CreateRenderTex();
 
 
 
