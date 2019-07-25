@@ -170,6 +170,9 @@ private:
 	//렌더링용 텍스쳐
 	Microsoft::WRL::ComPtr<ID3D12Resource> mRenderTargetTex;
 	Microsoft::WRL::ComPtr<ID3D12Resource> mDepthStencilTex;
+	//텍스쳐를 담을 힙 생성
+	Microsoft::WRL::ComPtr<ID3D12Heap> temp;
+
 	//읽고 쓰고 가능한 텍스쳐 
 	Microsoft::WRL::ComPtr<ID3D12Resource> mSurface;
 	SIZE_T mSufaceSize = mClientHeight * mClientWidth * sizeof(float);
@@ -218,9 +221,7 @@ public:
 
 	void BuildSurfaceTexture();
 	void BufferCheck();
-
 	void CreateRenderTex();
-
 
 
 	/*------------------------------------------------------------------------------------------------------*/
