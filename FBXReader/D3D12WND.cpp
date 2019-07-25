@@ -44,7 +44,7 @@ bool D3D12WND::InitDirect3D() {
 	// Try to create hardware device.
 	HRESULT hardwareResult = D3D12CreateDevice(
 		adapter.Get(),             // default adapter
-		D3D_FEATURE_LEVEL_12_0,
+		D3D_FEATURE_LEVEL_11_0,
 		IID_PPV_ARGS(&md3dDevice));
 
 	// Fallback to WARP device.
@@ -111,6 +111,7 @@ bool D3D12WND::InitDirect3D() {
 
 	//화면 픽셀을 받아올 텍스쳐 생성
 	BuildSurfaceTexture();
+	//CreateRenderTexture();
 
 	BuildFrameResources();	
 	BuildPSOs();
@@ -195,11 +196,14 @@ void D3D12WND::CreateSwapChain() {
 	sd.SampleDesc.Count = m4xMsaaState ? 4 : 1;
 	sd.SampleDesc.Quality = m4xMsaaState ? (m4xMsaaQuality - 1) : 0;
 	sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+	//sd.BufferUsage = DXGI_USAGE_BACK_BUFFER;
 	sd.BufferCount = mSwapChainBufferCount;
 	sd.OutputWindow = mhMainWnd;
 	sd.Windowed = true;
 	sd.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 	sd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+
+
 
 	// Note: Swap chain uses queue to perform flush.
 	ThrowIfFailed(mdxgiFactory->CreateSwapChain(
@@ -207,6 +211,47 @@ void D3D12WND::CreateSwapChain() {
 		&sd,
 		mSwapChain.GetAddressOf()));
 }
+
+
+void D3D12WND::CreateRenderTexture() {
+	//자원 생성
+	//서술자 힙 생성
+	//서술자 생성
+
+
+	D3D12_RESOURCE_DESC renderTexDesc;
+	ZeroMemory(&renderTexDesc, sizeof(renderTexDesc));
+
+	//자원 설명 설정
+	renderTexDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	renderTexDesc.Width = mClientWidth;
+	renderTexDesc.Height = mClientHeight;
+	renderTexDesc.DepthOrArraySize = 1;
+	renderTexDesc.MipLevels = 1;
+	renderTexDesc.Format = mBackBufferFormat;
+	renderTexDesc.SampleDesc.Count = m4xMsaaState ? 4 : 1;
+	renderTexDesc.SampleDesc.Quality = m4xMsaaState ? (m4xMsaaQuality - 1) : 0;
+	renderTexDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+	renderTexDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+
+	//텍스쳐 생성
+	ThrowIfFailed(md3dDevice->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+		D3D12_HEAP_FLAG_NONE,
+		&renderTexDesc,
+		D3D12_RESOURCE_STATE_COMMON,
+		nullptr,
+		IID_PPV_ARGS(mRenderTex.GetAddressOf())));
+
+	//렌더타겟뷰
+	//셰이더 자원 뷰 
+
+	//쎄이더에 접근하기 위해
+
+
+}
+
+
 void D3D12WND::CreateRTVAndDSVDescriptorHeaps() {
 	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc;
 	rtvHeapDesc.NumDescriptors = mSwapChainBufferCount;
@@ -522,6 +567,7 @@ void D3D12WND::Draw(const GameTimer& gt) {
 
 
 
+
 	//배리어 설정
 	//백 버퍼 렌더타겟 > 카피 소스
 	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
@@ -530,12 +576,9 @@ void D3D12WND::Draw(const GameTimer& gt) {
 	//화면에 그려진 값 mSuface로 Copy
 	mCommandList->CopyResource(mSurface.Get(), CurrentBackBuffer());
 
-
-
 	//배리어 복원
 	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
 		D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET));
-
 
 	/*--------------------------------------------------------------------------------------*/
 	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
@@ -549,10 +592,7 @@ void D3D12WND::Draw(const GameTimer& gt) {
 	ThrowIfFailed(mSwapChain->Present(0, 0));
 	mCurBackBuffer = (mCurBackBuffer + 1) % mSwapChainBufferCount;
 
-
-
 	FlushCommandQueue();   
-
 
 	BufferCheck();
 	
@@ -563,7 +603,7 @@ void D3D12WND::BufferCheck( ) {
 
 	D3D12_RANGE readbackBufferRange{ 0, mSufaceSize };
 	FLOAT* pReadbackBufferData{};
-
+	/*	*/
 	mSurface->Map
 	(
 		0,
@@ -575,8 +615,9 @@ void D3D12WND::BufferCheck( ) {
 
 	//여기서 크기 만큼 네트워크로 전달!!
 
+	OutputDebugStringA(std::to_string(pReadbackBufferData[0]).c_str());
 
-	/*	*/
+	/*		*/
 	D3D12_RANGE emptyRange{ 0, 0 };
 
 	mSurface->Unmap
@@ -1001,6 +1042,19 @@ void D3D12WND::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::ve
 void D3D12WND::BuildSurfaceTexture() {
 	//읽고 쓸 수 있는 텍스쳐 생성
 	D3D12_RESOURCE_DESC surfaceTexDesc = { CD3DX12_RESOURCE_DESC::Buffer(mSufaceSize) };
+
+	/*
+	surfaceTexDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	surfaceTexDesc.Width = mClientWidth;
+	surfaceTexDesc.Height = mClientHeight;
+	surfaceTexDesc.DepthOrArraySize = 1;
+	surfaceTexDesc.MipLevels = 1;
+	surfaceTexDesc.Format = mBackBufferFormat;
+	surfaceTexDesc.SampleDesc.Count = m4xMsaaState ? 4 : 1;
+	surfaceTexDesc.SampleDesc.Quality = m4xMsaaState ? (m4xMsaaQuality - 1) : 0;
+	surfaceTexDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+	surfaceTexDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+	*/
 
 	ThrowIfFailed(md3dDevice->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_READBACK),
