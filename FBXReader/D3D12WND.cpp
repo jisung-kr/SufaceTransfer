@@ -39,7 +39,7 @@ bool D3D12WND::InitDirect3D() {
 #endif
 
 	Microsoft::WRL::ComPtr<IDXGIAdapter> adapter = nullptr;
-	mdxgiFactory->EnumAdapters(0, &adapter);
+	mdxgiFactory->EnumAdapters(1, &adapter);
 
 	// Try to create hardware device.
 	HRESULT hardwareResult = D3D12CreateDevice(
@@ -110,6 +110,7 @@ bool D3D12WND::InitDirect3D() {
 	BuildRenderItems();
 
 	//화면 픽셀을 받아올 텍스쳐 생성
+	CreateRenderTex();
 	BuildSurfaceTexture();
 	//CreateRenderTexture();
 
@@ -254,7 +255,7 @@ void D3D12WND::CreateRenderTexture() {
 
 void D3D12WND::CreateRTVAndDSVDescriptorHeaps() {
 	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc;
-	rtvHeapDesc.NumDescriptors = mSwapChainBufferCount;
+	rtvHeapDesc.NumDescriptors = mSwapChainBufferCount + 1;	//For Rendering To Texture
 	rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 	rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	rtvHeapDesc.NodeMask = 0;
@@ -262,7 +263,7 @@ void D3D12WND::CreateRTVAndDSVDescriptorHeaps() {
 		&rtvHeapDesc, IID_PPV_ARGS(mRtvHeap.GetAddressOf())));
 
 	D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc;
-	dsvHeapDesc.NumDescriptors = 1;
+	dsvHeapDesc.NumDescriptors = 1 + 1;	//For Rendering To Texture
 	dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
 	dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	dsvHeapDesc.NodeMask = 0;
@@ -456,7 +457,7 @@ void D3D12WND::OnResize() {
 	//   1. SRV format: DXGI_FORMAT_R24_UNORM_X8_TYPELESS
 	//   2. DSV Format: DXGI_FORMAT_D24_UNORM_S8_UINT
 	// we need to create the depth buffer resource with a typeless format.  
-	depthStencilDesc.Format = DXGI_FORMAT_R24G8_TYPELESS;
+	depthStencilDesc.Format = mDepthStencilFormat;
 
 	depthStencilDesc.SampleDesc.Count = m4xMsaaState ? 4 : 1;
 	depthStencilDesc.SampleDesc.Quality = m4xMsaaState ? (m4xMsaaQuality - 1) : 0;
@@ -565,19 +566,27 @@ void D3D12WND::Draw(const GameTimer& gt) {
 	//여기서 그리기 수행
 	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::Opaque]);
 
+	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(mRtvHeap->GetCPUDescriptorHandleForHeapStart());
+	rtvHandle.Offset(2, mRtvDescriptorSize);
+	CD3DX12_CPU_DESCRIPTOR_HANDLE dsvHandle(mDsvHeap->GetCPUDescriptorHandleForHeapStart(), 1, mDsvDescriptorSize);
 
+	mCommandList->OMSetRenderTargets(1, &rtvHandle, true, &dsvHandle);
+	//렌더타켓 바꿔서 렌더링
+	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::Opaque]);
 
 
 	//배리어 설정
-	//백 버퍼 렌더타겟 > 카피 소스
-	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
+	//렌더 텍스쳐 렌더타겟 > 카피 소스
+	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(mRenderTargetTex.Get(),
 		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE));
 
 	//화면에 그려진 값 mSuface로 Copy
-	mCommandList->CopyResource(mSurface.Get(), CurrentBackBuffer());
+	mCommandList->CopyResource(mSurface.Get(), mRenderTargetTex.Get());
+
+
 
 	//배리어 복원
-	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
+	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(mRenderTargetTex.Get(),
 		D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET));
 
 	/*--------------------------------------------------------------------------------------*/
@@ -1038,23 +1047,90 @@ void D3D12WND::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::ve
 	}
 }
 
+void D3D12WND::CreateRenderTex() {
+	D3D12_RESOURCE_DESC texDesc;
+	ZeroMemory(&texDesc, sizeof(texDesc));
+
+	texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	texDesc.Alignment = 0;
+	texDesc.Width = mClientWidth;
+	texDesc.Height = mClientHeight;
+	texDesc.DepthOrArraySize = 1;
+	texDesc.MipLevels = 1;
+	texDesc.Format = mBackBufferFormat;
+	texDesc.SampleDesc.Count = 1;
+	texDesc.SampleDesc.Quality = 0;
+	texDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+	texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+
+	//자원 생성
+	ThrowIfFailed(md3dDevice->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+		D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES,	//이곳 나중에 값 수정해 볼것
+		&texDesc,
+		D3D12_RESOURCE_STATE_COMMON,	//이곳도
+		nullptr,
+		IID_PPV_ARGS(&mRenderTargetTex)
+	));
+	//서술자 힙은 이미 만들어 둠
+
+	//RTV 생성
+	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc;
+	rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+	rtvDesc.Format = mBackBufferFormat;
+	rtvDesc.Texture2D.MipSlice = 0;
+	rtvDesc.Texture2D.PlaneSlice = 0;
+
+	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle( mRtvHeap->GetCPUDescriptorHandleForHeapStart());
+	rtvHandle.Offset(2, mRtvDescriptorSize);
+
+	md3dDevice->CreateRenderTargetView(mRenderTargetTex.Get(), &rtvDesc, rtvHandle);
+
+	/*	*/
+	//DS 자원 생성
+	D3D12_RESOURCE_DESC dsDesc;
+	dsDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	dsDesc.Alignment = 0;
+	dsDesc.Width = mClientWidth;
+	dsDesc.Height = mClientHeight;
+	dsDesc.DepthOrArraySize = 1;
+	dsDesc.MipLevels = 1;
+	dsDesc.Format = mDepthStencilFormat;
+	
+	dsDesc.SampleDesc.Count = 1;
+	dsDesc.SampleDesc.Quality =  0;
+	dsDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+	dsDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+
+	D3D12_CLEAR_VALUE optClear;
+	optClear.Format = mDepthStencilFormat;
+	optClear.DepthStencil.Depth = 1.0f;
+	optClear.DepthStencil.Stencil = 0;
+	ThrowIfFailed(md3dDevice->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+		D3D12_HEAP_FLAG_NONE,
+		&dsDesc,
+		D3D12_RESOURCE_STATE_COMMON,
+		&optClear,
+		IID_PPV_ARGS(mDepthStencilTex.GetAddressOf())));
+
+	//DSV생성
+	CD3DX12_CPU_DESCRIPTOR_HANDLE dsvHandle(mDsvHeap->GetCPUDescriptorHandleForHeapStart(), 1, mDsvDescriptorSize);
+	md3dDevice->CreateDepthStencilView(mDepthStencilTex.Get(), nullptr, dsvHandle);
+
+	// Transition the resource from its initial state to be used as a depth buffer.
+	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(mDepthStencilTex.Get(),
+		D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_DEPTH_WRITE));
+}
 
 void D3D12WND::BuildSurfaceTexture() {
+	//렌더링용 텍스쳐 생성
+	D3D12_RESOURCE_DESC renderTexDesc = CD3DX12_RESOURCE_DESC::Tex2D(mBackBufferFormat, mClientWidth, mClientHeight);
+	renderTexDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+
+
 	//읽고 쓸 수 있는 텍스쳐 생성
 	D3D12_RESOURCE_DESC surfaceTexDesc = { CD3DX12_RESOURCE_DESC::Buffer(mSufaceSize) };
-
-	/*
-	surfaceTexDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-	surfaceTexDesc.Width = mClientWidth;
-	surfaceTexDesc.Height = mClientHeight;
-	surfaceTexDesc.DepthOrArraySize = 1;
-	surfaceTexDesc.MipLevels = 1;
-	surfaceTexDesc.Format = mBackBufferFormat;
-	surfaceTexDesc.SampleDesc.Count = m4xMsaaState ? 4 : 1;
-	surfaceTexDesc.SampleDesc.Quality = m4xMsaaState ? (m4xMsaaQuality - 1) : 0;
-	surfaceTexDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-	surfaceTexDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-	*/
 
 	ThrowIfFailed(md3dDevice->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_READBACK),
@@ -1063,6 +1139,7 @@ void D3D12WND::BuildSurfaceTexture() {
 		D3D12_RESOURCE_STATE_COPY_DEST,
 		nullptr,
 		IID_PPV_ARGS(&mSurface)));
+
 }
 
 

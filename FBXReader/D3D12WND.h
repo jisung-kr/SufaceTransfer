@@ -167,11 +167,9 @@ private:
 	std::vector<D3D12_INPUT_ELEMENT_DESC> mInputLayout;
 
 	/*------------------------------------------------------------------------------------------------------*/
-	//그리기용 텍스쳐(자원) & 
-
-	Microsoft::WRL::ComPtr<ID3D12Resource> mRenderTex;	//텍스쳐 자원
-	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mRenderTexRTVHeap;	//렌더타켓용 서술자 힙
-	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mRenderTexSRVHeap;	//셰이더 자원 서술자 힙
+		//렌더링용 텍스쳐
+	Microsoft::WRL::ComPtr<ID3D12Resource> mRenderTargetTex;
+	Microsoft::WRL::ComPtr<ID3D12Resource> mDepthStencilTex;
 
 	//읽고 쓰고 가능한 텍스쳐 
 	Microsoft::WRL::ComPtr<ID3D12Resource> mSurface;
@@ -221,8 +219,6 @@ public:
 
 	void BuildSurfaceTexture();
 	void BufferCheck();
-
-	void CreateRenderTexture();
 
 
 

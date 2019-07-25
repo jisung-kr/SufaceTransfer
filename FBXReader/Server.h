@@ -14,10 +14,10 @@ public:
 private:
 	struct WSAData mWsaData;
 	
-	SOCKET mSockServer;	
+	SOCKET mSockServer;
 	SOCKET mSockClient;
 
-	struct sockaddr_in mAddrServer;	
+	struct sockaddr_in mAddrServer;
 	struct sockaddr_in mAddrClient;	
 
 public:
