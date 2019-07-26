@@ -167,15 +167,15 @@ private:
 	std::vector<D3D12_INPUT_ELEMENT_DESC> mInputLayout;
 
 	/*------------------------------------------------------------------------------------------------------*/
-	//렌더링용 텍스쳐
-	Microsoft::WRL::ComPtr<ID3D12Resource> mRenderTargetTex;
-	Microsoft::WRL::ComPtr<ID3D12Resource> mDepthStencilTex;
-	//텍스쳐를 담을 힙 생성
-	Microsoft::WRL::ComPtr<ID3D12Heap> temp;
-
+	
+	//GPU - CPU메모리 영역에 생성할 자원?
 	//읽고 쓰고 가능한 텍스쳐 
 	Microsoft::WRL::ComPtr<ID3D12Resource> mSurface;
-	SIZE_T mSufaceSize = mClientHeight * mClientWidth * sizeof(float);
+	SIZE_T mSurfaceSize = mClientHeight * mClientWidth * sizeof(float);
+
+	//텍스쳐를 담을 힙 생성 [임시]
+	Microsoft::WRL::ComPtr<ID3D12Heap> temp;
+
 
 	/*------------------------------------------------------------------------------------------------------*/
 	PassConstants mMainPassCB;
@@ -219,10 +219,9 @@ public:
 
 	void BuildCubeMesh();
 
-	void BuildSurfaceTexture();
-	void BufferCheck();
-	void CreateRenderTex();
-
+	void CreateReadBackTex();
+	void CheckBuffer();
+	
 
 	/*------------------------------------------------------------------------------------------------------*/
 	void OnKeyboardInput(const GameTimer& gt);

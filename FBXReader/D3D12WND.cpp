@@ -39,8 +39,8 @@ bool D3D12WND::InitDirect3D() {
 #endif
 
 	Microsoft::WRL::ComPtr<IDXGIAdapter> adapter = nullptr;
-	mdxgiFactory->EnumAdapters(1, &adapter);
-
+	mdxgiFactory->EnumAdapters(0, &adapter);
+	
 	// Try to create hardware device.
 	HRESULT hardwareResult = D3D12CreateDevice(
 		adapter.Get(),             // default adapter
@@ -121,10 +121,8 @@ bool D3D12WND::InitDirect3D() {
 	BuildCubeMesh();
 	BuildRenderItems();
 
-	//화면 픽셀을 받아올 텍스쳐 생성
-	CreateRenderTex();
-	BuildSurfaceTexture();
-	//CreateRenderTexture();
+	//리드백 자원 생성
+	CreateReadBackTex();
 
 	BuildFrameResources();	
 	BuildPSOs();
@@ -209,7 +207,6 @@ void D3D12WND::CreateSwapChain() {
 	sd.SampleDesc.Count = m4xMsaaState ? 4 : 1;
 	sd.SampleDesc.Quality = m4xMsaaState ? (m4xMsaaQuality - 1) : 0;
 	sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-	//sd.BufferUsage = DXGI_USAGE_BACK_BUFFER;
 	sd.BufferCount = mSwapChainBufferCount;
 	sd.OutputWindow = mhMainWnd;
 	sd.Windowed = true;
@@ -541,15 +538,41 @@ void D3D12WND::Draw(const GameTimer& gt) {
 	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::Opaque]);
 
 
-	//배리어 설정
-	//렌더 텍스쳐 렌더타겟 > 카피 소스
+	/*--------------------------------------------------------------------------------------*/
+	//리소스 배리어 전환
 	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
 		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE));
+	
+	//복사
+	D3D12_SUBRESOURCE_FOOTPRINT dstFoot;
+	dstFoot.Format = mBackBufferFormat;
+	dstFoot.Height = mClientHeight;
+	dstFoot.Width = mClientWidth;
+	dstFoot.Depth = 1;
+	dstFoot.RowPitch = ((mSurfaceSize  /D3D12_TEXTURE_DATA_PITCH_ALIGNMENT) + 1) * D3D12_TEXTURE_DATA_PITCH_ALIGNMENT;
 
-	//화면에 그려진 값 mSuface로 Copy
-	mCommandList->CopyResource(mRenderTargetTex.Get(), CurrentBackBuffer());
+	D3D12_TEXTURE_COPY_LOCATION dstLoc;
+	dstLoc.pResource = mSurface.Get();
+	dstLoc.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+	dstLoc.PlacedFootprint = D3D12_PLACED_SUBRESOURCE_FOOTPRINT{ 0, dstFoot };
+	dstLoc.SubresourceIndex = 0;
 
-	//배리어 복원
+	D3D12_SUBRESOURCE_FOOTPRINT srcFoot;
+	srcFoot.Format = mBackBufferFormat;
+	srcFoot.Height = mClientHeight;
+	srcFoot.Width = mClientWidth;
+	srcFoot.Depth = 1;
+	srcFoot.RowPitch = D3D12_TEXTURE_DATA_PITCH_ALIGNMENT;
+
+	D3D12_TEXTURE_COPY_LOCATION srcLoc;
+	srcLoc.pResource = CurrentBackBuffer();
+	srcLoc.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+	srcLoc.PlacedFootprint = D3D12_PLACED_SUBRESOURCE_FOOTPRINT{ 0, srcFoot };
+	srcLoc.SubresourceIndex = 0;
+
+	//mCommandList->CopyTextureRegion(&dstLoc, 0, 0, 0, &srcLoc, nullptr);
+
+	//배리어 다시 원래대로
 	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
 		D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET));
 
@@ -567,52 +590,11 @@ void D3D12WND::Draw(const GameTimer& gt) {
 
 	FlushCommandQueue();   
 
-	BufferCheck();
-	
+	CheckBuffer();
+
+
 }
 
-void D3D12WND::BufferCheck( ) {
-	//버퍼 확인
-
-	D3D12_RANGE readbackBufferRange{ 0, mSufaceSize };
-	FLOAT* pReadbackBufferData{};
-	/*	
-	mSurface->Map
-	(
-		0,
-		&readbackBufferRange,
-		reinterpret_cast<void**>(&pReadbackBufferData)
-	);
-	*/
-	mRenderTargetTex->Map
-	(
-		0,
-		&readbackBufferRange,
-		reinterpret_cast<void**>(&pReadbackBufferData)
-	);
-
-
-	//여기서 크기 만큼 네트워크로 전달!!
-
-	OutputDebugStringA(std::to_string(pReadbackBufferData[0]).c_str());
-
-
-	D3D12_RANGE emptyRange{ 0, 0 };
-	/*
-	mSurface->Unmap
-	(
-		0,
-		&emptyRange
-	);
-
-	*/
-	mRenderTargetTex->Unmap
-	(
-		0,
-		&emptyRange
-	);
-
-}
 
 void D3D12WND::Update(const GameTimer& gt) {
 	OnKeyboardInput(gt);
@@ -1024,112 +1006,6 @@ void D3D12WND::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::ve
 	}
 }
 
-void D3D12WND::CreateRenderTex() {
-	D3D12_RESOURCE_DESC texDesc;
-	ZeroMemory(&texDesc, sizeof(texDesc));
-
-	texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-	texDesc.Alignment = 0;
-	texDesc.Width = mClientWidth;
-	texDesc.Height = mClientHeight;
-	texDesc.DepthOrArraySize = 1;
-	texDesc.MipLevels = 1;
-	texDesc.Format = mBackBufferFormat;
-	texDesc.SampleDesc.Count = 1;
-	texDesc.SampleDesc.Quality = 0;
-	texDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-	texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-
-	//자원 생성
-	/*
-	ThrowIfFailed(md3dDevice->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-		D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES,	//이곳 나중에 값 수정해 볼것
-		&texDesc,
-		D3D12_RESOURCE_STATE_COMMON,	//이곳도
-		nullptr,
-		IID_PPV_ARGS(&mRenderTargetTex)
-	));
-	*/
-	//힙 생성 후 그 힙 안에 자원 생성
-	D3D12_HEAP_DESC heapDesc;
-	heapDesc.Flags = D3D12_HEAP_FLAG_SHARED;
-	heapDesc.Properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
-	heapDesc.Alignment = 1;
-
-	md3dDevice->CreateHeap(&heapDesc, IID_PPV_ARGS(temp.GetAddressOf()));
-
-	md3dDevice->CreatePlacedResource(temp.Get(), 0, &texDesc, D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&mRenderTargetTex));
-
-	//서술자 힙은 이미 만들어 둠
-
-	/*
-	//RTV 생성
-	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc;
-	rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-	rtvDesc.Format = mBackBufferFormat;
-	rtvDesc.Texture2D.MipSlice = 0;
-	rtvDesc.Texture2D.PlaneSlice = 0;
-
-	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle( mRtvHeap->GetCPUDescriptorHandleForHeapStart());
-	rtvHandle.Offset(2, mRtvDescriptorSize);
-
-	md3dDevice->CreateRenderTargetView(mRenderTargetTex.Get(), &rtvDesc, rtvHandle);
-			*/
-	/*	*/
-	//DS 자원 생성
-	D3D12_RESOURCE_DESC dsDesc;
-	dsDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-	dsDesc.Alignment = 0;
-	dsDesc.Width = mClientWidth;
-	dsDesc.Height = mClientHeight;
-	dsDesc.DepthOrArraySize = 1;
-	dsDesc.MipLevels = 1;
-	dsDesc.Format = mDepthStencilFormat;
-	
-	dsDesc.SampleDesc.Count = 1;
-	dsDesc.SampleDesc.Quality =  0;
-	dsDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-	dsDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-
-	D3D12_CLEAR_VALUE optClear;
-	optClear.Format = mDepthStencilFormat;
-	optClear.DepthStencil.Depth = 1.0f;
-	optClear.DepthStencil.Stencil = 0;
-	ThrowIfFailed(md3dDevice->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-		D3D12_HEAP_FLAG_NONE,
-		&dsDesc,
-		D3D12_RESOURCE_STATE_COMMON,
-		&optClear,
-		IID_PPV_ARGS(mDepthStencilTex.GetAddressOf())));
-
-	//DSV생성
-	CD3DX12_CPU_DESCRIPTOR_HANDLE dsvHandle(mDsvHeap->GetCPUDescriptorHandleForHeapStart(), 1, mDsvDescriptorSize);
-	md3dDevice->CreateDepthStencilView(mDepthStencilTex.Get(), nullptr, dsvHandle);
-
-	// Transition the resource from its initial state to be used as a depth buffer.
-	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(mDepthStencilTex.Get(),
-		D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_DEPTH_WRITE));
-}
-
-void D3D12WND::BuildSurfaceTexture() {
-
-	//읽고 쓸 수 있는 텍스쳐 생성
-	D3D12_RESOURCE_DESC surfaceTexDesc = { CD3DX12_RESOURCE_DESC::Buffer(mSufaceSize) };
-
-	ThrowIfFailed(md3dDevice->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_READBACK),
-		D3D12_HEAP_FLAG_NONE,
-		&surfaceTexDesc,
-		D3D12_RESOURCE_STATE_COPY_DEST,
-		nullptr,
-		IID_PPV_ARGS(&mSurface)));
-
-}
-
-
-
 std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> D3D12WND::GetStaticSamplers()
 {
 	// Applications usually only need a handful of samplers.  So just define them all up front
@@ -1188,6 +1064,48 @@ std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> D3D12WND::GetStaticSamplers()
 }
 
 
+void D3D12WND::CreateReadBackTex() {
+
+	D3D12_RESOURCE_DESC readbackDesc;
+	ZeroMemory(&readbackDesc, sizeof(readbackDesc));
+	/*
+	readbackDesc.Alignment = 1;
+	readbackDesc.DepthOrArraySize = 1;
+	readbackDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	readbackDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+	readbackDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+	readbackDesc.Format = mBackBufferFormat;
+	readbackDesc.Height = mClientHeight;
+	readbackDesc.Width = mClientWidth;
+	readbackDesc.MipLevels = 1;
+	readbackDesc.SampleDesc.Count = 1;
+	readbackDesc.SampleDesc.Quality = 0;
+	*/
+	readbackDesc = CD3DX12_RESOURCE_DESC{ CD3DX12_RESOURCE_DESC::Buffer(mSurfaceSize) };
+	
+	ThrowIfFailed(md3dDevice->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_READBACK),
+		D3D12_HEAP_FLAG_NONE,
+		&readbackDesc,
+		D3D12_RESOURCE_STATE_COPY_DEST,
+		nullptr,
+		IID_PPV_ARGS(mSurface.GetAddressOf())
+	));
+
+}
+
+void D3D12WND::CheckBuffer() {
+	
+	FLOAT* buffer;
+	D3D12_RANGE renge{ 0, mSurfaceSize };
+	mSurface->Map(0, &renge, (void**)&buffer);
+
+	
+	//HHH
+
+	mSurface->Unmap(0, 0);
+	
+}
 
 
 
