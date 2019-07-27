@@ -162,7 +162,6 @@
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="MainWindow.cpp" />
     <ClCompile Include="MathHelper.cpp" />
-    <ClCompile Include="Server.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h" />
@@ -175,7 +174,6 @@
     <ClInclude Include="GeometryGenerator.h" />
     <ClInclude Include="MainWindow.h" />
     <ClInclude Include="MathHelper.h" />
-    <ClInclude Include="Server.h" />
     <ClInclude Include="UploadBuffer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

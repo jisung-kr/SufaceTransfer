@@ -3,8 +3,8 @@
 #include <WS2tcpip.h>
 #include <iostream>
 
-#pragma comment(lib, "ws2_32.lib")
 
+#pragma comment(lib, "ws2_32.lib")
 
 class Server {
 public:
