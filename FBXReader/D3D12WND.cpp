@@ -540,6 +540,13 @@ void D3D12WND::Draw(const GameTimer& gt) {
 	//여기서 그리기 수행
 	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::Opaque]);
 
+	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(mRtvHeap->GetCPUDescriptorHandleForHeapStart());
+	rtvHandle.Offset(2, mRtvDescriptorSize);
+	CD3DX12_CPU_DESCRIPTOR_HANDLE dsvHandle(mDsvHeap->GetCPUDescriptorHandleForHeapStart(), 1, mDsvDescriptorSize);
+
+	mCommandList->OMSetRenderTargets(1, &rtvHandle, true, &dsvHandle);
+	//렌더타켓 바꿔서 렌더링
+	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::Opaque]);
 
 	//배리어 설정
 	//렌더 텍스쳐 렌더타겟 > 카피 소스
@@ -1038,7 +1045,7 @@ void D3D12WND::CreateRenderTex() {
 	texDesc.SampleDesc.Count = 1;
 	texDesc.SampleDesc.Quality = 0;
 	texDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-	texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+	texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 
 	//자원 생성
 	/*
@@ -1046,7 +1053,7 @@ void D3D12WND::CreateRenderTex() {
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 		D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES,	//이곳 나중에 값 수정해 볼것
 		&texDesc,
-		D3D12_RESOURCE_STATE_COMMON,	//이곳도
+		D3D12_RESOURCE_STATE_RENDER_TARGET,	//이곳도
 		nullptr,
 		IID_PPV_ARGS(&mRenderTargetTex)
 	));
