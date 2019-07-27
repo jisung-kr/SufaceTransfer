@@ -39,7 +39,7 @@ bool D3D12WND::InitDirect3D() {
 #endif
 
 	Microsoft::WRL::ComPtr<IDXGIAdapter> adapter = nullptr;
-	mdxgiFactory->EnumAdapters(0, &adapter);
+	mdxgiFactory->EnumAdapters(1, &adapter);
 	
 	// Try to create hardware device.
 	HRESULT hardwareResult = D3D12CreateDevice(
@@ -47,13 +47,13 @@ bool D3D12WND::InitDirect3D() {
 		D3D_FEATURE_LEVEL_11_0,
 		IID_PPV_ARGS(&md3dDevice));
 
-	D3D12_FEATURE_DATA_D3D12_OPTIONS temp;
+	D3D12_FEATURE_DATA_D3D12_OPTIONS temp = { 0, };
 	
 	md3dDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &temp, sizeof(temp));
 
 	OutputDebugStringA(temp.StandardSwizzle64KBSupported ? "True" : "False"); //F
 
-	D3D12_FEATURE_DATA_ARCHITECTURE temp2;
+	D3D12_FEATURE_DATA_ARCHITECTURE temp2 = { 0, };
 	md3dDevice->CheckFeatureSupport(D3D12_FEATURE_ARCHITECTURE, &temp2, sizeof(temp2));
 
 	OutputDebugStringA(temp2.UMA ? "True" : "False");  //T
@@ -543,34 +543,27 @@ void D3D12WND::Draw(const GameTimer& gt) {
 	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
 		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE));
 	
-	//복사
-	D3D12_SUBRESOURCE_FOOTPRINT dstFoot;
-	dstFoot.Format = mBackBufferFormat;
-	dstFoot.Height = mClientHeight;
-	dstFoot.Width = mClientWidth;
-	dstFoot.Depth = 1;
-	dstFoot.RowPitch = ((mSurfaceSize  /D3D12_TEXTURE_DATA_PITCH_ALIGNMENT) + 1) * D3D12_TEXTURE_DATA_PITCH_ALIGNMENT;
-
+	//복사대상 설정
 	D3D12_TEXTURE_COPY_LOCATION dstLoc;
 	dstLoc.pResource = mSurface.Get();
 	dstLoc.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-	dstLoc.PlacedFootprint = D3D12_PLACED_SUBRESOURCE_FOOTPRINT{ 0, dstFoot };
+	dstLoc.PlacedFootprint.Offset = 0;
+	dstLoc.PlacedFootprint.Footprint.Format = mBackBufferFormat;
+	dstLoc.PlacedFootprint.Footprint.Height = mClientHeight;
+	dstLoc.PlacedFootprint.Footprint.Width = mClientWidth;
+	dstLoc.PlacedFootprint.Footprint.Depth = 1;
+	dstLoc.PlacedFootprint.Footprint.RowPitch = (((mClientWidth * sizeof(float)) / D3D12_TEXTURE_DATA_PITCH_ALIGNMENT) + 1) * D3D12_TEXTURE_DATA_PITCH_ALIGNMENT;
 	dstLoc.SubresourceIndex = 0;
 
-	D3D12_SUBRESOURCE_FOOTPRINT srcFoot;
-	srcFoot.Format = mBackBufferFormat;
-	srcFoot.Height = mClientHeight;
-	srcFoot.Width = mClientWidth;
-	srcFoot.Depth = 1;
-	srcFoot.RowPitch = D3D12_TEXTURE_DATA_PITCH_ALIGNMENT;
-
+	//복사소스 설정
 	D3D12_TEXTURE_COPY_LOCATION srcLoc;
 	srcLoc.pResource = CurrentBackBuffer();
 	srcLoc.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-	srcLoc.PlacedFootprint = D3D12_PLACED_SUBRESOURCE_FOOTPRINT{ 0, srcFoot };
 	srcLoc.SubresourceIndex = 0;
 
-	//mCommandList->CopyTextureRegion(&dstLoc, 0, 0, 0, &srcLoc, nullptr);
+	//복사
+	mCommandList->CopyTextureRegion(&dstLoc, 0, 0, 0, &srcLoc, nullptr);
+	
 
 	//배리어 다시 원래대로
 	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
@@ -591,7 +584,6 @@ void D3D12WND::Draw(const GameTimer& gt) {
 	FlushCommandQueue();   
 
 	CheckBuffer();
-
 
 }
 
