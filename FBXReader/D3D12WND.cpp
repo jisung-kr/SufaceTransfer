@@ -124,7 +124,6 @@ bool D3D12WND::InitDirect3D() {
 	//화면 픽셀을 받아올 텍스쳐 생성
 	CreateRenderTex();
 	BuildSurfaceTexture();
-	//CreateRenderTexture();
 
 	BuildFrameResources();	
 	BuildPSOs();
@@ -540,13 +539,7 @@ void D3D12WND::Draw(const GameTimer& gt) {
 	//여기서 그리기 수행
 	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::Opaque]);
 
-	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(mRtvHeap->GetCPUDescriptorHandleForHeapStart());
-	rtvHandle.Offset(2, mRtvDescriptorSize);
-	CD3DX12_CPU_DESCRIPTOR_HANDLE dsvHandle(mDsvHeap->GetCPUDescriptorHandleForHeapStart(), 1, mDsvDescriptorSize);
-
-	mCommandList->OMSetRenderTargets(1, &rtvHandle, true, &dsvHandle);
-	//렌더타켓 바꿔서 렌더링
-	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::Opaque]);
+	/*
 
 	//배리어 설정
 	//렌더 텍스쳐 렌더타겟 > 카피 소스
@@ -554,12 +547,12 @@ void D3D12WND::Draw(const GameTimer& gt) {
 		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE));
 
 	//화면에 그려진 값 mSuface로 Copy
-	mCommandList->CopyResource(mRenderTargetTex.Get(), CurrentBackBuffer());
+	mCommandList->CopyResource(mSurface.Get(), CurrentBackBuffer());
 
 	//배리어 복원
 	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
 		D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET));
-
+		*/
 	/*--------------------------------------------------------------------------------------*/
 	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
 		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
@@ -574,7 +567,7 @@ void D3D12WND::Draw(const GameTimer& gt) {
 
 	FlushCommandQueue();   
 
-	BufferCheck();
+	//BufferCheck();
 	
 }
 
@@ -1048,7 +1041,7 @@ void D3D12WND::CreateRenderTex() {
 	texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 
 	//자원 생성
-	/*
+	/*	*/
 	ThrowIfFailed(md3dDevice->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 		D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES,	//이곳 나중에 값 수정해 볼것
@@ -1057,7 +1050,8 @@ void D3D12WND::CreateRenderTex() {
 		nullptr,
 		IID_PPV_ARGS(&mRenderTargetTex)
 	));
-	*/
+
+	/*
 	//힙 생성 후 그 힙 안에 자원 생성
 	D3D12_HEAP_DESC heapDesc;
 	heapDesc.Flags = D3D12_HEAP_FLAG_SHARED;
@@ -1069,7 +1063,7 @@ void D3D12WND::CreateRenderTex() {
 	md3dDevice->CreatePlacedResource(temp.Get(), 0, &texDesc, D3D12_RESOURCE_STATE_COMMON, nullptr, IID_PPV_ARGS(&mRenderTargetTex));
 
 	//서술자 힙은 이미 만들어 둠
-
+	*/
 	/*
 	//RTV 생성
 	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc;
@@ -1083,41 +1077,7 @@ void D3D12WND::CreateRenderTex() {
 
 	md3dDevice->CreateRenderTargetView(mRenderTargetTex.Get(), &rtvDesc, rtvHandle);
 			*/
-	/*	*/
-	//DS 자원 생성
-	D3D12_RESOURCE_DESC dsDesc;
-	dsDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-	dsDesc.Alignment = 0;
-	dsDesc.Width = mClientWidth;
-	dsDesc.Height = mClientHeight;
-	dsDesc.DepthOrArraySize = 1;
-	dsDesc.MipLevels = 1;
-	dsDesc.Format = mDepthStencilFormat;
-	
-	dsDesc.SampleDesc.Count = 1;
-	dsDesc.SampleDesc.Quality =  0;
-	dsDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-	dsDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
 
-	D3D12_CLEAR_VALUE optClear;
-	optClear.Format = mDepthStencilFormat;
-	optClear.DepthStencil.Depth = 1.0f;
-	optClear.DepthStencil.Stencil = 0;
-	ThrowIfFailed(md3dDevice->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-		D3D12_HEAP_FLAG_NONE,
-		&dsDesc,
-		D3D12_RESOURCE_STATE_COMMON,
-		&optClear,
-		IID_PPV_ARGS(mDepthStencilTex.GetAddressOf())));
-
-	//DSV생성
-	CD3DX12_CPU_DESCRIPTOR_HANDLE dsvHandle(mDsvHeap->GetCPUDescriptorHandleForHeapStart(), 1, mDsvDescriptorSize);
-	md3dDevice->CreateDepthStencilView(mDepthStencilTex.Get(), nullptr, dsvHandle);
-
-	// Transition the resource from its initial state to be used as a depth buffer.
-	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(mDepthStencilTex.Get(),
-		D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_DEPTH_WRITE));
 }
 
 void D3D12WND::BuildSurfaceTexture() {

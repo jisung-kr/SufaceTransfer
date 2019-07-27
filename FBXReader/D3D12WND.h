@@ -167,9 +167,9 @@ private:
 	std::vector<D3D12_INPUT_ELEMENT_DESC> mInputLayout;
 
 	/*------------------------------------------------------------------------------------------------------*/
-	//렌더링용 텍스쳐
+	//렌더링용 텍스쳐 (GPU - CPU Share Memory)
 	Microsoft::WRL::ComPtr<ID3D12Resource> mRenderTargetTex;
-	Microsoft::WRL::ComPtr<ID3D12Resource> mDepthStencilTex;
+
 	//텍스쳐를 담을 힙 생성
 	Microsoft::WRL::ComPtr<ID3D12Heap> temp;
 
