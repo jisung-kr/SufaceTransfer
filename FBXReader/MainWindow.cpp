@@ -47,6 +47,16 @@ bool MainWindow::Initialize() {
 
 	d3dApp->OnResize();
 
+	/* 서버 소켓 생성및 초기화 */
+	server = new Server();
+	if (!server->Init())
+		return false;
+
+	/* 클라이언트 소켓 받아오기 */
+	//이 부분은 나중에 따로 쓰레드로 빼거나 해야함 !!
+	server->WaitForClient();
+
+	::MessageBoxA(mhMainWnd, "접속", "클라이언트 접속", MB_OK);
 
 	return true;
 }
@@ -75,6 +85,10 @@ int MainWindow::Run() {
 				d3dApp->CalculateFrameStatus();
 				d3dApp->Update(d3dApp->mTimer);
 				d3dApp->Draw(d3dApp->mTimer);
+
+				//이곳에서 클라이언트에 전달
+				server->SendData(d3dApp->GetReadBackBuffer(), d3dApp->GetReadBackBufferSize());
+
 			}
 			else
 			{

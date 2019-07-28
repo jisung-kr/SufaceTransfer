@@ -1,12 +1,10 @@
 #pragma once
-#include <Windowsx.h>
 
+#include "Network.h"
 #include "D3D12WND.h"
 
+#include <Windowsx.h>
 
-#pragma comment(lib, "d3dcompiler.lib")
-#pragma comment(lib, "D3D12.lib")
-#pragma comment(lib, "dxgi.lib")
 
 class MainWindow {
 public:
@@ -31,7 +29,7 @@ private:
 
 	//D3D12 ·»´õ È­¸é
 	D3D12WND* d3dApp = nullptr;
-
+	Server* server = nullptr;
 
 public:
 	static MainWindow* GetInstance();

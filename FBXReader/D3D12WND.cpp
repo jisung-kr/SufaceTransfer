@@ -243,23 +243,16 @@ void D3D12WND::CreateRTVAndDSVDescriptorHeaps() {
 }
 
 void D3D12WND::FlushCommandQueue() {
-	// Advance the fence value to mark commands up to this fence point.
 	mCurrentFence++;
 
-	// Add an instruction to the command queue to set a new fence point.  Because we 
-	// are on the GPU timeline, the new fence point won't be set until the GPU finishes
-	// processing all the commands prior to this Signal().
 	ThrowIfFailed(mCommandQueue->Signal(mFence.Get(), mCurrentFence));
 
-	// Wait until the GPU has completed commands up to this fence point.
 	if (mFence->GetCompletedValue() < mCurrentFence)
 	{
 		HANDLE eventHandle = CreateEventEx(nullptr, false, false, EVENT_ALL_ACCESS);
 
-		// Fire event when GPU hits current fence.  
 		ThrowIfFailed(mFence->SetEventOnCompletion(mCurrentFence, eventHandle));
 
-		// Wait until the GPU hits current fence event is fired.
 		WaitForSingleObject(eventHandle, INFINITE);
 
 		CloseHandle(eventHandle);
@@ -302,7 +295,7 @@ void D3D12WND::LogAdapters() {
 	for (size_t i = 0; i < adapterList.size(); ++i)
 	{
 		LogAdapterOutputs(adapterList[i]);
-		//ReleaseCom(adapterList[i]);
+		ReleaseCom(adapterList[i]);
 	}
 }
 void D3D12WND::LogAdapterOutputs(IDXGIAdapter* adapter) {
@@ -320,7 +313,7 @@ void D3D12WND::LogAdapterOutputs(IDXGIAdapter* adapter) {
 
 		LogOutputDisplayModes(output, mBackBufferFormat);
 
-		//ReleaseCom(output);
+		ReleaseCom(output);
 
 		++i;
 	}
@@ -329,7 +322,6 @@ void D3D12WND::LogOutputDisplayModes(IDXGIOutput* output, DXGI_FORMAT format) {
 	UINT count = 0;
 	UINT flags = 0;
 
-	// Call with nullptr to get list count.
 	output->GetDisplayModeList(format, flags, &count, nullptr);
 
 	std::vector<DXGI_MODE_DESC> modeList(count);
@@ -368,7 +360,6 @@ void D3D12WND::OnMouseUp(WPARAM btnState, int x, int y) {
 void D3D12WND::OnMouseMove(WPARAM btnState, int x, int y) {
 	if ((btnState & MK_LBUTTON) != 0)
 	{
-		// Make each pixel correspond to a quarter of a degree.
 		float dx = XMConvertToRadians(0.25f*static_cast<float>(x - mLastMousePos.x));
 		float dy = XMConvertToRadians(0.25f*static_cast<float>(y - mLastMousePos.y));
 
@@ -487,29 +478,29 @@ float D3D12WND::AspectRatio() const {
 
 
 void D3D12WND::Draw(const GameTimer& gt) {
-	/*	*/
+	//매핑 해제
+	UnMapBuffer();
+
+	//현재 프레임 자원의 할당자를 가져옴
 	auto cmdListAlloc = mCurrFrameResource->CmdListAlloc;
 
-	// Reuse the memory associated with command recording.
-	// We can only reset when the associated command lists have finished execution on the GPU.
+	//명령할당자, 명령리스트 리셋
 	ThrowIfFailed(cmdListAlloc->Reset());
-
-	// A command list can be reset after it has been added to the command queue via ExecuteCommandList.
-	// Reusing the command list reuses memory.
 	ThrowIfFailed(mCommandList->Reset(cmdListAlloc.Get(), mPSOs["opaque"].Get()));
 
+	//뷰포트 가위사각설정
 	mCommandList->RSSetViewports(1, &mScreenViewport);
 	mCommandList->RSSetScissorRects(1, &mScissorRect);
 
-	// Indicate a state transition on the resource usage.
+	//백버퍼 배리어 전환 제시 -> 렌더타겟
 	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
 		D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
 
-	// Clear the back buffer and depth buffer.
+	//RTV, DSV 클리어
 	mCommandList->ClearRenderTargetView(CurrentBackBufferView(), Colors::SteelBlue, 0, nullptr);
 	mCommandList->ClearDepthStencilView(DepthStencilView(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
-	// Specify the buffers we are going to render to.
+
 	mCommandList->OMSetRenderTargets(1, &CurrentBackBufferView(), true, &DepthStencilView());
 
 	/*--------------------------------------------------------------------------------------*/
@@ -583,8 +574,7 @@ void D3D12WND::Draw(const GameTimer& gt) {
 
 	FlushCommandQueue();   
 
-	CheckBuffer();
-
+	MappingBuffer();
 }
 
 
@@ -1060,19 +1050,7 @@ void D3D12WND::CreateReadBackTex() {
 
 	D3D12_RESOURCE_DESC readbackDesc;
 	ZeroMemory(&readbackDesc, sizeof(readbackDesc));
-	/*
-	readbackDesc.Alignment = 1;
-	readbackDesc.DepthOrArraySize = 1;
-	readbackDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-	readbackDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-	readbackDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-	readbackDesc.Format = mBackBufferFormat;
-	readbackDesc.Height = mClientHeight;
-	readbackDesc.Width = mClientWidth;
-	readbackDesc.MipLevels = 1;
-	readbackDesc.SampleDesc.Count = 1;
-	readbackDesc.SampleDesc.Quality = 0;
-	*/
+
 	readbackDesc = CD3DX12_RESOURCE_DESC{ CD3DX12_RESOURCE_DESC::Buffer(mSurfaceSize) };
 	
 	ThrowIfFailed(md3dDevice->CreateCommittedResource(
@@ -1086,17 +1064,19 @@ void D3D12WND::CreateReadBackTex() {
 
 }
 
-void D3D12WND::CheckBuffer() {
-	
-	FLOAT* buffer;
+void D3D12WND::MappingBuffer() {
 	D3D12_RANGE renge{ 0, mSurfaceSize };
-	mSurface->Map(0, &renge, (void**)&buffer);
+	mSurface->Map(0, &renge, (void**)& mBuffer);
 
-	
-	//HHH
-
+}
+void D3D12WND::UnMapBuffer() {
 	mSurface->Unmap(0, 0);
-	
+}
+FLOAT* D3D12WND::GetReadBackBuffer() {
+	return mBuffer;
+}
+int D3D12WND::GetReadBackBufferSize() {
+	return (int)mSurfaceSize;
 }
 
 
