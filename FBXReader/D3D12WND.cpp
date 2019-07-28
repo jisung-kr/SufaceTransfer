@@ -5,6 +5,15 @@ using namespace Microsoft::WRL;
 
 const int gNumFrameResources = 3;
 
+D3D12WND::D3D12WND(HWND wnd) :mhMainWnd(wnd) { 
+	instance = this; 
+
+	WCHAR title[256];
+	GetWindowText(wnd, title, 256);
+
+	mMainWndCaption = title;
+}
+
 Microsoft::WRL::ComPtr<ID3D12Device> D3D12WND::GetD3DDevice() {
 	return md3dDevice;
 }
@@ -29,12 +38,27 @@ bool D3D12WND::InitDirect3D() {
 	LogAdapters();
 #endif
 
+	Microsoft::WRL::ComPtr<IDXGIAdapter> adapter = nullptr;
+	mdxgiFactory->EnumAdapters(1, &adapter);
+	
 	// Try to create hardware device.
 	HRESULT hardwareResult = D3D12CreateDevice(
-		0,             // default adapter
-		D3D_FEATURE_LEVEL_12_0,
+		adapter.Get(),             // default adapter
+		D3D_FEATURE_LEVEL_11_0,
 		IID_PPV_ARGS(&md3dDevice));
 
+	D3D12_FEATURE_DATA_D3D12_OPTIONS temp = { 0, };
+	
+	md3dDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &temp, sizeof(temp));
+
+	OutputDebugStringA(temp.StandardSwizzle64KBSupported ? "True" : "False"); //F
+
+	D3D12_FEATURE_DATA_ARCHITECTURE temp2 = { 0, };
+	md3dDevice->CheckFeatureSupport(D3D12_FEATURE_ARCHITECTURE, &temp2, sizeof(temp2));
+
+	OutputDebugStringA(temp2.UMA ? "True" : "False");  //T
+	OutputDebugStringA(temp2.CacheCoherentUMA ? "True" : "False");	//T
+	
 	// Fallback to WARP device.
 	if (FAILED(hardwareResult))
 	{
@@ -86,7 +110,7 @@ bool D3D12WND::InitDirect3D() {
 	// Reset the command list to prep for initialization commands.
 	ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
 
-	mCamera.SetPosition(0.0f, 2.0f, -15.0f);
+	mCamera.SetPosition(0.0f, 2.0f, -25.0f);
 
 	LoadTextures();
 	BuildRootSignature();
@@ -97,8 +121,8 @@ bool D3D12WND::InitDirect3D() {
 	BuildCubeMesh();
 	BuildRenderItems();
 
-	//화면 픽셀을 받아올 텍스쳐 생성
-	BuildSurfaceTexture();
+	//리드백 자원 생성
+	CreateReadBackTex();
 
 	BuildFrameResources();	
 	BuildPSOs();
@@ -133,7 +157,7 @@ void D3D12WND::CalculateFrameStatus() {
 
 		std::wstring fpsStr = std::to_wstring(fps);
 		std::wstring mspfStr = std::to_wstring(mspf);
-		
+
 		std::wstring windowText = mMainWndCaption +
 			L"    fps: " + fpsStr +
 			L"   mspf: " + mspfStr;
@@ -189,15 +213,20 @@ void D3D12WND::CreateSwapChain() {
 	sd.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 	sd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 
+
+
 	// Note: Swap chain uses queue to perform flush.
 	ThrowIfFailed(mdxgiFactory->CreateSwapChain(
 		mCommandQueue.Get(),
 		&sd,
 		mSwapChain.GetAddressOf()));
 }
+
+
+
 void D3D12WND::CreateRTVAndDSVDescriptorHeaps() {
 	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc;
-	rtvHeapDesc.NumDescriptors = mSwapChainBufferCount;
+	rtvHeapDesc.NumDescriptors = mSwapChainBufferCount + 1;	//For Rendering To Texture
 	rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 	rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	rtvHeapDesc.NodeMask = 0;
@@ -205,7 +234,7 @@ void D3D12WND::CreateRTVAndDSVDescriptorHeaps() {
 		&rtvHeapDesc, IID_PPV_ARGS(mRtvHeap.GetAddressOf())));
 
 	D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc;
-	dsvHeapDesc.NumDescriptors = 1;
+	dsvHeapDesc.NumDescriptors = 1 + 1;	//For Rendering To Texture
 	dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
 	dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	dsvHeapDesc.NodeMask = 0;
@@ -232,6 +261,7 @@ void D3D12WND::FlushCommandQueue() {
 
 		// Wait until the GPU hits current fence event is fired.
 		WaitForSingleObject(eventHandle, INFINITE);
+
 		CloseHandle(eventHandle);
 	}
 }
@@ -398,7 +428,7 @@ void D3D12WND::OnResize() {
 	//   1. SRV format: DXGI_FORMAT_R24_UNORM_X8_TYPELESS
 	//   2. DSV Format: DXGI_FORMAT_D24_UNORM_S8_UINT
 	// we need to create the depth buffer resource with a typeless format.  
-	depthStencilDesc.Format = DXGI_FORMAT_R24G8_TYPELESS;
+	depthStencilDesc.Format = mDepthStencilFormat;
 
 	depthStencilDesc.SampleDesc.Count = m4xMsaaState ? 4 : 1;
 	depthStencilDesc.SampleDesc.Quality = m4xMsaaState ? (m4xMsaaQuality - 1) : 0;
@@ -476,7 +506,7 @@ void D3D12WND::Draw(const GameTimer& gt) {
 		D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
 
 	// Clear the back buffer and depth buffer.
-	mCommandList->ClearRenderTargetView(CurrentBackBufferView(), Colors::LightSteelBlue, 0, nullptr);
+	mCommandList->ClearRenderTargetView(CurrentBackBufferView(), Colors::SteelBlue, 0, nullptr);
 	mCommandList->ClearDepthStencilView(DepthStencilView(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
 	// Specify the buffers we are going to render to.
@@ -508,22 +538,36 @@ void D3D12WND::Draw(const GameTimer& gt) {
 	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::Opaque]);
 
 
-
-	//배리어 설정
-	//백 버퍼는 렌더타겟 > 카피 소스
+	/*--------------------------------------------------------------------------------------*/
+	//리소스 배리어 전환
 	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
 		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE));
+	
+	//복사대상 설정
+	D3D12_TEXTURE_COPY_LOCATION dstLoc;
+	dstLoc.pResource = mSurface.Get();
+	dstLoc.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+	dstLoc.PlacedFootprint.Offset = 0;
+	dstLoc.PlacedFootprint.Footprint.Format = mBackBufferFormat;
+	dstLoc.PlacedFootprint.Footprint.Height = mClientHeight;
+	dstLoc.PlacedFootprint.Footprint.Width = mClientWidth;
+	dstLoc.PlacedFootprint.Footprint.Depth = 1;
+	dstLoc.PlacedFootprint.Footprint.RowPitch = (((mClientWidth * sizeof(float)) / D3D12_TEXTURE_DATA_PITCH_ALIGNMENT) + 1) * D3D12_TEXTURE_DATA_PITCH_ALIGNMENT;
+	dstLoc.SubresourceIndex = 0;
 
+	//복사소스 설정
+	D3D12_TEXTURE_COPY_LOCATION srcLoc;
+	srcLoc.pResource = CurrentBackBuffer();
+	srcLoc.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+	srcLoc.SubresourceIndex = 0;
 
-	//화면에 그려진 값 mSuface로 Copy
-	mCommandList->CopyResource(mSurface.Get(), CurrentBackBuffer());
+	//복사
+	mCommandList->CopyTextureRegion(&dstLoc, 0, 0, 0, &srcLoc, nullptr);
+	
 
-
-	//배리어 복원
+	//배리어 다시 원래대로
 	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
 		D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET));
-
-
 
 	/*--------------------------------------------------------------------------------------*/
 	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
@@ -539,41 +583,10 @@ void D3D12WND::Draw(const GameTimer& gt) {
 
 	FlushCommandQueue();   
 
+	CheckBuffer();
 
-	BufferCheck();
-
-	
 }
 
-void D3D12WND::BufferCheck() {
-	//버퍼 확인
-/*	*/
-	D3D12_RANGE readbackBufferRange{ 0, mSufaceSize };
-	FLOAT* pReadbackBufferData{};
-
-	mSurface->Map
-	(
-		0,
-		&readbackBufferRange,
-		reinterpret_cast<void**>(&pReadbackBufferData)
-	);
-
-
-
-	//여기서 크기 만큼 네트워크로 전달!!
-
-
-
-
-	// Code goes here to access the data via pReadbackBufferData.
-
-	D3D12_RANGE emptyRange{ 0, 0 };
-	mSurface->Unmap
-	(
-		0,
-		&emptyRange
-	);
-}
 
 void D3D12WND::Update(const GameTimer& gt) {
 	OnKeyboardInput(gt);
@@ -985,37 +998,6 @@ void D3D12WND::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::ve
 	}
 }
 
-
-void D3D12WND::BuildSurfaceTexture() {
-	//읽고 쓸 수 있는 텍스쳐 생성 후 렌더 타겟으로 등록
-
-	D3D12_RESOURCE_DESC texDesc = { CD3DX12_RESOURCE_DESC::Buffer(mSufaceSize) };
-
-	/*
-	texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-	texDesc.Alignment = 0;
-	texDesc.Width = mClientWidth;
-	texDesc.Height = mClientHeight;
-	texDesc.DepthOrArraySize = 1;
-	texDesc.MipLevels = 1;
-	texDesc.Format = mBackBufferFormat;
-	texDesc.SampleDesc.Count = 1;
-	texDesc.SampleDesc.Quality = 0;
-	texDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-	texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-	*/
-
-	ThrowIfFailed(md3dDevice->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_READBACK),
-		D3D12_HEAP_FLAG_NONE,
-		&texDesc,
-		D3D12_RESOURCE_STATE_COPY_DEST,
-		nullptr,
-		IID_PPV_ARGS(&mSurface)));
-}
-
-
-
 std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> D3D12WND::GetStaticSamplers()
 {
 	// Applications usually only need a handful of samplers.  So just define them all up front
@@ -1074,6 +1056,48 @@ std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> D3D12WND::GetStaticSamplers()
 }
 
 
+void D3D12WND::CreateReadBackTex() {
+
+	D3D12_RESOURCE_DESC readbackDesc;
+	ZeroMemory(&readbackDesc, sizeof(readbackDesc));
+	/*
+	readbackDesc.Alignment = 1;
+	readbackDesc.DepthOrArraySize = 1;
+	readbackDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	readbackDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+	readbackDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+	readbackDesc.Format = mBackBufferFormat;
+	readbackDesc.Height = mClientHeight;
+	readbackDesc.Width = mClientWidth;
+	readbackDesc.MipLevels = 1;
+	readbackDesc.SampleDesc.Count = 1;
+	readbackDesc.SampleDesc.Quality = 0;
+	*/
+	readbackDesc = CD3DX12_RESOURCE_DESC{ CD3DX12_RESOURCE_DESC::Buffer(mSurfaceSize) };
+	
+	ThrowIfFailed(md3dDevice->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_READBACK),
+		D3D12_HEAP_FLAG_NONE,
+		&readbackDesc,
+		D3D12_RESOURCE_STATE_COPY_DEST,
+		nullptr,
+		IID_PPV_ARGS(mSurface.GetAddressOf())
+	));
+
+}
+
+void D3D12WND::CheckBuffer() {
+	
+	FLOAT* buffer;
+	D3D12_RANGE renge{ 0, mSurfaceSize };
+	mSurface->Map(0, &renge, (void**)&buffer);
+
+	
+	//HHH
+
+	mSurface->Unmap(0, 0);
+	
+}
 
 
 

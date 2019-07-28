@@ -1,7 +1,8 @@
 #pragma once
+#include <Windowsx.h>
 
 #include "D3D12WND.h"
-#include <Windowsx.h>
+
 
 #pragma comment(lib, "d3dcompiler.lib")
 #pragma comment(lib, "D3D12.lib")
@@ -28,7 +29,9 @@ private:
 
 	MSG mMsg = {};	//Msg
 
+	//D3D12 ·»´õ È­¸é
 	D3D12WND* d3dApp = nullptr;
+
 
 public:
 	static MainWindow* GetInstance();
