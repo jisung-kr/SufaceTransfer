@@ -12,6 +12,7 @@ D3D12WND::D3D12WND(HWND wnd) :mhMainWnd(wnd) {
 	GetWindowText(wnd, title, 256);
 
 	mMainWndCaption = title;
+
 }
 
 Microsoft::WRL::ComPtr<ID3D12Device> D3D12WND::GetD3DDevice() {
@@ -39,7 +40,7 @@ bool D3D12WND::InitDirect3D() {
 #endif
 
 	Microsoft::WRL::ComPtr<IDXGIAdapter> adapter = nullptr;
-	mdxgiFactory->EnumAdapters(1, &adapter);
+	mdxgiFactory->EnumAdapters(0, &adapter);
 	
 	// Try to create hardware device.
 	HRESULT hardwareResult = D3D12CreateDevice(
@@ -100,17 +101,17 @@ bool D3D12WND::InitDirect3D() {
 	GetClientRect(mhMainWnd, &rt);
 
 	mClientWidth = rt.right - rt.left;
-	mClientHeight = rt.bottom - rt.top; //App Height
+	mClientHeight = rt.bottom - rt.top; 
 
+	//커맨드 오브젝트, 스왑체인, RTV/DSV서술자힙 생성
 	CreateCommandObjects();
 	CreateSwapChain();
 	CreateRTVAndDSVDescriptorHeaps();
 
-
 	// Reset the command list to prep for initialization commands.
 	ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
 
-	mCamera.SetPosition(0.0f, 2.0f, -25.0f);
+	mCamera.SetPosition(0.0f, 2.0f, -20.0f);
 
 	LoadTextures();
 	BuildRootSignature();

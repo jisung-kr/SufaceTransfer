@@ -19,23 +19,23 @@ int main() {
 		return 1;
 	}
 
-	if (!client->ReadData()) {
-		cerr << "Reading Data Error" << endl;
-		delete client;
-		return 1;
-	}
 
+	//명령 보내기
+	HEADER header;
+	header.command = COMMAND::COMMAND_REQUEST_FRAME;
+	header.dataLen = 0;
+	header.msgNum = 1;
+	header.msgTotalNum = 1;
 
-	//데이터 읽었으니 출력
-	unsigned char* buffer = (unsigned char*)client->GetData();
+	unsigned char* data = nullptr;
+	client->SendMSG(header, (char**)&data);
 
-	for (int i = 0; i < BUFFER_SIZE; ++i) {
+	for (int i = 0; i < header.dataLen; ++i) {
 		if (i % 16 == 0 && i != 0)
 			printf("\n");
 
-		printf("%02X ", buffer[i]);
+		printf("%02X ", data[i]);
 	}
-
 
 	return 0;
 }

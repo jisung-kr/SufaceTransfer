@@ -55,6 +55,47 @@ void Server::WaitForClient() {
 	}
 }
 
+void Server::ReceiveMSG(char* data, int dataLen) {
+	//명령을 받아 각 명령에 맞게 실행
+	HEADER header;
+
+	//헤더 수신
+	if (recv(clientSock, (char*)&header, sizeof(header), 0) > 0) {
+		
+		switch (header.command) {
+		case COMMAND::COMMAND_REQUEST_FRAME:
+			OutputDebugStringA("명령 도착\n");
+			header.command += 1;
+			header.dataLen = dataLen;
+			header.msgNum = 1;
+			header.msgTotalNum = 1;
+
+			if (send(clientSock, (char*)&header, sizeof(header), 0) < 0) {
+				//클라이언트가 접속 종료됨
+				closesocket(clientSock);
+				clientSock = INVALID_SOCKET;
+			}
+			else {
+				if (send(clientSock, (char*)data, dataLen, 0) < 0) {
+					//클라이언트가 접속 종료됨
+					closesocket(clientSock);
+					clientSock = INVALID_SOCKET;
+				}
+				else {
+					OutputDebugStringA("데이터 전송 성공");
+				}
+			}
+
+			break;
+		}
+		
+	}
+	else {
+		OutputDebugStringA("실패\n");
+	}
+	
+}
+
 void Server::SendData(void* data, int size) {
 
 	//데이터 송신

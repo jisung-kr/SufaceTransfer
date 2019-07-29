@@ -6,6 +6,26 @@
 #define PORT 3500
 #define BUFFER_SIZE 1024
 
+enum COMMAND {
+	//임시 명령
+	COMMAND_REQUEST_FRAME = 0,
+	COMMAND_REQUEST_FRAME_ACK = 1
+};
+
+struct HEADER {
+	unsigned int dataLen;
+	unsigned short command;
+	unsigned char msgNum;
+	unsigned char msgTotalNum;
+};
+
+struct NETWORK_MSG {
+	HEADER header;
+	char* data;
+};
+
+
+
 class Server {
 	
 public:
@@ -28,6 +48,7 @@ private:
 public:
 	bool Init();
 	void WaitForClient();
+	void ReceiveMSG(char* data, int dataLen);	//클라이언트로부터 요청을 받아서 수행
 	void SendData(void* data, int size);
 
 };

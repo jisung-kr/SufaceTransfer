@@ -106,8 +106,8 @@ private:
 
 	std::wstring mMainWndCaption;
 
-	int mClientWidth = 800; //App Width
-	int mClientHeight = 600; //App Height
+	int mClientWidth = 1280; //App Width
+	int mClientHeight = 720; //App Height
 
 	/*------------------------------------------------------------------------------------------------------*/
 	D3D_DRIVER_TYPE md3dDriverType = D3D_DRIVER_TYPE_HARDWARE;

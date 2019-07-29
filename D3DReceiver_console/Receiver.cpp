@@ -39,6 +39,48 @@ bool Client::Connection() {
 	return true;
 }
 
+void Client::SendMSG(HEADER& header, char** data) {
+
+	//명령 보내기
+	if (send(serverSock, (char*)&header, sizeof(HEADER), 0) < 0) {
+		//send 함수 실패
+		closesocket(serverSock);
+		serverSock = INVALID_SOCKET;
+	}
+	else {
+		/*		*/
+		//헤더 보낸 후 데이터 받기
+		if (recv(serverSock, (char*)&header, sizeof(HEADER), 0) > 0) {
+			//recv 함수 성공
+			OutputDebugStringA("명령 송신\n");
+
+			*data = (char*)malloc(sizeof(char) * header.dataLen);
+
+			switch (header.command) {
+			case COMMAND::COMMAND_REQUEST_FRAME_ACK:
+				if (recv(serverSock, (char*)*data, header.dataLen, 0) > 0) {
+					OutputDebugStringA("데이터 수신 성공\n");
+
+				}
+				else {
+					//recv 함수 실패
+					closesocket(serverSock);
+					serverSock = INVALID_SOCKET;
+				}
+				break;
+			}
+		}
+		else {
+			//recv함수 실패
+			closesocket(serverSock);
+			serverSock = INVALID_SOCKET;
+			
+		}
+
+	}
+
+}
+
 bool Client::ReadData() {
 	//문자열 수신
 	if (recv(serverSock, rBuf, sizeof(rBuf), 0) > 0) {

@@ -86,9 +86,13 @@ int MainWindow::Run() {
 				d3dApp->Update(d3dApp->mTimer);
 				d3dApp->Draw(d3dApp->mTimer);
 
+				//명령을 받고 데이터 보내기
+				server->ReceiveMSG((char*)d3dApp->GetReadBackBuffer(), d3dApp->GetReadBackBufferSize());
+
+				/*
 				//이곳에서 클라이언트에 전달
 				server->SendData(d3dApp->GetReadBackBuffer(), d3dApp->GetReadBackBufferSize());
-
+				*/
 			}
 			else
 			{
