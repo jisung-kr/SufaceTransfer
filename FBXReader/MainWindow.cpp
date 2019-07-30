@@ -54,9 +54,14 @@ bool MainWindow::Initialize() {
 
 	/* 클라이언트 소켓 받아오기 */
 	//이 부분은 나중에 따로 쓰레드로 빼거나 해야함 !!
-	server->WaitForClient();
 
-	::MessageBoxA(mhMainWnd, "접속", "클라이언트 접속", MB_OK);
+	std::thread networkThread([&]() -> void { server->WaitForClient(); });
+	networkThread.detach();	//분리를 안하면 이 함수가 끝나기 전에 쓰레드가 끝나지 않아서 오류남
+	
+	//server->WaitForClient();
+
+	//networkThread.join();
+	//::MessageBoxA(mhMainWnd, "접속", "클라이언트 접속", MB_OK);
 
 	return true;
 }
@@ -87,8 +92,12 @@ int MainWindow::Run() {
 				d3dApp->Draw(d3dApp->mTimer);
 
 				//명령을 받고 데이터 보내기
-				server->ReceiveMSG((char*)d3dApp->GetReadBackBuffer(), d3dApp->GetReadBackBufferSize());
+				if (!server->IsInvalidClientSocket()) {
+					std::thread netIOThread([&]()->void {server->ReceiveMSG((char*)d3dApp->GetReadBackBuffer(), d3dApp->GetReadBackBufferSize()); });
+					netIOThread.detach();
+				}
 
+					
 				/*
 				//이곳에서 클라이언트에 전달
 				server->SendData(d3dApp->GetReadBackBuffer(), d3dApp->GetReadBackBufferSize());

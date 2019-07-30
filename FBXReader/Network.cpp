@@ -1,7 +1,6 @@
 #include "Network.h"
 
 
-
 Server::~Server() {
 	if (serverSock != INVALID_SOCKET)
 		closesocket(serverSock);
@@ -42,17 +41,18 @@ bool Server::Init() {
 	return true;
 }
 
+
 void Server::WaitForClient() {
-	while (true) {
+	while (clientSock != INVALID_SOCKET) {
 		int addrSize = sizeof(clientAddr);
 		clientSock = accept(serverSock, (sockaddr*)& clientAddr, &addrSize);
 
 		char str[256];
 		InetNtopA(AF_INET, &clientAddr.sin_addr, str, sizeof(str));
-		
-		if (clientSock != INVALID_SOCKET)
-			break;
 	}
+}
+bool Server::IsInvalidClientSocket() {
+	return clientSock == INVALID_SOCKET;
 }
 
 void Server::ReceiveMSG(char* data, int dataLen) {

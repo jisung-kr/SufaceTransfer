@@ -1,5 +1,6 @@
 #pragma once
 #include <WS2tcpip.h>
+#include <thread>
 
 #pragma comment(lib, "ws2_32.lib")
 
@@ -50,5 +51,6 @@ public:
 	void WaitForClient();
 	void ReceiveMSG(char* data, int dataLen);	//클라이언트로부터 요청을 받아서 수행
 	void SendData(void* data, int size);
+	bool IsInvalidClientSocket();
 
 };

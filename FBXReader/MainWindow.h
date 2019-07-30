@@ -4,7 +4,7 @@
 #include "D3D12WND.h"
 
 #include <Windowsx.h>
-
+#include <thread>
 
 class MainWindow {
 public:

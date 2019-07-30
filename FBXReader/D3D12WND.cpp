@@ -745,7 +745,7 @@ void D3D12WND::BuildRootSignature() {
 	// Perfomance TIP: Order from most frequent to least frequent.
 	slotRootParameter[0].InitAsShaderResourceView(0, 1);	//InstanceData Descriptor
 	slotRootParameter[1].InitAsShaderResourceView(1, 1);	//MetarialData Descriptor
-	slotRootParameter[2].InitAsConstantBufferView(0);	//PassCB Descriptor
+	slotRootParameter[2].InitAsConstantBufferView(0);		//PassCB Descriptor
 	slotRootParameter[3].InitAsDescriptorTable(1, &texTable, D3D12_SHADER_VISIBILITY_PIXEL); //Texture
 
 	auto staticSamplers = GetStaticSamplers();
