@@ -1,11 +1,23 @@
+#include "Receiver.h"
+
 #include <Windows.h>
+
+
 
 HINSTANCE mhInst;	//인스턴스 핸들
 HWND mhMainWnd;	//메인 윈도우 핸들
 
 LPCWSTR clsName = TEXT("D3DReceiver");	//윈도우 쿨래스 네임
 
+Client* client = nullptr;	//클라이언트
+
+UINT mClientWidth = 1280;
+UINT mClientHeight = 720;
+
+
 LRESULT WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam);
+void Render();
+
 
 int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmdShow) {
 	WNDCLASS wndCls;
@@ -24,8 +36,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 	RegisterClass(&wndCls);
 
 
-	UINT mClientWidth = 1280;
-	UINT mClientHeight = 720;
+
 
 	mhMainWnd = CreateWindow(clsName,
 		clsName,
@@ -41,26 +52,75 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 
 	ShowWindow(mhMainWnd, SW_SHOW);
 
+	//클라이언트 초기화
+	client = new Client();
+	if (!client->Init()) {
+		::MessageBoxA(mhMainWnd, "네트워크 초기화 오류", "오류", MB_OK);
+		return 1;
+	}
+
+	//서버에 접속
+	if (!client->Connection()) {
+		::MessageBoxA(mhMainWnd, "네트워크 커넥션 오류", "오류", MB_OK);
+		return 1;
+	}
+
+
 	MSG msg = { 0 };
 
 	while (msg.message != WM_QUIT)
 	{
-		// If there are Window messages then process them.
 		if (PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
 		{
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 		}
-		// Otherwise, do animation/game stuff.
 		else
 		{
-
+			Render();
 		}
 	}
 
-
+	return 0;
 }
 
+void Render() {
+	if (client != nullptr) {
+		//서버에서 데이터를 받아옴
+		HEADER header;
+		header.command = COMMAND::COMMAND_REQUEST_FRAME;
+		header.dataLen = 0;
+		header.msgNum = 1;
+		header.msgTotalNum = 1;
+
+		unsigned char* data = nullptr;
+		client->SendMSG(header, (char**)&data);
+
+		//데이터를 받아온 상태임
+		HDC hdc, hMemDC;
+		HBITMAP hBitmap, hOldBitmap;
+
+
+		hdc = GetDC(mhMainWnd);
+
+		hMemDC = CreateCompatibleDC(hdc);
+		hBitmap = CreateBitmap(mClientWidth, mClientHeight, 1, 32, data);
+		hOldBitmap = (HBITMAP)SelectObject(hMemDC, hBitmap);
+		BitBlt(hdc, 0, 0, mClientWidth, mClientHeight, hMemDC, 0, 0, SRCCOPY);
+		SelectObject(hMemDC, hOldBitmap);
+		DeleteDC(hMemDC);
+		DeleteObject(hBitmap);
+		
+
+		ReleaseDC(mhMainWnd, hdc);
+
+
+		//delete data;
+	}
+
+
+
+}
 
 LRESULT WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 
