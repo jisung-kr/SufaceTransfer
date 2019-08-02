@@ -1,4 +1,5 @@
 #include "Receiver.h"
+#include "BitmapQueue.h"
 
 #include <Windows.h>
 
@@ -77,7 +78,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 		}
 		else
 		{
-			Render();
+			Render();	//렌더링
 		}
 	}
 
@@ -98,10 +99,13 @@ void Render() {
 
 		//데이터를 받아온 상태임
 		HDC hdc, hMemDC;
+		//PAINTSTRUCT ps;
 		HBITMAP hBitmap, hOldBitmap;
 
 
 		hdc = GetDC(mhMainWnd);
+		//hdc = BeginPaint(mhMainWnd, &ps);
+
 
 		hMemDC = CreateCompatibleDC(hdc);
 		hBitmap = CreateBitmap(mClientWidth, mClientHeight, 1, 32, data);
@@ -114,6 +118,7 @@ void Render() {
 
 		ReleaseDC(mhMainWnd, hdc);
 
+		//EndPaint(mhMainWnd, &ps);
 
 		//delete data;
 	}
