@@ -19,6 +19,12 @@
     <Filter Include="헤더 파일\Graphics">
       <UniqueIdentifier>{12ab7883-2c42-4893-97a6-fa59d9c8e447}</UniqueIdentifier>
     </Filter>
+    <Filter Include="헤더 파일\Network">
+      <UniqueIdentifier>{377c94ab-92db-4c4a-8f93-c215eaf3f55a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Network">
+      <UniqueIdentifier>{7f54ff92-20ec-4ec0-aefb-8eec66630d81}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Camera.cpp">
@@ -50,6 +56,9 @@
     </ClCompile>
     <ClCompile Include="GeometryGenerator.cpp">
       <Filter>소스 파일\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Network.cpp">
+      <Filter>소스 파일\Network</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -85,6 +94,9 @@
     </ClInclude>
     <ClInclude Include="GeometryGenerator.h">
       <Filter>헤더 파일\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Network.h">
+      <Filter>헤더 파일\Network</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -13,6 +13,10 @@
 #include "Camera.h"
 #include "GeometryGenerator.h"
 
+#pragma comment(lib, "d3dcompiler.lib")
+#pragma comment(lib, "D3D12.lib")
+#pragma comment(lib, "dxgi.lib")
+
 //std::wstring AnsiToWString(const std::string& str);
 
 extern const int gNumFrameResources;
@@ -102,8 +106,8 @@ private:
 
 	std::wstring mMainWndCaption;
 
-	int mClientWidth = 800; //App Width
-	int mClientHeight = 600; //App Height
+	int mClientWidth = 1280; //App Width
+	int mClientHeight = 720; //App Height
 
 	/*------------------------------------------------------------------------------------------------------*/
 	D3D_DRIVER_TYPE md3dDriverType = D3D_DRIVER_TYPE_HARDWARE;
@@ -169,14 +173,11 @@ private:
 	/*------------------------------------------------------------------------------------------------------*/
 	/*------------------------------------------------------------------------------------------------------*/
 
-	//GPU - CPU메모리 영역에 생성할 자원?
+	//GPU - CPU메모리 영역에 생성할 자원
 	//읽고 쓰고 가능한 텍스쳐 
 	Microsoft::WRL::ComPtr<ID3D12Resource> mSurface;
 	SIZE_T mSurfaceSize = mClientHeight * mClientWidth * sizeof(float);
-
-	//텍스쳐를 담을 힙 생성 [임시]
-	Microsoft::WRL::ComPtr<ID3D12Heap> temp;
-
+	FLOAT* mBuffer;
 
 	/*------------------------------------------------------------------------------------------------------*/
 	PassConstants mMainPassCB;
@@ -221,7 +222,12 @@ public:
 	void BuildCubeMesh();
 
 	void CreateReadBackTex();
-	void CheckBuffer();
+
+	void MappingBuffer();
+	void UnMapBuffer();
+
+	FLOAT* GetReadBackBuffer();
+	int GetReadBackBufferSize();
 	
 
 	/*------------------------------------------------------------------------------------------------------*/

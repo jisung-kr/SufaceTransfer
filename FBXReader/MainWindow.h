@@ -1,12 +1,10 @@
 #pragma once
-#include <Windowsx.h>
 
+#include "Network.h"
 #include "D3D12WND.h"
 
-
-#pragma comment(lib, "d3dcompiler.lib")
-#pragma comment(lib, "D3D12.lib")
-#pragma comment(lib, "dxgi.lib")
+#include <Windowsx.h>
+#include <thread>
 
 class MainWindow {
 public:
@@ -21,8 +19,8 @@ private:
 	HINSTANCE mhInst;
 	HWND mhMainWnd;	// D3D 표시메인 윈도우
 
-	UINT mClientWidth = 800;
-	UINT mClientHeight = 600;
+	UINT mClientWidth = 1280;
+	UINT mClientHeight = 720;
 
 	LPCWSTR clsName = TEXT("D3D App");	//Window Class Name
 	std::wstring mMainWndCaption = TEXT("D3D App");	//Window Name
@@ -31,7 +29,7 @@ private:
 
 	//D3D12 렌더 화면
 	D3D12WND* d3dApp = nullptr;
-
+	Server* server = nullptr;
 
 public:
 	static MainWindow* GetInstance();
