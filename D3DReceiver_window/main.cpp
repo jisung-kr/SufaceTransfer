@@ -15,10 +15,11 @@ Client* client = nullptr;	//클라이언트
 UINT mClientWidth = 1280;
 UINT mClientHeight = 720;
 
+BitmapQueue queue;
 
 LRESULT WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam);
 void Render();
-
+void ReceiveBitmap();
 
 int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmdShow) {
 	WNDCLASS wndCls;
@@ -35,8 +36,6 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 	wndCls.style = CS_HREDRAW | CS_VREDRAW;
 
 	RegisterClass(&wndCls);
-
-
 
 
 	mhMainWnd = CreateWindow(clsName,
@@ -78,6 +77,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 		}
 		else
 		{
+			ReceiveBitmap();
 			Render();	//렌더링
 		}
 	}
@@ -85,7 +85,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 	return 0;
 }
 
-void Render() {
+void ReceiveBitmap() {
 	if (client != nullptr) {
 		//서버에서 데이터를 받아옴
 		HEADER header;
@@ -95,7 +95,18 @@ void Render() {
 		header.msgTotalNum = 1;
 
 		unsigned char* data = nullptr;
-		client->SendMSG(header, (char**)&data);
+		client->SendMSG(header, (char**)& data);
+
+		queue.PushItem(data);
+	}
+
+}
+void Render() {
+	if (queue.Size() > 2) {
+
+		unsigned char* data = nullptr;
+		data = static_cast<unsigned char* >(queue.FrontItem());
+		queue.PopItem();
 
 		//데이터를 받아온 상태임
 		HDC hdc, hMemDC;
@@ -120,7 +131,7 @@ void Render() {
 
 		//EndPaint(mhMainWnd, &ps);
 
-		//delete data;
+		delete data;
 	}
 
 

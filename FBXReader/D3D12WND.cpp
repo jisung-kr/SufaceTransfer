@@ -40,7 +40,7 @@ bool D3D12WND::InitDirect3D() {
 #endif
 
 	Microsoft::WRL::ComPtr<IDXGIAdapter> adapter = nullptr;
-	mdxgiFactory->EnumAdapters(0, &adapter);
+	mdxgiFactory->EnumAdapters(1, &adapter);
 	
 	// Try to create hardware device.
 	HRESULT hardwareResult = D3D12CreateDevice(
