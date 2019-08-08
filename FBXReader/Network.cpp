@@ -42,15 +42,24 @@ bool Server::Init() {
 }
 
 
+//일단 싱글스레드로
 void Server::WaitForClient() {
-	while (clientSock != INVALID_SOCKET) {
+	int addrSize = sizeof(clientAddr);
+	clientSock = accept(serverSock, (sockaddr*)& clientAddr, &addrSize);
+
+	char str[256];
+	InetNtopA(AF_INET, &clientAddr.sin_addr, str, sizeof(str));
+	/*
+	while (true) {
 		int addrSize = sizeof(clientAddr);
 		clientSock = accept(serverSock, (sockaddr*)& clientAddr, &addrSize);
 
 		char str[256];
 		InetNtopA(AF_INET, &clientAddr.sin_addr, str, sizeof(str));
 	}
+	*/
 }
+
 bool Server::IsInvalidClientSocket() {
 	return clientSock == INVALID_SOCKET;
 }
@@ -61,10 +70,20 @@ void Server::ReceiveMSG(char* data, int dataLen) {
 
 	//헤더 수신
 	if (recv(clientSock, (char*)&header, sizeof(header), 0) > 0) {
-		
+		OutputDebugStringA("헤더 수신\n");
+		char str[256];
+
+		wsprintfA(str, "명령: %d\n", header.command);
+		OutputDebugStringA(str);
+		wsprintfA(str, "데이터 길이: %d\n", header.dataLen);
+		OutputDebugStringA(str);
+		wsprintfA(str, "msgNum: %d\n", header.msgNum);
+		OutputDebugStringA(str);
+		wsprintfA(str, "msgTotalNum: %d\n", header.msgTotalNum);
+		OutputDebugStringA(str);
+
 		switch (header.command) {
 		case COMMAND::COMMAND_REQUEST_FRAME:
-			OutputDebugStringA("명령 도착\n");
 			header.command += 1;
 			header.dataLen = dataLen;
 			header.msgNum = 1;
@@ -72,17 +91,20 @@ void Server::ReceiveMSG(char* data, int dataLen) {
 
 			if (send(clientSock, (char*)&header, sizeof(header), 0) < 0) {
 				//클라이언트가 접속 종료됨
+				OutputDebugStringA("헤더 전송 실패\n");
 				closesocket(clientSock);
 				clientSock = INVALID_SOCKET;
 			}
 			else {
+				OutputDebugStringA("헤더 전송 성공\n");
 				if (send(clientSock, (char*)data, dataLen, 0) < 0) {
 					//클라이언트가 접속 종료됨
+					OutputDebugStringA("데이터 전송 실패\n");
 					closesocket(clientSock);
 					clientSock = INVALID_SOCKET;
 				}
 				else {
-					OutputDebugStringA("데이터 전송 성공");
+					OutputDebugStringA("데이터 전송 성공\n");
 				}
 			}
 
@@ -91,7 +113,7 @@ void Server::ReceiveMSG(char* data, int dataLen) {
 		
 	}
 	else {
-		OutputDebugStringA("실패\n");
+		OutputDebugStringA("헤더 수신 실패\n");
 	}
 	
 }
@@ -102,10 +124,13 @@ void Server::SendData(void* data, int size) {
 	//현재 버퍼 사이즈 만큼만 데이터 전송
 	//후에 버퍼 사이즈 만큼 보내기 위해 프로토콜 생성해야함
 	if (clientSock != INVALID_SOCKET) {
-		if (send(clientSock, (char*)data, BUFFER_SIZE, 0) < 0) {
+		if (send(clientSock, (char*)data, size, 0) < 0) {
 			//클라이언트가 접속 종료됨
 			closesocket(clientSock);
 			clientSock = INVALID_SOCKET;
+		}
+		else {
+			OutputDebugStringA((char*)data);
 		}
 	}
 

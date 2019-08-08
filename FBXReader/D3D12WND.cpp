@@ -122,11 +122,13 @@ bool D3D12WND::InitDirect3D() {
 	BuildCubeMesh();
 	BuildRenderItems();
 
-	//리드백 자원 생성
-	CreateReadBackTex();
+
 
 	BuildFrameResources();	
 	BuildPSOs();
+
+	//리드백 자원 생성
+	CreateReadBackTex();
 
 	// Execute the initialization commands.
 	ThrowIfFailed(mCommandList->Close());
@@ -479,9 +481,6 @@ float D3D12WND::AspectRatio() const {
 
 
 void D3D12WND::Draw(const GameTimer& gt) {
-	//매핑 해제
-	UnMapBuffer();
-
 	//현재 프레임 자원의 할당자를 가져옴
 	auto cmdListAlloc = mCurrFrameResource->CmdListAlloc;
 
@@ -534,17 +533,25 @@ void D3D12WND::Draw(const GameTimer& gt) {
 	//리소스 배리어 전환
 	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
 		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE));
+
+	//백버퍼에 설정값들 참조
+	D3D12_RESOURCE_DESC Desc = CurrentBackBuffer()->GetDesc();
+	D3D12_PLACED_SUBRESOURCE_FOOTPRINT descFootPrint = {};
+	UINT Rows = 0;
+	UINT64 RowSize = 0;
+	UINT64 TotalBytes = 0;
+	md3dDevice->GetCopyableFootprints(&Desc, 0, 1, 0, &descFootPrint, &Rows, &RowSize, &TotalBytes);
 	
 	//복사대상 설정
 	D3D12_TEXTURE_COPY_LOCATION dstLoc;
-	dstLoc.pResource = mSurface.Get();
+	dstLoc.pResource = mCurrFrameResource->mSurface.Get();
 	dstLoc.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
 	dstLoc.PlacedFootprint.Offset = 0;
 	dstLoc.PlacedFootprint.Footprint.Format = mBackBufferFormat;
 	dstLoc.PlacedFootprint.Footprint.Height = mClientHeight;
 	dstLoc.PlacedFootprint.Footprint.Width = mClientWidth;
 	dstLoc.PlacedFootprint.Footprint.Depth = 1;
-	dstLoc.PlacedFootprint.Footprint.RowPitch = (((mClientWidth * sizeof(float)) / D3D12_TEXTURE_DATA_PITCH_ALIGNMENT) + 1) * D3D12_TEXTURE_DATA_PITCH_ALIGNMENT;
+	dstLoc.PlacedFootprint.Footprint.RowPitch = D3DUtil::CalcConstantBufferByteSize(mClientWidth * sizeof(float));
 	dstLoc.SubresourceIndex = 0;
 
 	//복사소스 설정
@@ -575,7 +582,7 @@ void D3D12WND::Draw(const GameTimer& gt) {
 
 	FlushCommandQueue();   
 
-	MappingBuffer();
+	CopyBuffer();
 }
 
 
@@ -1052,33 +1059,34 @@ void D3D12WND::CreateReadBackTex() {
 	D3D12_RESOURCE_DESC readbackDesc;
 	ZeroMemory(&readbackDesc, sizeof(readbackDesc));
 
-	readbackDesc = CD3DX12_RESOURCE_DESC{ CD3DX12_RESOURCE_DESC::Buffer(mSurfaceSize) };
+	readbackDesc = CD3DX12_RESOURCE_DESC{ CD3DX12_RESOURCE_DESC::Buffer(GetSurfaceSize()) };
 	
-	ThrowIfFailed(md3dDevice->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_READBACK),
-		D3D12_HEAP_FLAG_NONE,
-		&readbackDesc,
-		D3D12_RESOURCE_STATE_COPY_DEST,
-		nullptr,
-		IID_PPV_ARGS(mSurface.GetAddressOf())
-	));
+	for (int i = 0; i < mFrameResources.size(); ++i) {
+		ThrowIfFailed(md3dDevice->CreateCommittedResource(
+			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_READBACK),
+			D3D12_HEAP_FLAG_NONE,
+			&readbackDesc,
+			D3D12_RESOURCE_STATE_COPY_DEST,
+			nullptr,
+			IID_PPV_ARGS(mFrameResources[i]->mSurface.GetAddressOf())
+		));
+	}
 
 }
 
-void D3D12WND::MappingBuffer() {
-	D3D12_RANGE renge{ 0, mSurfaceSize };
-	mSurface->Map(0, &renge, (void**)& mBuffer);
+void D3D12WND::CopyBuffer() {
 
+	D3D12_RANGE range{ 0, GetSurfaceSize() };
+
+	mCurrFrameResource->mSurface->Map(0, &range, (void**)&mBuffer);
+
+	mCurrFrameResource->mSurface->Unmap(0, 0);
 }
-void D3D12WND::UnMapBuffer() {
-	mSurface->Unmap(0, 0);
-}
+
 FLOAT* D3D12WND::GetReadBackBuffer() {
 	return mBuffer;
 }
-int D3D12WND::GetReadBackBufferSize() {
-	return (int)mSurfaceSize;
-}
+
 
 
 

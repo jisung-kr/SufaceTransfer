@@ -1,4 +1,5 @@
 #pragma once
+
 #include <WS2tcpip.h>
 #include <thread>
 
@@ -37,8 +38,8 @@ public:
 private:
 	WSAData wsaData;
 
-	SOCKET serverSock;
-	SOCKET clientSock;
+	SOCKET serverSock = INVALID_SOCKET;
+	SOCKET clientSock = INVALID_SOCKET;
 
 	sockaddr_in serverAddr;
 	sockaddr_in clientAddr;
