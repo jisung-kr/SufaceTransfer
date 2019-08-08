@@ -59,7 +59,6 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 		return 1;
 	}
 
-	//서버에 접속
 	if (!client->Connection()) {
 		::MessageBoxA(mhMainWnd, "네트워크 커넥션 오류", "오류", MB_OK);
 		return 1;
@@ -77,7 +76,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 		}
 		else
 		{
-			ReceiveBitmap();
+			//ReceiveBitmap();
 			Render();	//렌더링
 		}
 	}
@@ -102,11 +101,20 @@ void ReceiveBitmap() {
 
 }
 void Render() {
-	if (queue.Size() > 2) {
+	if (client != nullptr) {
+		/*
+		//서버에서 데이터를 받아옴
+		HEADER header;
+		header.command = COMMAND::COMMAND_REQUEST_FRAME;
+		header.dataLen = 0;
+		header.msgNum = 1;
+		header.msgTotalNum = 1;
 
 		unsigned char* data = nullptr;
-		data = static_cast<unsigned char* >(queue.FrontItem());
-		queue.PopItem();
+		client->SendMSG(header, (char**)& data);
+		*/
+
+		client->ReadData();
 
 		//데이터를 받아온 상태임
 		HDC hdc, hMemDC;
@@ -117,24 +125,21 @@ void Render() {
 		hdc = GetDC(mhMainWnd);
 		//hdc = BeginPaint(mhMainWnd, &ps);
 
-
 		hMemDC = CreateCompatibleDC(hdc);
-		hBitmap = CreateBitmap(mClientWidth, mClientHeight, 1, 32, data);
+		hBitmap = CreateBitmap(mClientWidth, mClientHeight, 1, 32, client->GetData());
 		hOldBitmap = (HBITMAP)SelectObject(hMemDC, hBitmap);
 		BitBlt(hdc, 0, 0, mClientWidth, mClientHeight, hMemDC, 0, 0, SRCCOPY);
 		SelectObject(hMemDC, hOldBitmap);
 		DeleteDC(hMemDC);
 		DeleteObject(hBitmap);
-		
 
 		ReleaseDC(mhMainWnd, hdc);
-
 		//EndPaint(mhMainWnd, &ps);
 
-		delete data;
+		client->ReleaseBuffer();
+
+		//OutputDebugStringA(client->GetData());
 	}
-
-
 
 }
 

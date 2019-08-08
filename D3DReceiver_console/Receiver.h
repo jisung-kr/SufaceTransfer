@@ -39,6 +39,7 @@ private:
 
 	char rBuf[BUFFER_SIZE] = { 0, };
 
+
 public:
 	bool Init();
 	bool Connection();

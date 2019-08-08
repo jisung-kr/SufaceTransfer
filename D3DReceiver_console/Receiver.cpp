@@ -44,6 +44,7 @@ void Client::SendMSG(HEADER& header, char** data) {
 	//명령 보내기
 	if (send(serverSock, (char*)&header, sizeof(HEADER), 0) < 0) {
 		//send 함수 실패
+		OutputDebugStringA("서버 종료\n");
 		closesocket(serverSock);
 		serverSock = INVALID_SOCKET;
 	}
@@ -64,6 +65,7 @@ void Client::SendMSG(HEADER& header, char** data) {
 				}
 				else {
 					//recv 함수 실패
+					OutputDebugStringA("서버 종료\n");
 					closesocket(serverSock);
 					serverSock = INVALID_SOCKET;
 				}
@@ -72,6 +74,7 @@ void Client::SendMSG(HEADER& header, char** data) {
 		}
 		else {
 			//recv함수 실패
+			OutputDebugStringA("서버 종료\n");
 			closesocket(serverSock);
 			serverSock = INVALID_SOCKET;
 			
