@@ -83,6 +83,9 @@ public:
 	std::unique_ptr<UploadBuffer<InstanceData>> InstanceBuffer = nullptr;
 	std::unique_ptr<UploadBuffer<MaterialData>> MaterialBuffer = nullptr;
 
+	//프레임자원으로서의 리드백자원
+	Microsoft::WRL::ComPtr<ID3D12Resource> mSurface;
+
 	// Fence value to mark commands up to this fence point.  This lets us
 	// check if these frame resources are still in use by the GPU.
 	UINT64 Fence = 0;

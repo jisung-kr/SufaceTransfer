@@ -144,7 +144,6 @@ private:
 	UINT m4xMsaaQuality;	//4xMsaa Quality
 	bool m4xMsaaState = false; //초기값 false로 설정 true시 에러
 	/*------------------------------------------------------------------------------------------------------*/
-	/**/
 	std::vector<std::unique_ptr<FrameResource>> mFrameResources;
 	FrameResource* mCurrFrameResource = nullptr;
 	int mCurrFrameResourceIndex = 0;
@@ -175,8 +174,8 @@ private:
 
 	//GPU - CPU메모리 영역에 생성할 자원
 	//읽고 쓰고 가능한 텍스쳐 
-	Microsoft::WRL::ComPtr<ID3D12Resource> mSurface;
-	SIZE_T mSurfaceSize = mClientHeight * mClientWidth * sizeof(float);
+	//프레임 자원으로서 관리함
+	//Microsoft::WRL::ComPtr<ID3D12Resource> mSurface;
 	FLOAT* mBuffer;
 
 	/*------------------------------------------------------------------------------------------------------*/
@@ -223,12 +222,10 @@ public:
 
 	void CreateReadBackTex();
 
-	void MappingBuffer();
-	void UnMapBuffer();
+	void CopyBuffer();
 
 	FLOAT* GetReadBackBuffer();
-	int GetReadBackBufferSize();
-	
+	SIZE_T GetSurfaceSize() { return D3DUtil::CalcConstantBufferByteSize(mClientWidth * sizeof(FLOAT)) * mClientHeight; }
 
 	/*------------------------------------------------------------------------------------------------------*/
 	void OnKeyboardInput(const GameTimer& gt);

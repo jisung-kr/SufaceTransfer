@@ -42,26 +42,19 @@ bool MainWindow::Initialize() {
 	UpdateWindow(mhMainWnd);
 
 	d3dApp = new D3D12WND(mhMainWnd);
-
 	d3dApp->InitDirect3D();
-
 	d3dApp->OnResize();
+
+	//큐 생성
+	queue = new BitmapQueue();
 
 	/* 서버 소켓 생성및 초기화 */
 	server = new Server();
 	if (!server->Init())
 		return false;
 
-	/* 클라이언트 소켓 받아오기 */
-	//이 부분은 나중에 따로 쓰레드로 빼거나 해야함 !!
-
-	std::thread networkThread([&]() -> void { server->WaitForClient(); });
-	networkThread.detach();	//분리를 안하면 이 함수가 끝나기 전에 쓰레드가 끝나지 않아서 오류남
-	
-	//server->WaitForClient();
-
-	//networkThread.join();
-	//::MessageBoxA(mhMainWnd, "접속", "클라이언트 접속", MB_OK);
+	//일단 싱글스레드
+	server->WaitForClient();
 
 	return true;
 }
@@ -91,17 +84,13 @@ int MainWindow::Run() {
 				d3dApp->Update(d3dApp->mTimer);
 				d3dApp->Draw(d3dApp->mTimer);
 
-				//명령을 받고 데이터 보내기
-				if (!server->IsInvalidClientSocket()) {
-					std::thread netIOThread([&]()->void {server->ReceiveMSG((char*)d3dApp->GetReadBackBuffer(), d3dApp->GetReadBackBufferSize()); });
-					netIOThread.detach();
-				}
 
-					
-				/*
-				//이곳에서 클라이언트에 전달
-				server->SendData(d3dApp->GetReadBackBuffer(), d3dApp->GetReadBackBufferSize());
-				*/
+				//렌더가 끝났으므로 데이터 전달
+
+				unsigned int size = htonl(d3dApp->GetSurfaceSize());
+				server->SendData((void*)&size, sizeof(void*));
+				
+				server->SendData(d3dApp->GetReadBackBuffer(), size);
 			}
 			else
 			{
