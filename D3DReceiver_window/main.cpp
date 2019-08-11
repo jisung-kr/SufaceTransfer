@@ -12,8 +12,11 @@ LPCWSTR clsName = TEXT("D3DReceiver");	//윈도우 쿨래스 네임
 
 Client* client = nullptr;	//클라이언트
 
-UINT mClientWidth = 1280;
-UINT mClientHeight = 720;
+//UINT mClientWidth = 1280;
+//UINT mClientHeight = 720;
+
+UINT mClientWidth = 640;
+UINT mClientHeight = 480;
 
 BitmapQueue queue;
 
@@ -126,19 +129,18 @@ void Render() {
 		//hdc = BeginPaint(mhMainWnd, &ps);
 
 		hMemDC = CreateCompatibleDC(hdc);
-		hBitmap = CreateBitmap(mClientWidth, mClientHeight, 1, 32, client->GetData());
+		hBitmap = CreateBitmap(640, 441, 1, 32, client->GetData());	//비트맵 사이즈 중요!!!
 		hOldBitmap = (HBITMAP)SelectObject(hMemDC, hBitmap);
 		BitBlt(hdc, 0, 0, mClientWidth, mClientHeight, hMemDC, 0, 0, SRCCOPY);
 		SelectObject(hMemDC, hOldBitmap);
 		DeleteDC(hMemDC);
 		DeleteObject(hBitmap);
 
+
 		ReleaseDC(mhMainWnd, hdc);
 		//EndPaint(mhMainWnd, &ps);
 
 		client->ReleaseBuffer();
-
-		//OutputDebugStringA(client->GetData());
 	}
 
 }

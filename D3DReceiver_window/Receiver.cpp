@@ -102,26 +102,56 @@ void Client::SendMSG(HEADER& header, char** data) {
 
 bool Client::ReadData() {
 	//문자열 수신
-	ZeroMemory(rBuf, sizeof(rBuf));
 	unsigned int size = 0;
+	unsigned int totSize = 0;
+	unsigned int nowSize = 0;
+	char str[256];
 
-	if (recv(serverSock, (char*)&size, sizeof(unsigned int), 0) > 0) {
-		size = (unsigned int)ntohl(size);
-		//데이터 길이 수신
-		if (size != 0) {
-			data = new char[size];
-			if (recv(serverSock, (char*)data, size, 0) > 0) {
-				OutputDebugStringA("데이터 수신\n");
-			}
-			else {
-				OutputDebugStringA("데이터 실패\n");
-			}
+	//버퍼 크기 받아오기
+	while (true) {
+		nowSize = recv(serverSock, ((char*)&size) + totSize, sizeof(unsigned int), 0);
+		if (nowSize > 0) {
+			totSize += nowSize;
+
+			if (totSize >= sizeof(unsigned int))
+				break;
 		}
-
+		else {
+			OutputDebugStringA("데이터 실패\n");
+			return false;
+		}
 	}
-	else
+
+	//버퍼에 데이터 받아오기
+	size = (unsigned int)ntohl(size);
+
+	if (size <= 0)
 		return false;
 
+	totSize = 0;
+	nowSize = 0;
+
+	data = new char[size];
+	ZeroMemory(data, size);
+
+	while (true) {
+		nowSize = recv(serverSock, ((char*)data) + totSize, size - totSize, 0);
+		if (nowSize > 0) {
+			totSize += nowSize;
+
+			wsprintfA(str, "현재 수신된 데이터 %d / %d\n", totSize, size);
+			OutputDebugStringA(str);
+
+			if (totSize >= size)
+				break;
+		}
+		else {
+			OutputDebugStringA("데이터 실패\n");
+			return false;
+		}
+	}
+
+	OutputDebugStringA("수신 완료!\n");
 	return true;
 }
 
@@ -129,7 +159,5 @@ bool Client::ReadData() {
 char* Client::GetData() {
 	return (char*)data;
 }
-int Client::GetDataSize() {
-	return BUFFER_SIZE;
-}
+
 
