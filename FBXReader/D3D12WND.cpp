@@ -551,7 +551,7 @@ void D3D12WND::Draw(const GameTimer& gt) {
 	dstLoc.PlacedFootprint.Footprint.Height = mClientHeight;
 	dstLoc.PlacedFootprint.Footprint.Width = mClientWidth;
 	dstLoc.PlacedFootprint.Footprint.Depth = 1;
-	dstLoc.PlacedFootprint.Footprint.RowPitch = D3DUtil::CalcConstantBufferByteSize(mClientWidth * sizeof(float));
+	dstLoc.PlacedFootprint.Footprint.RowPitch = D3DUtil::CalcConstantBufferByteSize(mClientWidth * sizeof(FLOAT));
 	dstLoc.SubresourceIndex = 0;
 
 	//복사소스 설정
@@ -562,15 +562,17 @@ void D3D12WND::Draw(const GameTimer& gt) {
 
 	//복사
 	mCommandList->CopyTextureRegion(&dstLoc, 0, 0, 0, &srcLoc, nullptr);
-	
+	//mCommandList->CopyBufferRegion(mCurrFrameResource->mSurface.Get(), 0, CurrentBackBuffer(), 0, GetSurfaceSize());
 
 	//배리어 다시 원래대로
 	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
-		D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET));
+		D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_PRESENT));
 
 	/*--------------------------------------------------------------------------------------*/
+	/*
 	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
 		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
+	*/
 
 	ThrowIfFailed(mCommandList->Close());
 

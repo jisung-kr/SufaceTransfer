@@ -124,13 +124,22 @@ void Server::SendData(void* data, int size) {
 	//현재 버퍼 사이즈 만큼만 데이터 전송
 	//후에 버퍼 사이즈 만큼 보내기 위해 프로토콜 생성해야함
 	if (clientSock != INVALID_SOCKET) {
-		if (send(clientSock, (char*)data, size, 0) < 0) {
-			//클라이언트가 접속 종료됨
-			closesocket(clientSock);
-			clientSock = INVALID_SOCKET;
-		}
-		else {
-			OutputDebugStringA((char*)data);
+		unsigned int totSize = 0;
+		unsigned int nowSize = 0;
+		while (true) {
+			nowSize = send(clientSock, ((char*)data) + totSize, size - totSize, 0);
+			
+			if (nowSize < 0) {
+				//클라이언트가 접속 종료됨
+				closesocket(clientSock);
+				clientSock = INVALID_SOCKET;
+			}
+			else {
+				totSize += nowSize;
+			}
+
+			if (totSize >= size)
+				break;
 		}
 	}
 
