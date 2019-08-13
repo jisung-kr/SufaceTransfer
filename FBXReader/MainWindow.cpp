@@ -87,10 +87,17 @@ int MainWindow::Run() {
 
 				//렌더가 끝났으므로 데이터 전달
 				/*				*/
-				unsigned int size = htonl(d3dApp->GetSurfaceSize());
-				server->SendData((void*)&size, sizeof(unsigned int));
-				
-				server->SendData(d3dApp->GetReadBackBuffer(), d3dApp->GetSurfaceSize());
+				if (mNetworkThread == nullptr) {
+
+					mNetworkThread = new std::thread([&]()-> void {
+						while (true) {
+							unsigned int size = htonl(d3dApp->GetSurfaceSize());
+							server->SendData((void*)& size, sizeof(unsigned int));
+							server->SendData(d3dApp->GetReadBackBuffer(), d3dApp->GetSurfaceSize());
+						}
+					});
+
+				}
 
 			}
 			else
