@@ -38,14 +38,13 @@ private:
 	SOCKET serverSock;
 	sockaddr_in serverAddr;
 
-	void* data;
+	void* data = nullptr;
 
 public:
 	bool Init();
 	bool Connection();
 	bool ReadData();
-	void SendMSG(HEADER& header, char** data);
 	char* GetData();
 
-	void ReleaseBuffer() { delete data; }
+	void ReleaseBuffer();
 };

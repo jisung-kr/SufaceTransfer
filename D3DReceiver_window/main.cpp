@@ -1,9 +1,10 @@
 #include "Receiver.h"
 #include "BitmapQueue.h"
+#include "GameTimer.h"
 
 #include <Windows.h>
-
-
+#include <thread>
+#include <string>
 
 HINSTANCE mhInst;	//인스턴스 핸들
 HWND mhMainWnd;	//메인 윈도우 핸들
@@ -18,11 +19,15 @@ Client* client = nullptr;	//클라이언트
 UINT mClientWidth = 640;
 UINT mClientHeight = 480;
 
+std::thread* mNetworkThread = nullptr;
+
 BitmapQueue queue;
+
+GameTimer mTimer;
 
 LRESULT WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam);
 void Render();
-void ReceiveBitmap();
+void CalculateFrameStatus();
 
 int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmdShow) {
 	WNDCLASS wndCls;
@@ -67,6 +72,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 		return 1;
 	}
 
+	mTimer.Reset();
 
 	MSG msg = { 0 };
 
@@ -79,47 +85,43 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 		}
 		else
 		{
-			//ReceiveBitmap();
-			Render();	//렌더링
+			//새로운 스레드에서
+			//데이터 받기
+			//큐에 저장!!!!!!
+			if (mNetworkThread == nullptr) {
+				mNetworkThread = new std::thread([&]() -> void {
+					while (true) {
+						if (!client->ReadData()) {
+							delete client;
+							client = nullptr;
+						}
+
+						if (client == nullptr)
+							break;
+
+						queue.PushItem(client->GetData());
+					}
+				});
+			}
+
+			mTimer.Tick();
+
+			if (queue.Size() > 2) {
+				CalculateFrameStatus();
+				Render();	//렌더링
+			}
+
+
 		}
 	}
 
 	return 0;
 }
 
-void ReceiveBitmap() {
-	if (client != nullptr) {
-		//서버에서 데이터를 받아옴
-		HEADER header;
-		header.command = COMMAND::COMMAND_REQUEST_FRAME;
-		header.dataLen = 0;
-		header.msgNum = 1;
-		header.msgTotalNum = 1;
-
-		unsigned char* data = nullptr;
-		client->SendMSG(header, (char**)& data);
-
-		queue.PushItem(data);
-	}
-
-}
 void Render() {
+
 	if (client != nullptr) {
-		/*
-		//서버에서 데이터를 받아옴
-		HEADER header;
-		header.command = COMMAND::COMMAND_REQUEST_FRAME;
-		header.dataLen = 0;
-		header.msgNum = 1;
-		header.msgTotalNum = 1;
 
-		unsigned char* data = nullptr;
-		client->SendMSG(header, (char**)& data);
-		*/
-
-		client->ReadData();
-
-		//데이터를 받아온 상태임
 		HDC hdc, hMemDC;
 		//PAINTSTRUCT ps;
 		HBITMAP hBitmap, hOldBitmap;
@@ -129,7 +131,7 @@ void Render() {
 		//hdc = BeginPaint(mhMainWnd, &ps);
 
 		hMemDC = CreateCompatibleDC(hdc);
-		hBitmap = CreateBitmap(640, 441, 1, 32, client->GetData());	//비트맵 사이즈 중요!!!
+		hBitmap = CreateBitmap(640, 441, 1, 32, queue.FrontItem());	//비트맵 사이즈 중요!!!
 		hOldBitmap = (HBITMAP)SelectObject(hMemDC, hBitmap);
 		BitBlt(hdc, 0, 0, mClientWidth, mClientHeight, hMemDC, 0, 0, SRCCOPY);
 		SelectObject(hMemDC, hOldBitmap);
@@ -140,9 +142,37 @@ void Render() {
 		ReleaseDC(mhMainWnd, hdc);
 		//EndPaint(mhMainWnd, &ps);
 
-		client->ReleaseBuffer();
+		delete queue.FrontItem();
+		queue.PopItem();
+		//client->ReleaseBuffer();
 	}
 
+}
+
+void CalculateFrameStatus() {
+	static int frameCnt = 0;
+	static float timeElapsed = 0.0f;
+
+	frameCnt++;
+
+	// Compute averages over one second period.
+	if ((mTimer.TotalTime() - timeElapsed) >= 1.0f)
+	{
+		float fps = (float)frameCnt; // fps = frameCnt / 1
+		float mspf = 1000.0f / fps;
+
+		std::wstring fpsStr = std::to_wstring(fps);
+		std::wstring mspfStr = std::to_wstring(mspf);
+
+		std::wstring windowText = std::wstring(clsName) +
+			L"    fps: " + fpsStr +
+			L"   mspf: " + mspfStr;
+
+		SetWindowText(mhMainWnd, windowText.c_str());
+
+		frameCnt = 0;
+		timeElapsed += 1.0f;
+	}
 }
 
 LRESULT WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam) {

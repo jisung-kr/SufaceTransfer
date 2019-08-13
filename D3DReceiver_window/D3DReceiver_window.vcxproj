@@ -140,11 +140,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="BitmapQueue.cpp" />
+    <ClCompile Include="GameTImer.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Receiver.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BitmapQueue.h" />
+    <ClInclude Include="GameTimer.h" />
     <ClInclude Include="Receiver.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
