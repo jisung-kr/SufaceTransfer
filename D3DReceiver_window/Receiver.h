@@ -7,7 +7,8 @@
 #define BUFFER_SIZE 1024
 #define PORT 3500
 //#define SERVER_IP "127.0.0.1"
-#define SERVER_IP "61.73.65.218"
+//#define SERVER_IP "61.73.65.218"
+#define SERVER_IP "59.10.192.66"
 
 enum COMMAND {
 	//임시 명령

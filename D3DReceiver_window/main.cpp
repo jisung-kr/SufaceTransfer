@@ -106,7 +106,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 
 			mTimer.Tick();
 
-			if (queue.Size() > 2) {
+			if (queue.Size() > 1) {
 				CalculateFrameStatus();
 				Render();	//렌더링
 			}
@@ -132,6 +132,7 @@ void Render() {
 
 		hMemDC = CreateCompatibleDC(hdc);
 		hBitmap = CreateBitmap(640, 441, 1, 32, queue.FrontItem());	//비트맵 사이즈 중요!!!
+		//hBitmap = CreateCompatibleBitmap(hdc, 640, 441);	//비트맵 사이즈 중요!!!
 		hOldBitmap = (HBITMAP)SelectObject(hMemDC, hBitmap);
 		BitBlt(hdc, 0, 0, mClientWidth, mClientHeight, hMemDC, 0, 0, SRCCOPY);
 		SelectObject(hMemDC, hOldBitmap);

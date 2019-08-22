@@ -1,5 +1,6 @@
 #include "BitmapQueue.h"
 
+std::mutex BitmapQueue::mMutex;
 
 //생성자
 BitmapQueue::BitmapQueue() {
@@ -20,13 +21,17 @@ void* BitmapQueue::FrontItem() {
 }
 
 //Queue의 마지막 원소에 데이터 넣기
-void BitmapQueue::PushItem(void* item) {
+void BitmapQueue::PushItem(void* item, std::mutex& mutex) {
+	mutex.lock();
 	mQueue.push(item);
+	mutex.unlock();
 }
 
 //Queue의 첫번째 원소 삭제
-void BitmapQueue::PopItem() {
+void BitmapQueue::PopItem(std::mutex& mutex) {
+	mutex.lock();
 	mQueue.pop();
+	mutex.unlock();
 }
 
 //현재  Queue의 Item 갯수 반환
