@@ -45,17 +45,6 @@ bool MainWindow::Initialize() {
 	d3dApp->InitDirect3D();
 	d3dApp->OnResize();
 
-	//큐 생성
-	queue = new BitmapQueue();
-
-	/* 서버 소켓 생성및 초기화 */
-	server = new Server();
-	if (!server->Init())
-		return false;
-
-	//일단 싱글스레드
-	server->WaitForClient();
-
 	return true;
 }
 
@@ -81,23 +70,11 @@ int MainWindow::Run() {
 			if (!d3dApp->mAppPaused)
 			{
 				d3dApp->CalculateFrameStatus();
+
 				d3dApp->Update(d3dApp->mTimer);
 				d3dApp->Draw(d3dApp->mTimer);
 
-
-				//렌더가 끝났으므로 데이터 전달
-				/*				*/
-				if (mNetworkThread == nullptr) {
-
-					mNetworkThread = new std::thread([&]()-> void {
-						while (true) {
-							unsigned int size = htonl(d3dApp->GetSurfaceSize());
-							server->SendData((void*)& size, sizeof(unsigned int));
-							server->SendData(d3dApp->GetReadBackBuffer(), d3dApp->GetSurfaceSize());
-						}
-					});
-
-				}
+				d3dApp->SendFrame();
 
 			}
 			else

@@ -1,4 +1,8 @@
 #pragma once
+
+#include "d3dx12.h"
+#include "MathHelper.h"
+
 #include <dxgi1_6.h>
 #include <d3d12.h>
 #include <D3Dcompiler.h>
@@ -7,7 +11,7 @@
 #include <DirectXColors.h>
 #include <DirectXCollision.h>
 
-#include <windows.h>
+#include <Windowsx.h>
 #include <wrl.h>
 #include <string>
 #include <memory>
@@ -20,9 +24,6 @@
 #include <sstream>
 #include <cassert>
 #include <comdef.h>
-
-#include "d3dx12.h"
-#include "MathHelper.h"
 
 #ifndef ThrowIfFailed
 #define ThrowIfFailed(x)                                              \

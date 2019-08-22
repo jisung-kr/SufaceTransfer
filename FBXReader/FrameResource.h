@@ -61,32 +61,25 @@ struct Vertex
 	DirectX::XMFLOAT2 TexC;
 };
 
-// Stores the resources needed for the CPU to build the command lists
-// for a frame.  
+
 struct FrameResource
 {
 public:
-
-	FrameResource(ID3D12Device* device, UINT passCount, UINT maxInstanceCount, UINT materialCount);
+	FrameResource(ID3D12Device* device, UINT passCount, UINT maxInstanceCount, UINT materialCount, UINT clientNum);
 	FrameResource(const FrameResource& rhs) = delete;
 	FrameResource& operator=(const FrameResource& rhs) = delete;
 	~FrameResource();
 
-	// We cannot reset the allocator until the GPU is done processing the commands.
-	// So each frame needs their own allocator.
 	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> CmdListAlloc;
 
-	// We cannot update a cbuffer until the GPU is done processing the commands
-	// that reference it.  So each frame needs their own cbuffers.
 	std::unique_ptr<UploadBuffer<PassConstants>> PassCB = nullptr;
-	//std::unique_ptr<UploadBuffer<InstanceData>> ObjectCB = nullptr;
 	std::unique_ptr<UploadBuffer<InstanceData>> InstanceBuffer = nullptr;
 	std::unique_ptr<UploadBuffer<MaterialData>> MaterialBuffer = nullptr;
 
-	//프레임자원으로서의 리드백자원
-	Microsoft::WRL::ComPtr<ID3D12Resource> mSurface;
+	std::vector<std::unique_ptr<UploadBuffer<PassConstants>>> SubPassCB;
 
-	// Fence value to mark commands up to this fence point.  This lets us
-	// check if these frame resources are still in use by the GPU.
+	//프레임자원으로서의 리드백자원
+	std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> mSurfaces;
+
 	UINT64 Fence = 0;
 };

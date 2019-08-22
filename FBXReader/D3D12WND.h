@@ -1,23 +1,24 @@
 #pragma once
 
+#include "Network.h"
+#include "BitmapQueue.h"
+#include "D3DUtil.h"
+#include "GameTimer.h"
+#include "DDSTextureLoader.h"
+#include "Camera.h"
+#include "GeometryGenerator.h"
+
+#include "FrameResource.h"
+
 #if defined(DEBUG) || defined(_DEBUG)
 #define _CRTDBG_MAP_ALLOC
 #include <crtdbg.h>
 #endif
 
-
-#include "GameTimer.h"
-#include "D3DUtil.h"
-#include "DDSTextureLoader.h"
-#include "FrameResource.h"
-#include "Camera.h"
-#include "GeometryGenerator.h"
-
 #pragma comment(lib, "d3dcompiler.lib")
 #pragma comment(lib, "D3D12.lib")
 #pragma comment(lib, "dxgi.lib")
 
-//std::wstring AnsiToWString(const std::string& str);
 
 extern const int gNumFrameResources;
 
@@ -124,7 +125,9 @@ private:
 	UINT mDsvDescriptorSize = 0;	//Size of DepthStencilView Descriptor
 	UINT mCbvSrvUavDescriptorSize = 0;	//Size of ConstantBuffer-ShaderResourceView Descriptor
 	/*------------------------------------------------------------------------------------------------------*/
-	DXGI_FORMAT mBackBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;	//Format of BackBuffer
+	//DXGI_FORMAT mBackBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;	//Format of BackBuffer
+	DXGI_FORMAT mBackBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM;	//Format of BackBuffer - Little Endian
+	
 	DXGI_FORMAT mDepthStencilFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;	//Format of DepthStencil
 
 	Microsoft::WRL::ComPtr<IDXGISwapChain> mSwapChain;	//SwapChain : DoubleBuffering
@@ -150,7 +153,6 @@ private:
 	std::vector<std::unique_ptr<FrameResource>> mFrameResources;
 	FrameResource* mCurrFrameResource = nullptr;
 	int mCurrFrameResourceIndex = 0;
-	
 	/*------------------------------------------------------------------------------------------------------*/
 	/*	*/
 	// List of all the render items.
@@ -174,28 +176,25 @@ private:
 
 	/*------------------------------------------------------------------------------------------------------*/
 	/*------------------------------------------------------------------------------------------------------*/
-
-	//GPU - CPU메모리 영역에 생성할 자원
-	//읽고 쓰고 가능한 텍스쳐 
-	//프레임 자원으로서 관리함
-	//Microsoft::WRL::ComPtr<ID3D12Resource> mSurface;
+	//그려진 텍스쳐 데이터를 받아올 버퍼
 	FLOAT* mBuffer;
-
+	std::vector<FLOAT*> mBuffers;
+	Server* server = nullptr;
+	BitmapQueue* queue = nullptr;
+	PassConstants mClientPassCB;
 	/*------------------------------------------------------------------------------------------------------*/
 	PassConstants mMainPassCB;
 
-	Camera mCamera;
+	Camera mCamera;	//서버의 카메라
 
 	bool isWire_frame = false;
 
 	POINT mLastMousePos;
 
-
 public:
 	Microsoft::WRL::ComPtr<ID3D12Device> GetD3DDevice();
 	D3D12WND* GetD3D12WND();
 	bool InitDirect3D();
-
 	void CalculateFrameStatus();
 	/*------------------------------------------------------------------------------------------------------*/
 	void CreateCommandObjects();
@@ -227,9 +226,13 @@ public:
 
 	void CopyBuffer();
 
+	void UpdateClientPassCB(const GameTimer& gt);
+
 	FLOAT* GetReadBackBuffer();
 	SIZE_T GetSurfaceSize() { return D3DUtil::CalcConstantBufferByteSize(mClientWidth * sizeof(FLOAT)) * mClientHeight; }
 	//SIZE_T GetSurfaceSize() { return mClientWidth * sizeof(FLOAT) * mClientHeight; }
+
+	void SendFrame();
 
 	/*------------------------------------------------------------------------------------------------------*/
 	void OnKeyboardInput(const GameTimer& gt);

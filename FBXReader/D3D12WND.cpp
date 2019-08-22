@@ -12,7 +12,6 @@ D3D12WND::D3D12WND(HWND wnd) :mhMainWnd(wnd) {
 	GetWindowText(wnd, title, 256);
 
 	mMainWndCaption = title;
-
 }
 
 Microsoft::WRL::ComPtr<ID3D12Device> D3D12WND::GetD3DDevice() {
@@ -111,7 +110,23 @@ bool D3D12WND::InitDirect3D() {
 	// Reset the command list to prep for initialization commands.
 	ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
 
+	//서버측 카메라 위치 설정
 	mCamera.SetPosition(0.0f, 2.0f, -20.0f);
+
+
+
+	//여기서 초기화 후 일단 대기
+	//큐 생성
+	queue = new BitmapQueue();
+
+	/* 서버 소켓 생성및 초기화 */
+	server = new Server();
+	if (!server->Init())
+		return false;
+
+	//서버 클라이언트 정해진 인원 만큼 대기
+	server->WaitForClient();
+
 
 	LoadTextures();
 	BuildRootSignature();
@@ -121,7 +136,6 @@ bool D3D12WND::InitDirect3D() {
 
 	BuildCubeMesh();
 	BuildRenderItems();
-
 
 
 	BuildFrameResources();	
@@ -138,21 +152,15 @@ bool D3D12WND::InitDirect3D() {
 	// Wait until initialization is complete.
 	FlushCommandQueue();
 
-
 	return true;
 }
 
 void D3D12WND::CalculateFrameStatus() {
-	// Code computes the average frames per second, and also the 
-	// average time it takes to render one frame.  These stats 
-	// are appended to the window caption bar.
-
 	static int frameCnt = 0;
 	static float timeElapsed = 0.0f;
 
 	frameCnt++;
 
-	// Compute averages over one second period.
 	if ((mTimer.TotalTime() - timeElapsed) >= 1.0f)
 	{
 		float fps = (float)frameCnt; // fps = frameCnt / 1
@@ -167,7 +175,6 @@ void D3D12WND::CalculateFrameStatus() {
 
 		SetWindowText(mhMainWnd, windowText.c_str());
 
-		// Reset for next average.
 		frameCnt = 0;
 		timeElapsed += 1.0f;
 	}
@@ -186,17 +193,14 @@ void D3D12WND::CreateCommandObjects() {
 	ThrowIfFailed(md3dDevice->CreateCommandList(
 		0,
 		D3D12_COMMAND_LIST_TYPE_DIRECT,
-		mDirectCmdListAlloc.Get(), // Associated command allocator
-		nullptr,                   // Initial PipelineStateObject
+		mDirectCmdListAlloc.Get(), // 연관된 cmdAlloc
+		nullptr,                   // 초기화 PSO
 		IID_PPV_ARGS(mCommandList.GetAddressOf())));
 
-	// Start off in a closed state.  This is because the first time we refer 
-	// to the command list we will Reset it, and it needs to be closed before
-	// calling Reset.
 	mCommandList->Close();
 }
+
 void D3D12WND::CreateSwapChain() {
-	// Release the previous swapchain we will be recreating.
 	mSwapChain.Reset();
 
 	DXGI_SWAP_CHAIN_DESC sd;
@@ -216,9 +220,6 @@ void D3D12WND::CreateSwapChain() {
 	sd.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 	sd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 
-
-
-	// Note: Swap chain uses queue to perform flush.
 	ThrowIfFailed(mdxgiFactory->CreateSwapChain(
 		mCommandQueue.Get(),
 		&sd,
@@ -391,7 +392,6 @@ void D3D12WND::OnResize() {
 	mDepthStencilBuffer.Reset();
 
 	// Resize the swap chain.
-
 	ThrowIfFailed(mSwapChain->ResizeBuffers(
 		mSwapChainBufferCount,
 		mClientWidth, mClientHeight,
@@ -500,11 +500,92 @@ void D3D12WND::Draw(const GameTimer& gt) {
 	mCommandList->ClearRenderTargetView(CurrentBackBufferView(), Colors::SteelBlue, 0, nullptr);
 	mCommandList->ClearDepthStencilView(DepthStencilView(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
-
 	mCommandList->OMSetRenderTargets(1, &CurrentBackBufferView(), true, &DepthStencilView());
 
 	/*--------------------------------------------------------------------------------------*/
 	/*	그리기  */
+
+	//클라이언트 시점 그리기
+	{
+		for (UINT i = 0; i < server->GetClientNum(); ++i) {
+
+			ID3D12DescriptorHeap* descriptorHeaps[] = { mSrvDescriptorHeap.Get() };
+			mCommandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+
+			mCommandList->SetGraphicsRootSignature(mRootSignature.Get());
+
+			//셰이더 자원 서술자
+			auto matBuffer = mCurrFrameResource->MaterialBuffer->Resource();
+			mCommandList->SetGraphicsRootShaderResourceView(1, matBuffer->GetGPUVirtualAddress());
+
+			//상수버퍼서술자 
+			auto passCB = mCurrFrameResource->SubPassCB[i]->Resource();
+			mCommandList->SetGraphicsRootConstantBufferView(2, passCB->GetGPUVirtualAddress());
+
+			//서술자 테이블
+			mCommandList->SetGraphicsRootDescriptorTable(3, mSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+
+			//와이어 프레임 설정 켜져 있을 시 파이프상태 변경
+			if (isWire_frame)
+				mCommandList->SetPipelineState(mPSOs["opaque_wireFrame"].Get());
+
+			//여기서 그리기 수행
+			DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::Opaque]);
+
+
+
+
+			//리소스 배리어 전환
+			mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
+				D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE));
+
+			//백버퍼에 설정값들 참조
+			D3D12_RESOURCE_DESC Desc = CurrentBackBuffer()->GetDesc();
+			D3D12_PLACED_SUBRESOURCE_FOOTPRINT descFootPrint = {};
+			UINT Rows = 0;
+			UINT64 RowSize = 0;
+			UINT64 TotalBytes = 0;
+			md3dDevice->GetCopyableFootprints(&Desc, 0, 1, 0, &descFootPrint, &Rows, &RowSize, &TotalBytes);
+
+			//복사대상 설정
+			D3D12_TEXTURE_COPY_LOCATION dstLoc;
+			dstLoc.pResource = mCurrFrameResource->mSurfaces[i].Get();
+			dstLoc.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+			dstLoc.PlacedFootprint.Offset = 0;
+			dstLoc.PlacedFootprint.Footprint.Format = mBackBufferFormat;
+			dstLoc.PlacedFootprint.Footprint.Height = mClientHeight;
+			dstLoc.PlacedFootprint.Footprint.Width = mClientWidth;
+			dstLoc.PlacedFootprint.Footprint.Depth = 1;
+			dstLoc.PlacedFootprint.Footprint.RowPitch = D3DUtil::CalcConstantBufferByteSize(mClientWidth * sizeof(FLOAT));
+			dstLoc.SubresourceIndex = 0;
+
+			//복사소스 설정
+			D3D12_TEXTURE_COPY_LOCATION srcLoc;
+			srcLoc.pResource = CurrentBackBuffer();
+			srcLoc.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+			srcLoc.SubresourceIndex = 0;
+
+			//복사
+			mCommandList->CopyTextureRegion(&dstLoc, 0, 0, 0, &srcLoc, nullptr);
+			//mCommandList->CopyBufferRegion(mCurrFrameResource->mSurface.Get(), 0, CurrentBackBuffer(), 0, GetSurfaceSize());
+
+			//배리어 다시 원래대로
+			mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
+				D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET));
+
+			//RTV, DSV 클리어
+			mCommandList->ClearRenderTargetView(CurrentBackBufferView(), Colors::SteelBlue, 0, nullptr);
+			mCommandList->ClearDepthStencilView(DepthStencilView(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+
+		}
+
+	}
+
+
+	//서버 시점 그리기
+
+	mCommandList->OMSetRenderTargets(1, &CurrentBackBufferView(), true, &DepthStencilView());
+
 	ID3D12DescriptorHeap* descriptorHeaps[] = { mSrvDescriptorHeap.Get() };
 	mCommandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
@@ -530,49 +611,12 @@ void D3D12WND::Draw(const GameTimer& gt) {
 
 
 	/*--------------------------------------------------------------------------------------*/
-	//리소스 배리어 전환
-	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
-		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE));
-
-	//백버퍼에 설정값들 참조
-	D3D12_RESOURCE_DESC Desc = CurrentBackBuffer()->GetDesc();
-	D3D12_PLACED_SUBRESOURCE_FOOTPRINT descFootPrint = {};
-	UINT Rows = 0;
-	UINT64 RowSize = 0;
-	UINT64 TotalBytes = 0;
-	md3dDevice->GetCopyableFootprints(&Desc, 0, 1, 0, &descFootPrint, &Rows, &RowSize, &TotalBytes);
 	
-	//복사대상 설정
-	D3D12_TEXTURE_COPY_LOCATION dstLoc;
-	dstLoc.pResource = mCurrFrameResource->mSurface.Get();
-	dstLoc.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-	dstLoc.PlacedFootprint.Offset = 0;
-	dstLoc.PlacedFootprint.Footprint.Format = mBackBufferFormat;
-	dstLoc.PlacedFootprint.Footprint.Height = mClientHeight;
-	dstLoc.PlacedFootprint.Footprint.Width = mClientWidth;
-	dstLoc.PlacedFootprint.Footprint.Depth = 1;
-	dstLoc.PlacedFootprint.Footprint.RowPitch = D3DUtil::CalcConstantBufferByteSize(mClientWidth * sizeof(FLOAT));
-	dstLoc.SubresourceIndex = 0;
-
-	//복사소스 설정
-	D3D12_TEXTURE_COPY_LOCATION srcLoc;
-	srcLoc.pResource = CurrentBackBuffer();
-	srcLoc.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-	srcLoc.SubresourceIndex = 0;
-
-	//복사
-	mCommandList->CopyTextureRegion(&dstLoc, 0, 0, 0, &srcLoc, nullptr);
-	//mCommandList->CopyBufferRegion(mCurrFrameResource->mSurface.Get(), 0, CurrentBackBuffer(), 0, GetSurfaceSize());
-
-	//배리어 다시 원래대로
-	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
-		D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_PRESENT));
 
 	/*--------------------------------------------------------------------------------------*/
-	/*
+	/*	*/
 	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
 		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
-	*/
 
 	ThrowIfFailed(mCommandList->Close());
 
@@ -606,6 +650,9 @@ void D3D12WND::Update(const GameTimer& gt) {
 	UpdateInstanceData(gt);
 	UpdateMaterialBuffer(gt);
 	UpdateMainPassCB(gt);
+
+	//클라이언트 카메라를 업데이트
+	UpdateClientPassCB(gt);
 }
 
 void D3D12WND::OnKeyboardInput(const GameTimer& gt) {
@@ -643,6 +690,10 @@ void D3D12WND::OnKeyboardInput(const GameTimer& gt) {
 		mCamera.RotateY(-dx);
 	}
 	mCamera.UpdateViewMatrix();
+
+	for (int i = 0; i < server->GetClientNum(); ++i) {
+		server->GetClients()[i]->mCamera.UpdateViewMatrix();
+	}
 }
 void D3D12WND::AnimateMaterials(const GameTimer& gt) {
 
@@ -674,6 +725,7 @@ void D3D12WND::UpdateInstanceData(const GameTimer& gt) {
 		}
 	}
 }
+
 void D3D12WND::UpdateMaterialBuffer(const GameTimer& gt) {
 	auto currMaterialBuffer = mCurrFrameResource->MaterialBuffer.get();
 	for (auto& e : mMaterials)
@@ -699,6 +751,7 @@ void D3D12WND::UpdateMaterialBuffer(const GameTimer& gt) {
 		}
 	}
 }
+
 void D3D12WND::UpdateMainPassCB(const GameTimer& gt) {
 	XMMATRIX view = mCamera.GetView();
 	XMMATRIX proj = mCamera.GetProj();
@@ -731,6 +784,45 @@ void D3D12WND::UpdateMainPassCB(const GameTimer& gt) {
 
 	auto currPassCB = mCurrFrameResource->PassCB.get();
 	currPassCB->CopyData(0, mMainPassCB);
+}
+
+void D3D12WND::UpdateClientPassCB(const GameTimer& gt) {
+	for (UINT i = 0; i < server->GetClientNum(); ++i) {
+		auto curClient = server->GetClients()[i];
+
+		XMMATRIX view = curClient->mCamera.GetView();
+		XMMATRIX proj = curClient->mCamera.GetProj();
+
+		XMMATRIX viewProj = XMMatrixMultiply(view, proj);
+		XMMATRIX invView = XMMatrixInverse(&XMMatrixDeterminant(view), view);
+		XMMATRIX invProj = XMMatrixInverse(&XMMatrixDeterminant(proj), proj);
+		XMMATRIX invViewProj = XMMatrixInverse(&XMMatrixDeterminant(viewProj), viewProj);
+
+		XMStoreFloat4x4(&mClientPassCB.View, XMMatrixTranspose(view));
+		XMStoreFloat4x4(&mClientPassCB.InvView, XMMatrixTranspose(invView));
+		XMStoreFloat4x4(&mClientPassCB.Proj, XMMatrixTranspose(proj));
+		XMStoreFloat4x4(&mClientPassCB.InvProj, XMMatrixTranspose(invProj));
+		XMStoreFloat4x4(&mClientPassCB.ViewProj, XMMatrixTranspose(viewProj));
+		XMStoreFloat4x4(&mClientPassCB.InvViewProj, XMMatrixTranspose(invViewProj));
+		mClientPassCB.EyePosW = curClient->mCamera.GetPosition3f();
+		mClientPassCB.RenderTargetSize = XMFLOAT2((float)mClientWidth, (float)mClientHeight);
+		mClientPassCB.InvRenderTargetSize = XMFLOAT2(1.0f / mClientWidth, 1.0f / mClientHeight);
+		mClientPassCB.NearZ = 1.0f;
+		mClientPassCB.FarZ = 1000.0f;
+		mClientPassCB.TotalTime = gt.TotalTime();
+		mClientPassCB.DeltaTime = gt.DeltaTime();
+		mClientPassCB.AmbientLight = { 0.25f, 0.25f, 0.35f, 1.0f };
+		mClientPassCB.Lights[0].Direction = { 0.57735f, -0.57735f, 0.57735f };
+		mClientPassCB.Lights[0].Strength = { 0.6f, 0.6f, 0.6f };
+		mClientPassCB.Lights[1].Direction = { -0.57735f, -0.57735f, 0.57735f };
+		mClientPassCB.Lights[1].Strength = { 0.3f, 0.3f, 0.3f };
+		mClientPassCB.Lights[2].Direction = { 0.0f, -0.707f, -0.707f };
+		mClientPassCB.Lights[2].Strength = { 0.15f, 0.15f, 0.15f };
+
+		auto currPassCB = mCurrFrameResource->SubPassCB[i].get();
+		currPassCB->CopyData(0, mClientPassCB);
+	}
+	
 }
 
 
@@ -864,17 +956,20 @@ void D3D12WND::BuildPSOs() {
 	opaquePsoDesc.RasterizerState = wire_frame;
 	ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(&opaquePsoDesc, IID_PPV_ARGS(&mPSOs["opaque_wireFrame"])));
 }
+
 void D3D12WND::BuildFrameResources() {
 	int num = 1;
 	for (int i = 0; i < mAllRitems.size(); ++i) {
 		num += mAllRitems[i]->InstanceCount;
 	}
+
 	for (int i = 0; i < gNumFrameResources; ++i)
 	{
 		mFrameResources.push_back(std::make_unique<FrameResource>(md3dDevice.Get(),
-			1, num, (UINT)mMaterials.size()));
+			1, num, (UINT)mMaterials.size(), server->GetClientNum()));
 	}
 }
+
 void D3D12WND::BuildMaterials() {
 	auto defaultMat = std::make_unique<Material>();
 	defaultMat->Name = "default";
@@ -1064,15 +1159,25 @@ void D3D12WND::CreateReadBackTex() {
 	readbackDesc = CD3DX12_RESOURCE_DESC{ CD3DX12_RESOURCE_DESC::Buffer(GetSurfaceSize()) };
 	
 	for (int i = 0; i < mFrameResources.size(); ++i) {
-		ThrowIfFailed(md3dDevice->CreateCommittedResource(
-			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_READBACK),
-			D3D12_HEAP_FLAG_NONE,
-			&readbackDesc,
-			D3D12_RESOURCE_STATE_COPY_DEST,
-			nullptr,
-			IID_PPV_ARGS(mFrameResources[i]->mSurface.GetAddressOf())
-		));
+		for (int j = 0; j < server->GetClientNum(); ++j) {
+			ThrowIfFailed(md3dDevice->CreateCommittedResource(
+				&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_READBACK),
+				D3D12_HEAP_FLAG_NONE,
+				&readbackDesc,
+				D3D12_RESOURCE_STATE_COPY_DEST,
+				nullptr,
+				IID_PPV_ARGS(mFrameResources[i]->mSurfaces[j].GetAddressOf())
+			));
+		}
+
 	}
+
+	mBuffers.reserve(server->GetClientNum());
+
+	for (int i = 0; i < server->GetClientNum(); ++i) {
+		mBuffers.push_back(new FLOAT());
+	}
+
 
 }
 
@@ -1080,15 +1185,29 @@ void D3D12WND::CopyBuffer() {
 
 	D3D12_RANGE range{ 0, GetSurfaceSize() };
 
-	mCurrFrameResource->mSurface->Map(0, &range, (void**)&mBuffer);
+	for (int i = 0; i < server->GetClientNum(); ++i) {
+		mCurrFrameResource->mSurfaces[i]->Map(0, &range, (void**)&mBuffers[i]);
+		mCurrFrameResource->mSurfaces[i]->Unmap(0, 0);
+	}
 
+	/*
+	mCurrFrameResource->mSurface->Map(0, &range, (void**)&mBuffer);
 	mCurrFrameResource->mSurface->Unmap(0, 0);
+	*/
 }
 
 FLOAT* D3D12WND::GetReadBackBuffer() {
 	return mBuffer;
 }
 
+void D3D12WND::SendFrame() {
+	for (int i = 0; i < server->GetClientNum(); ++i) {
+		int size = htonl(GetSurfaceSize());
+		
+		server->SendMSG(i, &size, sizeof(size));
+		server->SendMSG(i, mBuffers[i], GetSurfaceSize());
+	}
+}
 
 
 

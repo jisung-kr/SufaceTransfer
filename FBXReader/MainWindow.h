@@ -1,11 +1,7 @@
 #pragma once
 
-#include "BitmapQueue.h"
-#include "Network.h"
 #include "D3D12WND.h"
 
-#include <Windowsx.h>
-#include <thread>
 
 class MainWindow {
 public:
@@ -33,11 +29,7 @@ private:
 
 	//D3D12 ·»´õ È­¸é
 	D3D12WND* d3dApp = nullptr;
-	Server* server = nullptr;
-	BitmapQueue* queue = nullptr;
 
-	std::thread* mRenderThread = nullptr;
-	std::thread* mNetworkThread = nullptr;
 
 public:
 	static MainWindow* GetInstance();
