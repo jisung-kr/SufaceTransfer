@@ -15,15 +15,51 @@
 
 enum COMMAND {
 	//임시 명령
-	COMMAND_REQUEST_FRAME = 0,
-	COMMAND_REQUEST_FRAME_ACK = 1
+	COMMAND_REQ_FRAME = 0,
+	COMMAND_RES_FRAME = 1
 };
 
 struct HEADER {
-	unsigned int dataLen;
-	unsigned short command;
-	unsigned char msgNum;
-	unsigned char msgTotalNum;
+	UINT mDataLen;
+	USHORT mCommand;
+	UCHAR mMsgNum;
+	UCHAR mMsgTotalNum;
+};
+
+struct CHEADER : HEADER {
+	CHEADER() {
+		mDataLen = 0;
+		mCommand = COMMAND::COMMAND_REQ_FRAME;
+		mMsgNum = 0;
+		mMsgTotalNum = 0;
+	}
+
+	CHEADER(USHORT command) {
+		mDataLen = 0;
+		mCommand = command;
+		mMsgNum = 0;
+		mMsgTotalNum = 0;
+	}
+	CHEADER(USHORT command, UINT dataLen) {
+		mDataLen = dataLen;
+		mCommand = command;
+		mMsgNum = 0;
+		mMsgTotalNum = 0;
+	}
+
+	CHEADER(UINT dataLen, USHORT command, UCHAR msgNum) {
+		mDataLen = dataLen;
+		mCommand = command;
+		mMsgNum = msgNum;
+		mMsgTotalNum = msgNum;
+	}
+
+	CHEADER(UINT dataLen, USHORT command, UCHAR msgNum, UCHAR msgTotNum) {
+		mDataLen = dataLen;
+		mCommand = command;
+		mMsgNum = msgNum;
+		mMsgTotalNum = msgTotNum;
+	}
 };
 
 struct NETWORK_MSG {
@@ -46,6 +82,8 @@ private:
 	SOCKET clientSock = INVALID_SOCKET;
 	sockaddr_in clientAddr;
 
+public:
+	HEADER reqHeader = { -1 , };
 	char* data = nullptr;
 	int dataSize = 0;
 
@@ -82,9 +120,12 @@ private:
 public:
 	bool Init();
 	void WaitForClient();
-	bool SendMSG(int sockIndex, void* data, int size);
+
+	bool SendMSG(int sockIndex, HEADER resHeader, void* data);
 
 	bool RecvData(int sockIndex);
+
+	bool Response(int sockIndex);
 
 
 	UINT GetClientNum() { return (UINT)clients.size(); }

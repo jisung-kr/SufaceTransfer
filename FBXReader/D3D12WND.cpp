@@ -1202,6 +1202,7 @@ FLOAT* D3D12WND::GetReadBackBuffer() {
 
 void D3D12WND::SendFrame() {
 	for (int i = 0; i < server->GetClientNum(); ++i) {
+		HEADER header;
 		int size = htonl(GetSurfaceSize());
 		
 		server->SendMSG(i, &size, sizeof(size));

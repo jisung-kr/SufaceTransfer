@@ -132,33 +132,110 @@ bool Server::RecvData(int sockIndex) {
 	return true;
 }
 
+bool Server::Response(int sockIndex) {
 
-bool Server::SendMSG(int sockIndex, void* data, int size) {
-	/*	*/
-	//데이터 송신
-	//현재 버퍼 사이즈 만큼만 데이터 전송
-	//후에 버퍼 사이즈 만큼 보내기 위해 프로토콜 생성해야함
+	auto curClient = clients[sockIndex];
 	auto curClientSock = clients[sockIndex]->GetClientSocket();
+
+	//헤더 수신
+	UINT headerSize = sizeof(HEADER);
+	UINT totSize = 0;
+	UINT nowSize = 0;
+
+	while (true) {
+		nowSize = recv(curClientSock, ((char*)& curClient->reqHeader) + totSize, headerSize - totSize, 0);
+
+		if (nowSize > 0) {
+			totSize += nowSize;
+
+			if (totSize >= headerSize)
+				break;
+		}
+		else {
+			OutputDebugStringA("REQ헤더 수신 실패!\n");
+		}
+	}
+	
+	
+
+	switch (curClient->reqHeader.mCommand) {
+
+	case COMMAND::COMMAND_REQ_FRAME:
+		//여러가지 데이터를 조작한 후
+
+
+		//송신
+		if (!SendMSG(sockIndex,CHEADER::CHEADER(COMMAND::COMMAND_RES_FRAME, curClient->dataSize), curClient->data)) {
+			OutputDebugStringA("데이터 송신 실패!\n");
+			return false;
+		}
+
+		break;
+	}
+
+
+	return true;
+}
+
+
+bool Server::SendMSG(int sockIndex, HEADER resHeader, void* data) {
+	auto curClientSock = clients[sockIndex]->GetClientSocket();
+
+	//가져온 헤더 내용을 송신
 	if (curClientSock != INVALID_SOCKET) {
-		unsigned int totSize = 0;
-		unsigned int nowSize = 0;
+		UINT headerSize = sizeof(HEADER);
+		UINT totSize = 0;
+		UINT nowSize = 0;
 		while (true) {
-			nowSize = send(curClientSock, ((char*)data) + totSize, size - totSize, 0);
-			
+			nowSize = send(curClientSock, ((char*)&resHeader) + totSize, headerSize - totSize, 0);
+
 			if (nowSize < 0) {
 				//클라이언트가 접속 종료됨
 				closesocket(curClientSock);
 				curClientSock = INVALID_SOCKET;
+				OutputDebugStringA("클라이언트 소켓 종료\n");
 				return false;
 			}
 			else {
 				totSize += nowSize;
 			}
 
-			if (totSize >= size)
+			if (totSize >= headerSize)
 				break;
 		}
 	}
 
+
+
+	//데이터도 있을 시 같이 전송
+	if (data != nullptr) {
+		//데이터 송신
+		if (curClientSock != INVALID_SOCKET) {
+			UINT dataSize = resHeader.mDataLen;
+			UINT totSize = 0;
+			UINT nowSize = 0;
+
+			while (true) {
+				nowSize = send(curClientSock, ((char*)data) + totSize, dataSize - totSize, 0);
+
+				if (nowSize < 0) {
+					//클라이언트가 접속 종료됨
+					closesocket(curClientSock);
+					curClientSock = INVALID_SOCKET;
+					OutputDebugStringA("클라이언트 소켓 종료\n");
+					return false;
+				}
+				else {
+					totSize += nowSize;
+				}
+
+				if (totSize >= dataSize)
+					break;
+			}
+		}
+	}
+
+
+	
 	return true;
 }
