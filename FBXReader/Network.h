@@ -90,6 +90,7 @@ public:
 public:
 	bool AllocDataMem(int size) {
 		data = new char[size];
+		dataSize = size;
 
 		if (data != nullptr)
 			memset(data, 0x00, size);
@@ -98,7 +99,6 @@ public:
 	}
 	char* GetDataMem() { return data; }
 	SOCKET GetClientSocket() { return clientSock; }
-	void SetDataSize(int size) { dataSize = size; }
 };
 
 
@@ -124,7 +124,7 @@ public:
 	bool SendMSG(int sockIndex, HEADER resHeader, void* data);
 
 	bool RecvData(int sockIndex);
-
+	bool RecvRequest(int sockIndex);
 	bool Response(int sockIndex);
 
 

@@ -69,11 +69,16 @@ int MainWindow::Run() {
 
 			if (!d3dApp->mAppPaused)
 			{
+
+				//클라이언트로부터 요청 수신
+				d3dApp->RecvRequest();
+				
 				d3dApp->CalculateFrameStatus();
 
 				d3dApp->Update(d3dApp->mTimer);
 				d3dApp->Draw(d3dApp->mTimer);
 
+				//요청에 따라서 프레임 송신
 				d3dApp->SendFrame();
 
 			}

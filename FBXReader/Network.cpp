@@ -73,6 +73,66 @@ void Server::WaitForClient() {
 
 }
 
+bool Server::RecvRequest(int sockIndex) {
+	auto curClient = clients[sockIndex];
+	auto curClientSock = clients[sockIndex]->GetClientSocket();
+
+	//헤더 수신
+	UINT headerSize = sizeof(HEADER);
+	UINT totSize = 0;
+	UINT nowSize = 0;
+
+	while (true) {
+		nowSize = recv(curClientSock, ((char*)& curClient->reqHeader) + totSize, headerSize - totSize, 0);
+
+		if (nowSize > 0) {
+			totSize += nowSize;
+
+			if (totSize >= headerSize)
+				break;
+		}
+		else {
+			OutputDebugStringA("REQ헤더 수신 실패!\n");
+		}
+	}
+
+	//버퍼에 데이터 받아오기
+	auto& header = curClient->reqHeader;
+	UINT size = (UINT)ntohl(header.mDataLen);
+
+	if (size < 0)
+		return false;
+
+	OutputDebugStringA("헤더 수신 성공\n");
+
+	//네트워크 사이즈 변수 리셋
+	totSize = 0;
+	nowSize = 0;
+
+	//해당 클라이언트 클래스에 data할당 및 size저장
+	curClient->AllocDataMem(size);
+
+	while (true) {
+		nowSize = recv(serverSock, ((char*)curClient->GetDataMem()) + totSize, size - totSize, 0);
+		if (nowSize > 0) {
+			totSize += nowSize;
+
+			char str[256];
+			wsprintfA(str, "현재 수신된 데이터 %d / %d\n", totSize, size);
+			OutputDebugStringA(str);
+
+			if (totSize >= size)
+				break;
+		}
+		else {
+			OutputDebugStringA("데이터 실패\n");
+			return false;
+		}
+	}
+
+	OutputDebugStringA("수신 완료!\n");
+	return true;
+}
 
 bool Server::RecvData(int sockIndex) {
 	HEADER header = { 0, };
@@ -96,7 +156,7 @@ bool Server::RecvData(int sockIndex) {
 	}
 
 	//버퍼에 데이터 받아오기
-	unsigned int size = (unsigned int)ntohl(header.dataLen);
+	unsigned int size = (unsigned int)ntohl(header.mDataLen);
 
 	if (size < 0)
 		return false;
@@ -109,7 +169,7 @@ bool Server::RecvData(int sockIndex) {
 
 	//해당 클라이언트 클래스에 data할당 및 size저장
 	clients[sockIndex]->AllocDataMem(size);
-	clients[sockIndex]->SetDataSize(size);
+
 
 	while (true) {
 		nowSize = recv(serverSock, ((char*)clients[sockIndex]->GetDataMem()) + totSize, size - totSize, 0);

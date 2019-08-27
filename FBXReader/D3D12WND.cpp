@@ -1200,13 +1200,20 @@ FLOAT* D3D12WND::GetReadBackBuffer() {
 	return mBuffer;
 }
 
+void D3D12WND::RecvRequest() {
+	for (int i = 0; i < server->GetClientNum(); ++i) {
+		if (!server->RecvRequest(i)) {
+			OutputDebugStringA("RescREQ 수신 중 오류 발생!\n");
+		}
+	}
+}
+
+
 void D3D12WND::SendFrame() {
 	for (int i = 0; i < server->GetClientNum(); ++i) {
-		HEADER header;
-		int size = htonl(GetSurfaceSize());
-		
-		server->SendMSG(i, &size, sizeof(size));
-		server->SendMSG(i, mBuffers[i], GetSurfaceSize());
+		if (!server->SendMSG(i, CHEADER::CHEADER(COMMAND::COMMAND_RES_FRAME, server->GetClients()[i]->dataSize), server->GetClients()[i]->data)) {
+			OutputDebugStringA("프레임 전송 실패!\n");
+		}
 	}
 }
 

@@ -233,6 +233,7 @@ public:
 	//SIZE_T GetSurfaceSize() { return mClientWidth * sizeof(FLOAT) * mClientHeight; }
 
 	void SendFrame();
+	void RecvRequest();
 
 	/*------------------------------------------------------------------------------------------------------*/
 	void OnKeyboardInput(const GameTimer& gt);
