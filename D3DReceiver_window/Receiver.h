@@ -12,21 +12,59 @@
 
 enum COMMAND {
 	//임시 명령
-	COMMAND_REQUEST_FRAME = 0,
-	COMMAND_REQUEST_FRAME_ACK = 1
+	COMMAND_REQ_FRAME = 0,
+	COMMAND_RES_FRAME = 1
 };
 
+
 struct HEADER {
-	unsigned int dataLen;
-	unsigned short command;
-	unsigned char msgNum;
-	unsigned char msgTotalNum;
+	UINT mDataLen;
+	USHORT mCommand;
+	UCHAR mMsgNum;
+	UCHAR mMsgTotalNum;
+};
+
+struct CHEADER : HEADER {
+	CHEADER() {
+		mDataLen = 0;
+		mCommand = COMMAND::COMMAND_REQ_FRAME;
+		mMsgNum = 0;
+		mMsgTotalNum = 0;
+	}
+
+	CHEADER(USHORT command) {
+		mDataLen = 0;
+		mCommand = command;
+		mMsgNum = 0;
+		mMsgTotalNum = 0;
+	}
+	CHEADER(USHORT command, UINT dataLen) {
+		mDataLen = dataLen;
+		mCommand = command;
+		mMsgNum = 0;
+		mMsgTotalNum = 0;
+	}
+
+	CHEADER(UINT dataLen, USHORT command, UCHAR msgNum) {
+		mDataLen = dataLen;
+		mCommand = command;
+		mMsgNum = msgNum;
+		mMsgTotalNum = msgNum;
+	}
+
+	CHEADER(UINT dataLen, USHORT command, UCHAR msgNum, UCHAR msgTotNum) {
+		mDataLen = dataLen;
+		mCommand = command;
+		mMsgNum = msgNum;
+		mMsgTotalNum = msgTotNum;
+	}
 };
 
 struct NETWORK_MSG {
 	HEADER header;
 	char* data;
 };
+
 
 class Client {
 public:
@@ -39,6 +77,7 @@ private:
 	SOCKET serverSock;
 	sockaddr_in serverAddr;
 
+	HEADER resHeader;
 	void* data = nullptr;
 
 public:
@@ -46,6 +85,9 @@ public:
 	bool Connection();
 	bool ReadData();
 	char* GetData();
+
+	bool Request(HEADER header, void* data = nullptr);
+	bool RecvResponse();
 
 	void ReleaseBuffer();
 };

@@ -85,13 +85,15 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 		}
 		else
 		{
-			//새로운 스레드에서
-			//데이터 받기
-			//큐에 저장!!!!!!
+
 			if (mNetworkThread == nullptr) {
 				mNetworkThread = new std::thread([&]() -> void {
+
 					while (true) {
-						if (!client->ReadData()) {
+
+
+
+						if (!client->RecvResponse()) {
 							delete client;
 							client = nullptr;
 						}
@@ -101,9 +103,10 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 
 						queue.PushItem(client->GetData());
 					}
+
 				});
 			}
-
+			client->Request(CHEADER::CHEADER(COMMAND::COMMAND_REQ_FRAME));
 			mTimer.Tick();
 
 			if (queue.Size() > 1) {
