@@ -20,7 +20,7 @@ enum COMMAND {
 };
 
 struct HEADER {
-	UINT mDataLen;
+	INT mDataLen;
 	USHORT mCommand;
 	UCHAR mMsgNum;
 	UCHAR mMsgTotalNum;
@@ -83,7 +83,7 @@ private:
 	sockaddr_in clientAddr;
 
 public:
-	HEADER reqHeader = { -1 , };
+	HEADER reqHeader = { -1, };
 	char* data = nullptr;
 	int dataSize = 0;
 
@@ -123,7 +123,7 @@ public:
 
 	bool SendMSG(int sockIndex, HEADER resHeader, void* data);
 
-	bool RecvData(int sockIndex);
+
 	bool RecvRequest(int sockIndex);
 	bool Response(int sockIndex);
 

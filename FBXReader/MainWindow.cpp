@@ -74,7 +74,6 @@ int MainWindow::Run() {
 				d3dApp->RecvRequest();
 				
 				d3dApp->CalculateFrameStatus();
-
 				d3dApp->Update(d3dApp->mTimer);
 				d3dApp->Draw(d3dApp->mTimer);
 

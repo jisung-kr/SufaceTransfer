@@ -105,86 +105,30 @@ bool Server::RecvRequest(int sockIndex) {
 
 	OutputDebugStringA("헤더 수신 성공\n");
 
-	//네트워크 사이즈 변수 리셋
-	totSize = 0;
-	nowSize = 0;
+	if (size != 0) {
+		//네트워크 사이즈 변수 리셋
+		totSize = 0;
+		nowSize = 0;
 
-	//해당 클라이언트 클래스에 data할당 및 size저장
-	curClient->AllocDataMem(size);
+		//해당 클라이언트 클래스에 data할당 및 size저장
+		curClient->AllocDataMem(size);
 
-	while (true) {
-		nowSize = recv(serverSock, ((char*)curClient->GetDataMem()) + totSize, size - totSize, 0);
-		if (nowSize > 0) {
-			totSize += nowSize;
+		while (true) {
+			nowSize = recv(serverSock, ((char*)curClient->GetDataMem()) + totSize, size - totSize, 0);
+			if (nowSize > 0) {
+				totSize += nowSize;
 
-			char str[256];
-			wsprintfA(str, "현재 수신된 데이터 %d / %d\n", totSize, size);
-			OutputDebugStringA(str);
+				char str[256];
+				wsprintfA(str, "현재 수신된 데이터 %d / %d\n", totSize, size);
+				OutputDebugStringA(str);
 
-			if (totSize >= size)
-				break;
-		}
-		else {
-			OutputDebugStringA("데이터 실패\n");
-			return false;
-		}
-	}
-
-	OutputDebugStringA("수신 완료!\n");
-	return true;
-}
-
-bool Server::RecvData(int sockIndex) {
-	HEADER header = { 0, };
-	unsigned int totSize = 0;
-	unsigned int nowSize = 0;
-	char str[256];
-
-	//헤더 받아오기
-	while (true) {
-		nowSize = recv(serverSock, ((char*)&header) + totSize, sizeof(HEADER), 0);
-		if (nowSize > 0) {
-			totSize += nowSize;
-
-			if (totSize >= sizeof(HEADER))
-				break;
-		}
-		else {
-			OutputDebugStringA("헤더 수신 실패\n");
-			return false;
-		}
-	}
-
-	//버퍼에 데이터 받아오기
-	unsigned int size = (unsigned int)ntohl(header.mDataLen);
-
-	if (size < 0)
-		return false;
-
-	OutputDebugStringA("헤더 수신 성공\n");
-
-	//네트워크 사이즈 변수 리셋
-	totSize = 0;
-	nowSize = 0;
-
-	//해당 클라이언트 클래스에 data할당 및 size저장
-	clients[sockIndex]->AllocDataMem(size);
-
-
-	while (true) {
-		nowSize = recv(serverSock, ((char*)clients[sockIndex]->GetDataMem()) + totSize, size - totSize, 0);
-		if (nowSize > 0) {
-			totSize += nowSize;
-
-			wsprintfA(str, "현재 수신된 데이터 %d / %d\n", totSize, size);
-			OutputDebugStringA(str);
-
-			if (totSize >= size)
-				break;
-		}
-		else {
-			OutputDebugStringA("데이터 실패\n");
-			return false;
+				if (totSize >= size)
+					break;
+			}
+			else {
+				OutputDebugStringA("데이터 수신 실패\n");
+				return false;
+			}
 		}
 	}
 
@@ -241,6 +185,7 @@ bool Server::Response(int sockIndex) {
 bool Server::SendMSG(int sockIndex, HEADER resHeader, void* data) {
 	auto curClientSock = clients[sockIndex]->GetClientSocket();
 
+
 	//가져온 헤더 내용을 송신
 	if (curClientSock != INVALID_SOCKET) {
 		UINT headerSize = sizeof(HEADER);
@@ -271,7 +216,7 @@ bool Server::SendMSG(int sockIndex, HEADER resHeader, void* data) {
 	if (data != nullptr) {
 		//데이터 송신
 		if (curClientSock != INVALID_SOCKET) {
-			UINT dataSize = resHeader.mDataLen;
+			UINT dataSize = ntohl(resHeader.mDataLen);
 			UINT totSize = 0;
 			UINT nowSize = 0;
 

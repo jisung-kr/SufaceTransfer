@@ -1186,8 +1186,11 @@ void D3D12WND::CopyBuffer() {
 	D3D12_RANGE range{ 0, GetSurfaceSize() };
 
 	for (int i = 0; i < server->GetClientNum(); ++i) {
-		mCurrFrameResource->mSurfaces[i]->Map(0, &range, (void**)&mBuffers[i]);
+		auto& curClient = server->GetClients()[i];
+		mCurrFrameResource->mSurfaces[i]->Map(0, &range, (void**)& curClient->data);
 		mCurrFrameResource->mSurfaces[i]->Unmap(0, 0);
+
+		curClient->dataSize = htonl(GetSurfaceSize());
 	}
 
 	/*
@@ -1203,11 +1206,10 @@ FLOAT* D3D12WND::GetReadBackBuffer() {
 void D3D12WND::RecvRequest() {
 	for (int i = 0; i < server->GetClientNum(); ++i) {
 		if (!server->RecvRequest(i)) {
-			OutputDebugStringA("RescREQ 수신 중 오류 발생!\n");
+			OutputDebugStringA("RecvREQ 수신 중 오류 발생!\n");
 		}
 	}
 }
-
 
 void D3D12WND::SendFrame() {
 	for (int i = 0; i < server->GetClientNum(); ++i) {
