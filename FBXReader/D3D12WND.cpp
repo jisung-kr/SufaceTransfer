@@ -695,6 +695,7 @@ void D3D12WND::OnKeyboardInput(const GameTimer& gt) {
 		server->GetClients()[i]->mCamera.UpdateViewMatrix();
 	}
 }
+
 void D3D12WND::AnimateMaterials(const GameTimer& gt) {
 
 }
@@ -1207,6 +1208,11 @@ void D3D12WND::RecvRequest() {
 	for (int i = 0; i < server->GetClientNum(); ++i) {
 		if (!server->RecvRequest(i)) {
 			OutputDebugStringA("RecvREQ 수신 중 오류 발생!\n");
+		}
+		else {
+			//Req수신 성공
+			//이곳에서 입력 펌프 작업 + 입력 처리
+
 		}
 	}
 }
