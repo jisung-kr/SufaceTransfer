@@ -20,7 +20,7 @@ UINT mClientWidth = 640;
 UINT mClientHeight = 480;
 
 std::thread* mNetworkThread = nullptr;
-
+std::thread* mRenderingThread = nullptr;
 BitmapQueue queue;
 
 GameTimer mTimer;
@@ -86,12 +86,12 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 		else
 		{
 
+			/*
 			if (mNetworkThread == nullptr) {
 				mNetworkThread = new std::thread([&]() -> void {
 
 					while (true) {
-
-
+						client->Request(CHEADER::CHEADER(COMMAND::COMMAND_REQ_FRAME));
 
 						if (!client->RecvResponse()) {
 							delete client;
@@ -106,14 +106,59 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 
 				});
 			}
+			*/
+			if (GetAsyncKeyState('W') & 0x8000) {
+				INPUT_DATA data;
+				memset(&data, 0x00, sizeof(INPUT_DATA));
+				data.mInputType = INPUT_TYPE::INPUT_KEY_W;
+
+				client->Request(CHEADER::CHEADER(COMMAND::COMMAND_INPUT_KEY, sizeof(INPUT_DATA)), &data);
+			}
+
+			if (GetAsyncKeyState('S') & 0x8000) {
+				INPUT_DATA data;
+				memset(&data, 0x00, sizeof(INPUT_DATA));
+				data.mInputType = INPUT_TYPE::INPUT_KEY_S;
+
+				client->Request(CHEADER::CHEADER(COMMAND::COMMAND_INPUT_KEY, sizeof(INPUT_DATA)), &data);
+			}
+
 			client->Request(CHEADER::CHEADER(COMMAND::COMMAND_REQ_FRAME));
+
+			if (!client->RecvResponse()) {
+				delete client;
+				client = nullptr;
+			}
+
+			queue.PushItem(client->GetData());
+
 			mTimer.Tick();
 
 			if (queue.Size() > 1) {
 				CalculateFrameStatus();
+
 				Render();	//·»´õ¸µ
+
+				delete queue.FrontItem();
+				queue.PopItem();
 			}
 
+			/*
+			if (mRenderingThread == nullptr) {
+				mRenderingThread = new std::thread([&]() -> void {
+					while (true) {
+						if (queue.Size() > 1) {
+							CalculateFrameStatus();
+
+							Render();	//·»´õ¸µ
+
+							delete queue.FrontItem();
+							queue.PopItem();
+						}
+					}
+					});
+			}
+			*/
 
 		}
 	}
@@ -146,8 +191,7 @@ void Render() {
 		ReleaseDC(mhMainWnd, hdc);
 		//EndPaint(mhMainWnd, &ps);
 
-		delete queue.FrontItem();
-		queue.PopItem();
+
 		//client->ReleaseBuffer();
 	}
 
