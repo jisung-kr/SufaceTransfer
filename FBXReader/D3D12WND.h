@@ -234,6 +234,7 @@ public:
 
 	void SendFrame();
 	void RecvRequest();
+	void InputPump(const GameTimer& gt);
 
 	/*------------------------------------------------------------------------------------------------------*/
 	void OnKeyboardInput(const GameTimer& gt);

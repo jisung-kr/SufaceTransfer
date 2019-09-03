@@ -693,6 +693,10 @@ void D3D12WND::OnKeyboardInput(const GameTimer& gt) {
 
 	for (int i = 0; i < server->GetClientNum(); ++i) {
 		server->GetClients()[i]->mCamera.UpdateViewMatrix();
+
+		char str[256];
+		sprintf(str, "Camera_%d : x=%x, y=%x, z=%x\n", i, server->GetClients()[i]->mCamera.GetPosition3f().x, server->GetClients()[i]->mCamera.GetPosition3f().y, server->GetClients()[i]->mCamera.GetPosition3f().z);
+		OutputDebugStringA(str);
 	}
 }
 
@@ -1204,15 +1208,49 @@ FLOAT* D3D12WND::GetReadBackBuffer() {
 	return mBuffer;
 }
 
+void D3D12WND::InputPump(const GameTimer& gt) {
+	for (int i = 0; i < server->GetClientNum(); ++i) {
+		while (server->GetClients()[i]->reqHeader.mCommand == COMMAND::COMMAND_INPUT_KEY) {
+			//입력 처리
+			const float dt = gt.DeltaTime();
+
+			INPUT_DATA* inputData = (INPUT_DATA*)server->GetClients()[i]->data;
+			if (inputData->mInputType == INPUT_TYPE::INPUT_KEY_W) {
+				server->GetClients()[i]->mCamera.Walk(100.0f * dt);
+				OutputDebugStringA("Input W\n");
+			}
+
+
+			if (inputData->mInputType == INPUT_TYPE::INPUT_KEY_S) {
+				server->GetClients()[i]->mCamera.Walk(-100.0f * dt);
+				OutputDebugStringA("Input S\n");
+			}
+
+			if (GetAsyncKeyState('A') & 0x8000)
+				mCamera.Strafe(-100.0f * dt);
+
+			if (GetAsyncKeyState('D') & 0x8000)
+				mCamera.Strafe(100.0f * dt);
+	
+
+			server->GetClients()[i]->mCamera.UpdateViewMatrix();
+
+			//입력 처리후 다시 Request 받아오기
+			if (!server->RecvRequest(i)) {
+				OutputDebugStringA("RecvREQ 수신 중 오류 발생!\n");
+				break;
+			}
+		}
+	}
+	
+}
+
 void D3D12WND::RecvRequest() {
 	for (int i = 0; i < server->GetClientNum(); ++i) {
 		if (!server->RecvRequest(i)) {
 			OutputDebugStringA("RecvREQ 수신 중 오류 발생!\n");
 		}
 		else {
-			//Req수신 성공
-			//이곳에서 입력 펌프 작업 + 입력 처리
-
 		}
 	}
 }

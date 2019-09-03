@@ -13,10 +13,25 @@
 
 #define CLIENT_MAX_NUM 1
 
+
+
 enum COMMAND {
 	//임시 명령
 	COMMAND_REQ_FRAME = 0,
-	COMMAND_RES_FRAME = 1
+	COMMAND_RES_FRAME = 1,
+	COMMAND_INPUT_KEY
+};
+
+enum INPUT_TYPE {
+	INPUT_KEY_W = 0,
+	INPUT_KEY_S
+};
+
+struct INPUT_DATA {
+	INPUT_TYPE mInputType;
+	float x;
+	float y;
+	float z;
 };
 
 struct HEADER {
@@ -97,6 +112,7 @@ public:
 
 		return data != nullptr;
 	}
+	HEADER& GetHeader() { return reqHeader; }
 	char* GetDataMem() { return data; }
 	SOCKET GetClientSocket() { return clientSock; }
 };
