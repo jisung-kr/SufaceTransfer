@@ -1215,24 +1215,27 @@ void D3D12WND::InputPump(const GameTimer& gt) {
 			const float dt = gt.DeltaTime();
 
 			INPUT_DATA* inputData = (INPUT_DATA*)server->GetClients()[i]->data;
+
 			if (inputData->mInputType == INPUT_TYPE::INPUT_KEY_W) {
 				server->GetClients()[i]->mCamera.Walk(100.0f * dt);
 				OutputDebugStringA("Input W\n");
 			}
-
 
 			if (inputData->mInputType == INPUT_TYPE::INPUT_KEY_S) {
 				server->GetClients()[i]->mCamera.Walk(-100.0f * dt);
 				OutputDebugStringA("Input S\n");
 			}
 
-			if (GetAsyncKeyState('A') & 0x8000)
-				mCamera.Strafe(-100.0f * dt);
+			if (inputData->mInputType == INPUT_TYPE::INPUT_KEY_A) {
+				server->GetClients()[i]->mCamera.Strafe(-100.0f * dt);
+				OutputDebugStringA("Input A\n");
+			}
 
-			if (GetAsyncKeyState('D') & 0x8000)
-				mCamera.Strafe(100.0f * dt);
-	
-
+			if (inputData->mInputType == INPUT_TYPE::INPUT_KEY_D) {
+				server->GetClients()[i]->mCamera.Strafe(100.0f * dt);
+				OutputDebugStringA("Input D\n");
+			}
+				
 			server->GetClients()[i]->mCamera.UpdateViewMatrix();
 
 			//입력 처리후 다시 Request 받아오기

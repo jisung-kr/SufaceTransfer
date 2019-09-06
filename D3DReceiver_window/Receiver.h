@@ -6,9 +6,10 @@
 
 #define BUFFER_SIZE 1024
 #define PORT 3500
-//#define SERVER_IP "127.0.0.1"
+
+#define SERVER_IP "127.0.0.1"
 //#define SERVER_IP "61.73.65.218"
-#define SERVER_IP "220.71.90.105"
+//#define SERVER_IP "220.71.90.105"
 
 enum COMMAND {
 	//임시 명령
@@ -16,10 +17,14 @@ enum COMMAND {
 	COMMAND_RES_FRAME = 1,
 	COMMAND_INPUT_KEY
 };
+
 enum INPUT_TYPE {
 	INPUT_KEY_W = 0,
-	INPUT_KEY_S
+	INPUT_KEY_S = 1,
+	INPUT_KEY_A = 2,
+	INPUT_KEY_D = 3
 };
+
 struct INPUT_DATA {
 	INPUT_TYPE mInputType;
 	float x;

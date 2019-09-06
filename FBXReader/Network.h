@@ -24,7 +24,9 @@ enum COMMAND {
 
 enum INPUT_TYPE {
 	INPUT_KEY_W = 0,
-	INPUT_KEY_S
+	INPUT_KEY_S = 1,
+	INPUT_KEY_A = 2,
+	INPUT_KEY_D = 3
 };
 
 struct INPUT_DATA {

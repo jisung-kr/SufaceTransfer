@@ -123,8 +123,27 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 				client->Request(CHEADER::CHEADER(COMMAND::COMMAND_INPUT_KEY, sizeof(INPUT_DATA)), &data);
 			}
 
+			if (GetAsyncKeyState('A') & 0x8000) {
+				INPUT_DATA data;
+				memset(&data, 0x00, sizeof(INPUT_DATA));
+				data.mInputType = INPUT_TYPE::INPUT_KEY_A;
+
+				client->Request(CHEADER::CHEADER(COMMAND::COMMAND_INPUT_KEY, sizeof(INPUT_DATA)), &data);
+			}
+
+			if (GetAsyncKeyState('D') & 0x8000) {
+				INPUT_DATA data;
+				memset(&data, 0x00, sizeof(INPUT_DATA));
+				data.mInputType = INPUT_TYPE::INPUT_KEY_D;
+
+				client->Request(CHEADER::CHEADER(COMMAND::COMMAND_INPUT_KEY, sizeof(INPUT_DATA)), &data);
+			}
+
+
+			//프레임 데이터 요청
 			client->Request(CHEADER::CHEADER(COMMAND::COMMAND_REQ_FRAME));
 
+			//프레임 데이터 수신
 			if (!client->RecvResponse()) {
 				delete client;
 				client = nullptr;
@@ -134,7 +153,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 
 			mTimer.Tick();
 
-			if (queue.Size() > 1) {
+			if (queue.Size() > 0) {
 				CalculateFrameStatus();
 
 				Render();	//렌더링
