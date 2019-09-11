@@ -509,6 +509,7 @@ void D3D12WND::Draw(const GameTimer& gt) {
 	{
 		for (UINT i = 0; i < server->GetClientNum(); ++i) {
 
+
 			ID3D12DescriptorHeap* descriptorHeaps[] = { mSrvDescriptorHeap.Get() };
 			mCommandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
@@ -1210,6 +1211,7 @@ FLOAT* D3D12WND::GetReadBackBuffer() {
 
 void D3D12WND::InputPump(const GameTimer& gt) {
 	for (int i = 0; i < server->GetClientNum(); ++i) {
+		//auto curClient = server->GetClients()[i];
 		while (server->GetClients()[i]->reqHeader.mCommand == COMMAND::COMMAND_INPUT_KEY) {
 			//입력 처리
 			const float dt = gt.DeltaTime();
