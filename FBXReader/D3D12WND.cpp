@@ -484,9 +484,9 @@ float D3D12WND::AspectRatio() const {
 
 void D3D12WND::Draw(const GameTimer& gt) {
 	/*--------------------------------------------------------------------------------------*/
-	/*	그리기  */
+		/*	그리기  */
 
-	//클라이언트 시점 그리기
+		//클라이언트 시점 그리기
 
 	std::thread renderThread = std::thread([&]() -> void {
 		for (UINT i = 0; i < server->GetClientNum(); ++i) {
@@ -535,7 +535,6 @@ void D3D12WND::Draw(const GameTimer& gt) {
 			cmdList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
 			cmdList->OMSetRenderTargets(1, &CurrentBackBufferView(), true, &dsvHandle);
-
 
 			ID3D12DescriptorHeap* descriptorHeaps[] = { mSrvDescriptorHeap.Get() };
 			cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
@@ -609,7 +608,7 @@ void D3D12WND::Draw(const GameTimer& gt) {
 			mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
 		}
 
-	});
+		});
 	renderThread.join();
 
 	//서버 시점 그리기
@@ -662,7 +661,7 @@ void D3D12WND::Draw(const GameTimer& gt) {
 
 
 	/*--------------------------------------------------------------------------------------*/
-	
+
 
 	/*--------------------------------------------------------------------------------------*/
 	/*	*/
@@ -671,13 +670,13 @@ void D3D12WND::Draw(const GameTimer& gt) {
 
 	ThrowIfFailed(mCommandList->Close());
 
-	ID3D12CommandList* cmdsLists[] = { mCommandList.Get()};
+	ID3D12CommandList* cmdsLists[] = { mCommandList.Get() };
 	mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
 
 	ThrowIfFailed(mSwapChain->Present(0, 0));
 	mCurBackBuffer = (mCurBackBuffer + 1) % mSwapChainBufferCount;
 
-	FlushCommandQueue();   
+	FlushCommandQueue();
 
 	CopyBuffer();
 }
