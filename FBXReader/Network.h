@@ -104,6 +104,9 @@ public:
 	char* data = nullptr;
 	int dataSize = 0;
 
+	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> mDirectCmdListAlloc;	//CmdList Allocator
+	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> mCommandList;	//Command List
+
 public:
 	bool AllocDataMem(int size) {
 		data = new char[size];
@@ -136,8 +139,13 @@ private:
 	std::vector<Client*> clients;
 
 public:
+
+	Microsoft::WRL::ComPtr<ID3D12Resource> mRenderTargetBuffer;	//RenderTarget Buffer
+	Microsoft::WRL::ComPtr<ID3D12Resource> mDepthStencilBuffer;	//DepthStencil Buffer
+
 	bool Init();
 	void WaitForClient();
+	void CreateRTVDSV();
 
 	bool SendMSG(int sockIndex, HEADER resHeader, void* data);
 
@@ -148,4 +156,7 @@ public:
 
 	UINT GetClientNum() { return (UINT)clients.size(); }
 	std::vector<Client*>& GetClients() { return clients; }
+	Client* GetClient(int index) { return clients[index]; }
+
+
 };

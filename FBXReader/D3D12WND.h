@@ -235,6 +235,7 @@ public:
 	void SendFrame();
 	void RecvRequest();
 	void InputPump(const GameTimer& gt);
+	void CreateRTVDSV_Server();
 
 	/*------------------------------------------------------------------------------------------------------*/
 	void OnKeyboardInput(const GameTimer& gt);
