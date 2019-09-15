@@ -87,8 +87,8 @@ struct NETWORK_MSG {
 class Client {
 public:
 	Client() = default;
-	Client(SOCKET socket) : clientSock(socket) { memset(&clientAddr, 0x00, sizeof(sockaddr_in)); mCamera.SetPosition(0.0f, 2.0f, -20.0f); }
-	Client(SOCKET socket, sockaddr_in addr) : clientSock(socket), clientAddr(addr) { mCamera.SetPosition(0.0f, 2.0f, -20.0f); }
+	Client(SOCKET socket) : clientSock(socket) { memset(&clientAddr, 0x00, sizeof(sockaddr_in)); mCamera.SetPosition(0.0f, 2.0f, -30.0f); }
+	Client(SOCKET socket, sockaddr_in addr) : clientSock(socket), clientAddr(addr) { mCamera.SetPosition(0.0f, 2.0f, -30.0f); }
 
 	virtual ~Client();
 
