@@ -42,9 +42,9 @@ bool Client::Connection() {
 
 bool Client::ReadData() {
 	//문자열 수신
-	unsigned int size = 0;
-	unsigned int totSize = 0;
-	unsigned int nowSize = 0;
+	int size = 0;
+	int totSize = 0;
+	int nowSize = 0;
 	char str[256];
 
 	//버퍼 크기 받아오기
@@ -63,7 +63,7 @@ bool Client::ReadData() {
 	}
 
 	//버퍼에 데이터 받아오기
-	size = (UINT)ntohl(size);
+	size = ntohl(size);
 
 	if (size <= 0)
 		return false;
@@ -98,9 +98,9 @@ bool Client::ReadData() {
 bool Client::RecvResponse() {
 	//RES수신
 	memset(&resHeader, -1, sizeof(HEADER));
-	const UINT headerSize = sizeof(HEADER);
-	UINT totSize = 0;
-	UINT nowSize = 0;
+	const INT headerSize = sizeof(HEADER);
+	INT totSize = 0;
+	INT nowSize = 0;
 
 	//헤더 받아오기
 	while (true) {
@@ -118,7 +118,7 @@ bool Client::RecvResponse() {
 	}
 
 	//버퍼에 데이터 받아오기
-	const UINT size = (UINT)ntohl(resHeader.mDataLen);
+	const INT size = ntohl(resHeader.mDataLen);
 
 	if (size < 0)
 		return false;
@@ -155,9 +155,9 @@ bool Client::RecvResponse() {
 }
 
 bool Client::Request(HEADER reqHeader, void* data) {
-	UINT headerSize = sizeof(HEADER);
-	UINT totSize = 0;
-	UINT nowSize = 0;
+	INT headerSize = sizeof(HEADER);
+	INT totSize = 0;
+	INT nowSize = 0;
 
 	//REQ전송
 	while (true) {
@@ -176,7 +176,7 @@ bool Client::Request(HEADER reqHeader, void* data) {
 
 	//Data도 있을 시 같이 전송
 	if (data != nullptr) {
-		const UINT dataSize = reqHeader.mDataLen;
+		const INT dataSize = ntohl(reqHeader.mDataLen);
 		totSize = 0;
 		nowSize = 0;
 

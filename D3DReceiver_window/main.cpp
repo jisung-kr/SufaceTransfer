@@ -107,7 +107,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 				});
 			}
 			*/
-			/*			
+			/*			*/
 			if (GetAsyncKeyState('W') & 0x8000) {
 				INPUT_DATA data;
 				memset(&data, 0x00, sizeof(INPUT_DATA));
@@ -139,7 +139,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 
 				client->Request(CHEADER::CHEADER(COMMAND::COMMAND_INPUT_KEY, sizeof(INPUT_DATA)), &data);
 			}
-			*/
+			
 
 			//프레임 데이터 요청
 			client->Request(CHEADER::CHEADER(COMMAND::COMMAND_REQ_FRAME));

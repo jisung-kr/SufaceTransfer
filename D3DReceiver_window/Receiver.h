@@ -7,9 +7,9 @@
 #define BUFFER_SIZE 1024
 #define PORT 3500
 
-#define SERVER_IP "127.0.0.1"
+//#define SERVER_IP "127.0.0.1"
 //#define SERVER_IP "61.73.65.218"
-//#define SERVER_IP "220.71.90.105"
+#define SERVER_IP "121.131.125.160"
 
 enum COMMAND {
 	//임시 명령
@@ -36,43 +36,21 @@ struct INPUT_DATA {
 struct HEADER {
 	UINT mDataLen;
 	USHORT mCommand;
-	UCHAR mMsgNum;
-	UCHAR mMsgTotalNum;
 };
 
 struct CHEADER : HEADER {
 	CHEADER() {
 		mDataLen = 0;
-		mCommand = COMMAND::COMMAND_REQ_FRAME;
-		mMsgNum = 0;
-		mMsgTotalNum = 0;
+		mCommand = htons(COMMAND::COMMAND_REQ_FRAME);
 	}
 
 	CHEADER(USHORT command) {
 		mDataLen = 0;
-		mCommand = command;
-		mMsgNum = 0;
-		mMsgTotalNum = 0;
+		mCommand = htons(command);
 	}
 	CHEADER(USHORT command, UINT dataLen) {
-		mDataLen = dataLen;
-		mCommand = command;
-		mMsgNum = 0;
-		mMsgTotalNum = 0;
-	}
-
-	CHEADER(UINT dataLen, USHORT command, UCHAR msgNum) {
-		mDataLen = dataLen;
-		mCommand = command;
-		mMsgNum = msgNum;
-		mMsgTotalNum = msgNum;
-	}
-
-	CHEADER(UINT dataLen, USHORT command, UCHAR msgNum, UCHAR msgTotNum) {
-		mDataLen = dataLen;
-		mCommand = command;
-		mMsgNum = msgNum;
-		mMsgTotalNum = msgTotNum;
+		mDataLen = htonl(dataLen);
+		mCommand = htons(command);
 	}
 };
 
