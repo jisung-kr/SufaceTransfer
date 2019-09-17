@@ -39,43 +39,21 @@ struct INPUT_DATA {
 struct HEADER {
 	INT mDataLen;
 	USHORT mCommand;
-	UCHAR mMsgNum;
-	UCHAR mMsgTotalNum;
 };
 
 struct CHEADER : HEADER {
 	CHEADER() {
 		mDataLen = 0;
 		mCommand = COMMAND::COMMAND_REQ_FRAME;
-		mMsgNum = 0;
-		mMsgTotalNum = 0;
 	}
 
 	CHEADER(USHORT command) {
 		mDataLen = 0;
 		mCommand = command;
-		mMsgNum = 0;
-		mMsgTotalNum = 0;
 	}
 	CHEADER(USHORT command, UINT dataLen) {
 		mDataLen = dataLen;
 		mCommand = command;
-		mMsgNum = 0;
-		mMsgTotalNum = 0;
-	}
-
-	CHEADER(UINT dataLen, USHORT command, UCHAR msgNum) {
-		mDataLen = dataLen;
-		mCommand = command;
-		mMsgNum = msgNum;
-		mMsgTotalNum = msgNum;
-	}
-
-	CHEADER(UINT dataLen, USHORT command, UCHAR msgNum, UCHAR msgTotNum) {
-		mDataLen = dataLen;
-		mCommand = command;
-		mMsgNum = msgNum;
-		mMsgTotalNum = msgTotNum;
 	}
 };
 
