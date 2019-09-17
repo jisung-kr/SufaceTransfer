@@ -78,9 +78,9 @@ bool Server::RecvRequest(int sockIndex) {
 	auto curClientSock = clients[sockIndex]->GetClientSocket();
 
 	//헤더 수신
-	UINT headerSize = sizeof(HEADER);
-	UINT totSize = 0;
-	UINT nowSize = 0;
+	INT headerSize = sizeof(HEADER);
+	INT totSize = 0;
+	INT nowSize = 0;
 
 	while (true) {
 		nowSize = recv(curClientSock, ((char*)& curClient->reqHeader) + totSize, headerSize - totSize, 0);
@@ -98,7 +98,7 @@ bool Server::RecvRequest(int sockIndex) {
 
 	//버퍼에 데이터 받아오기
 	auto& header = curClient->reqHeader;
-	UINT size = (UINT)ntohl(header.mDataLen);
+	INT size = ntohl(header.mDataLen);
 
 	if (size < 0)
 		return false;
@@ -114,7 +114,7 @@ bool Server::RecvRequest(int sockIndex) {
 		curClient->AllocDataMem(size);
 
 		while (true) {
-			nowSize = recv(serverSock, ((char*)curClient->GetDataMem()) + totSize, size - totSize, 0);
+			nowSize = recv(curClientSock, ((char*)curClient->GetDataMem()) + totSize, size - totSize, 0);
 			if (nowSize > 0) {
 				totSize += nowSize;
 
@@ -142,9 +142,9 @@ bool Server::Response(int sockIndex) {
 	auto curClientSock = clients[sockIndex]->GetClientSocket();
 
 	//헤더 수신
-	UINT headerSize = sizeof(HEADER);
-	UINT totSize = 0;
-	UINT nowSize = 0;
+	INT headerSize = sizeof(HEADER);
+	INT totSize = 0;
+	INT nowSize = 0;
 
 	while (true) {
 		nowSize = recv(curClientSock, ((char*)& curClient->reqHeader) + totSize, headerSize - totSize, 0);

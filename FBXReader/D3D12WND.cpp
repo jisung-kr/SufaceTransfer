@@ -141,6 +141,8 @@ bool D3D12WND::InitDirect3D() {
 	BuildFrameResources();	
 	BuildPSOs();
 
+	//클라이언트 명령 할당자, 목록 생성
+	InitClient();
 	//리드백 자원 생성
 	CreateReadBackTex();
 
@@ -483,136 +485,123 @@ float D3D12WND::AspectRatio() const {
 
 
 void D3D12WND::Draw(const GameTimer& gt) {
-	/*--------------------------------------------------------------------------------------*/
-		/*	그리기  */
+	//클라이언트 Draw Call (쓰레드로 명령목록 작성)
+	UINT passCBByteSize = D3DUtil::CalcConstantBufferByteSize(sizeof(PassConstants));
+	for (UINT i = 0; i < server->GetClientNum(); ++i) {
+		auto curClient = server->GetClients()[i];
 
-		//클라이언트 시점 그리기
+		//auto cmdAlloc = mCurrFrameResource->CmdListAlloc;
+		auto cmdAlloc = curClient->mDirectCmdListAlloc;
+		auto cmdList = curClient->mCommandList;
 
-	std::thread renderThread = std::thread([&]() -> void {
-		for (UINT i = 0; i < server->GetClientNum(); ++i) {
-			auto curClient = server->GetClients()[i];
+		//명령할당자, 명령리스트 리셋
+		ThrowIfFailed(cmdAlloc->Reset());
+		ThrowIfFailed(cmdList->Reset(cmdAlloc.Get(), mPSOs["opaque"].Get()));
 
-			ThrowIfFailed(md3dDevice->CreateCommandAllocator(
-				D3D12_COMMAND_LIST_TYPE_DIRECT,
-				IID_PPV_ARGS(curClient->mDirectCmdListAlloc.GetAddressOf())));
+		//뷰포트 가위사각설정
+		cmdList->RSSetViewports(1, &mScreenViewport);
+		cmdList->RSSetScissorRects(1, &mScissorRect);
 
-			ThrowIfFailed(md3dDevice->CreateCommandList(
-				0,
-				D3D12_COMMAND_LIST_TYPE_DIRECT,
-				curClient->mDirectCmdListAlloc.Get(), // 연관된 cmdAlloc
-				nullptr,                   // 초기화 PSO
-				IID_PPV_ARGS(curClient->mCommandList.GetAddressOf())));
+		/*				*/	
+		cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(server->mRenderTargetBuffer.Get(),
+			D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
 
-			auto cmdAlloc = curClient->mDirectCmdListAlloc;
-			auto cmdList = curClient->mCommandList;
+		//RTV, DSV 클리어
+		CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(
+			mRtvHeap->GetCPUDescriptorHandleForHeapStart(),
+			2,
+			mRtvDescriptorSize);
 
-			ThrowIfFailed(cmdList->Close());
+		CD3DX12_CPU_DESCRIPTOR_HANDLE dsvHandle(
+			mDsvHeap->GetCPUDescriptorHandleForHeapStart(),
+			1,
+			mDsvDescriptorSize);
 
-			//명령할당자, 명령리스트 리셋
-			ThrowIfFailed(cmdAlloc->Reset());
-			ThrowIfFailed(cmdList->Reset(cmdAlloc.Get(), mPSOs["opaque"].Get()));
+		cmdList->ClearRenderTargetView(rtvHandle, Colors::SteelBlue, 0, nullptr);
+		cmdList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
-			//뷰포트 가위사각설정
-			cmdList->RSSetViewports(1, &mScreenViewport);
-			cmdList->RSSetScissorRects(1, &mScissorRect);
+		cmdList->OMSetRenderTargets(1, &rtvHandle, true, &dsvHandle);
 
-			//백버퍼 배리어 전환 제시 -> 렌더타겟
-			cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(server->mRenderTargetBuffer.Get(),
-				D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET));
+		ID3D12DescriptorHeap* descriptorHeaps[] = { mSrvDescriptorHeap.Get() };
+		cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
-			//RTV, DSV 클리어
-			CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(
-				mRtvHeap->GetCPUDescriptorHandleForHeapStart(),
-				2,
-				mRtvDescriptorSize);
+		cmdList->SetGraphicsRootSignature(mRootSignature.Get());
 
-			CD3DX12_CPU_DESCRIPTOR_HANDLE dsvHandle(
-				mDsvHeap->GetCPUDescriptorHandleForHeapStart(),
-				1,
-				mDsvDescriptorSize);
+		//셰이더 자원 서술자
+		auto matBuffer = mCurrFrameResource->MaterialBuffer->Resource();
+		cmdList->SetGraphicsRootShaderResourceView(1, matBuffer->GetGPUVirtualAddress());
 
-			cmdList->ClearRenderTargetView(rtvHandle, Colors::SteelBlue, 0, nullptr);
-			cmdList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+		//상수버퍼서술자 
+		auto passCB = mCurrFrameResource->PassCB->Resource();
+		D3D12_GPU_VIRTUAL_ADDRESS passCBAddress = passCB->GetGPUVirtualAddress() + (1 + i) * passCBByteSize;
+		cmdList->SetGraphicsRootConstantBufferView(2, passCBAddress);
 
-			cmdList->OMSetRenderTargets(1, &CurrentBackBufferView(), true, &dsvHandle);
+		//서술자 테이블
+		cmdList->SetGraphicsRootDescriptorTable(3, mSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
 
-			ID3D12DescriptorHeap* descriptorHeaps[] = { mSrvDescriptorHeap.Get() };
-			cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+		//여기서 그리기 수행
+		DrawRenderItems(cmdList.Get(), mRitemLayer[(int)RenderLayer::Opaque]);
 
-			cmdList->SetGraphicsRootSignature(mRootSignature.Get());
+		ThrowIfFailed(cmdList->Close());
 
-			//셰이더 자원 서술자
-			auto matBuffer = mCurrFrameResource->MaterialBuffer->Resource();
-			cmdList->SetGraphicsRootShaderResourceView(1, matBuffer->GetGPUVirtualAddress());
+		ID3D12CommandList* cmdsLists[] = { cmdList.Get() };
 
-			//상수버퍼서술자 
-			auto passCB = mCurrFrameResource->SubPassCB[i]->Resource();
-			cmdList->SetGraphicsRootConstantBufferView(2, passCB->GetGPUVirtualAddress());
+		mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
 
-			//서술자 테이블
-			cmdList->SetGraphicsRootDescriptorTable(3, mSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+		ThrowIfFailed(cmdList->Reset(cmdAlloc.Get(), mPSOs["opaque"].Get()));
 
-			//와이어 프레임 설정 켜져 있을 시 파이프상태 변경
-			if (isWire_frame)
-				cmdList->SetPipelineState(mPSOs["opaque_wireFrame"].Get());
-
-			//여기서 그리기 수행
-			DrawRenderItems(cmdList.Get(), mRitemLayer[(int)RenderLayer::Opaque]);
+		//리소스 배리어 전환
+		cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(server->mRenderTargetBuffer.Get(),
+			D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE));
 
 
-			//리소스 배리어 전환
-			cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(server->mRenderTargetBuffer.Get(),
-				D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE));
+		//백버퍼에 설정값들 참조
+		D3D12_RESOURCE_DESC Desc = server->mRenderTargetBuffer.Get()->GetDesc();
+		D3D12_PLACED_SUBRESOURCE_FOOTPRINT descFootPrint = {};
+		UINT Rows = 0;
+		UINT64 RowSize = 0;
+		UINT64 TotalBytes = 0;
+		md3dDevice->GetCopyableFootprints(&Desc, 0, 1, 0, &descFootPrint, &Rows, &RowSize, &TotalBytes);
 
-			//백버퍼에 설정값들 참조
-			D3D12_RESOURCE_DESC Desc = server->mRenderTargetBuffer.Get()->GetDesc();
-			D3D12_PLACED_SUBRESOURCE_FOOTPRINT descFootPrint = {};
-			UINT Rows = 0;
-			UINT64 RowSize = 0;
-			UINT64 TotalBytes = 0;
-			md3dDevice->GetCopyableFootprints(&Desc, 0, 1, 0, &descFootPrint, &Rows, &RowSize, &TotalBytes);
+		//복사대상 설정
+		D3D12_TEXTURE_COPY_LOCATION dstLoc;
+		dstLoc.pResource = mCurrFrameResource->mSurfaces[i].Get();
+		dstLoc.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+		dstLoc.PlacedFootprint.Offset = 0;
+		dstLoc.PlacedFootprint.Footprint.Format = mBackBufferFormat;
+		dstLoc.PlacedFootprint.Footprint.Height = mClientHeight;
+		dstLoc.PlacedFootprint.Footprint.Width = mClientWidth;
+		dstLoc.PlacedFootprint.Footprint.Depth = 1;
+		dstLoc.PlacedFootprint.Footprint.RowPitch = D3DUtil::CalcConstantBufferByteSize(mClientWidth * sizeof(FLOAT));
+		dstLoc.SubresourceIndex = 0;
 
-			//복사대상 설정
-			D3D12_TEXTURE_COPY_LOCATION dstLoc;
-			dstLoc.pResource = mCurrFrameResource->mSurfaces[i].Get();
-			dstLoc.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-			dstLoc.PlacedFootprint.Offset = 0;
-			dstLoc.PlacedFootprint.Footprint.Format = mBackBufferFormat;
-			dstLoc.PlacedFootprint.Footprint.Height = mClientHeight;
-			dstLoc.PlacedFootprint.Footprint.Width = mClientWidth;
-			dstLoc.PlacedFootprint.Footprint.Depth = 1;
-			dstLoc.PlacedFootprint.Footprint.RowPitch = D3DUtil::CalcConstantBufferByteSize(mClientWidth * sizeof(FLOAT));
-			dstLoc.SubresourceIndex = 0;
+		//복사소스 설정
+		D3D12_TEXTURE_COPY_LOCATION srcLoc;
+		srcLoc.pResource = server->mRenderTargetBuffer.Get();
+		srcLoc.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+		srcLoc.SubresourceIndex = 0;
 
-			//복사소스 설정
-			D3D12_TEXTURE_COPY_LOCATION srcLoc;
-			srcLoc.pResource = server->mRenderTargetBuffer.Get();
-			srcLoc.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-			srcLoc.SubresourceIndex = 0;
+		//복사
+		cmdList->CopyTextureRegion(&dstLoc, 0, 0, 0, &srcLoc, nullptr);
+		//mCommandList->CopyBufferRegion(mCurrFrameResource->mSurface.Get(), 0, CurrentBackBuffer(), 0, GetSurfaceSize());
 
-			//복사
-			cmdList->CopyTextureRegion(&dstLoc, 0, 0, 0, &srcLoc, nullptr);
-			//mCommandList->CopyBufferRegion(mCurrFrameResource->mSurface.Get(), 0, CurrentBackBuffer(), 0, GetSurfaceSize());
+	
+		//배리어 다시 원래대로
+		cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(server->mRenderTargetBuffer.Get(),
+			D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_PRESENT));
 
-			//배리어 다시 원래대로
-			cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(server->mRenderTargetBuffer.Get(),
-				D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_GENERIC_READ));
+		ThrowIfFailed(cmdList->Close());
 
-			//RTV, DSV 클리어
-			cmdList->ClearRenderTargetView(CurrentBackBufferView(), Colors::SteelBlue, 0, nullptr);
-			cmdList->ClearDepthStencilView(DepthStencilView(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+		ID3D12CommandList* cmdsLists2[] = { cmdList.Get() };
 
-			ThrowIfFailed(cmdList->Close());
+		mCommandQueue->ExecuteCommandLists(_countof(cmdsLists2), cmdsLists2);
 
-			ID3D12CommandList* cmdsLists[] = { cmdList.Get() };
-			mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
-		}
+		FlushCommandQueue();
 
-		});
-	renderThread.join();
+		CopyBuffer();
+	}
 
-	//서버 시점 그리기
-
+	//서버 DrawCall (쓰레드로 명령목록 작성)
 
 	//현재 프레임 자원의 할당자를 가져옴
 	auto cmdListAlloc = mCurrFrameResource->CmdListAlloc;
@@ -659,12 +648,6 @@ void D3D12WND::Draw(const GameTimer& gt) {
 	//여기서 그리기 수행
 	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::Opaque]);
 
-
-	/*--------------------------------------------------------------------------------------*/
-
-
-	/*--------------------------------------------------------------------------------------*/
-	/*	*/
 	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
 		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
 
@@ -678,7 +661,198 @@ void D3D12WND::Draw(const GameTimer& gt) {
 
 	FlushCommandQueue();
 
-	CopyBuffer();
+
+	/*
+//클라이언트 시점 그리기
+if (clientRenderThread == nullptr) {
+	clientRenderThread = new std::thread([&]() -> void {
+		for (UINT i = 0; i < server->GetClientNum(); ++i) {
+			auto curClient = server->GetClients()[i];
+
+			//auto cmdAlloc = mCurrFrameResource->CmdListAlloc;
+			auto cmdAlloc = curClient->mDirectCmdListAlloc;
+			auto cmdList = curClient->mCommandList;
+
+			//명령할당자, 명령리스트 리셋
+			ThrowIfFailed(cmdAlloc->Reset());
+			ThrowIfFailed(cmdList->Reset(cmdAlloc.Get(), mPSOs["opaque"].Get()));
+
+			//뷰포트 가위사각설정
+			cmdList->RSSetViewports(1, &mScreenViewport);
+			cmdList->RSSetScissorRects(1, &mScissorRect);
+
+			//백버퍼 배리어 전환 제시 -> 렌더타겟
+			cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(server->mRenderTargetBuffer.Get(),
+				D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET));
+
+			//RTV, DSV 클리어
+			CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(
+				mRtvHeap->GetCPUDescriptorHandleForHeapStart(),
+				2,
+				mRtvDescriptorSize);
+
+			CD3DX12_CPU_DESCRIPTOR_HANDLE dsvHandle(
+				mDsvHeap->GetCPUDescriptorHandleForHeapStart(),
+				1,
+				mDsvDescriptorSize);
+
+			cmdList->ClearRenderTargetView(rtvHandle, Colors::SteelBlue, 0, nullptr);
+			cmdList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+
+			cmdList->OMSetRenderTargets(1, &CurrentBackBufferView(), true, &dsvHandle);
+
+			ID3D12DescriptorHeap* descriptorHeaps[] = { mSrvDescriptorHeap.Get() };
+			cmdList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+
+			cmdList->SetGraphicsRootSignature(mRootSignature.Get());
+
+			//셰이더 자원 서술자
+			auto matBuffer = mCurrFrameResource->MaterialBuffer->Resource();
+			cmdList->SetGraphicsRootShaderResourceView(1, matBuffer->GetGPUVirtualAddress());
+
+			//상수버퍼서술자
+			auto passCB = mCurrFrameResource->SubPassCB[i]->Resource();
+			cmdList->SetGraphicsRootConstantBufferView(2, passCB->GetGPUVirtualAddress());
+
+			//서술자 테이블
+			cmdList->SetGraphicsRootDescriptorTable(3, mSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+
+			//여기서 그리기 수행
+			DrawRenderItems(cmdList.Get(), mRitemLayer[(int)RenderLayer::Opaque]);
+
+
+			ThrowIfFailed(cmdList->Close());
+
+			ID3D12CommandList* cmdsLists[] = { cmdList.Get() };
+			mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+
+
+			ThrowIfFailed(cmdList->Reset(cmdAlloc.Get(), mPSOs["opaque"].Get()));
+
+			//리소스 배리어 전환
+			cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(server->mRenderTargetBuffer.Get(),
+				D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE));
+
+			//백버퍼에 설정값들 참조
+			D3D12_RESOURCE_DESC Desc = server->mRenderTargetBuffer.Get()->GetDesc();
+			D3D12_PLACED_SUBRESOURCE_FOOTPRINT descFootPrint = {};
+			UINT Rows = 0;
+			UINT64 RowSize = 0;
+			UINT64 TotalBytes = 0;
+			md3dDevice->GetCopyableFootprints(&Desc, 0, 1, 0, &descFootPrint, &Rows, &RowSize, &TotalBytes);
+
+			//복사대상 설정
+			D3D12_TEXTURE_COPY_LOCATION dstLoc;
+			dstLoc.pResource = mCurrFrameResource->mSurfaces[i].Get();
+			dstLoc.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+			dstLoc.PlacedFootprint.Offset = 0;
+			dstLoc.PlacedFootprint.Footprint.Format = mBackBufferFormat;
+			dstLoc.PlacedFootprint.Footprint.Height = mClientHeight;
+			dstLoc.PlacedFootprint.Footprint.Width = mClientWidth;
+			dstLoc.PlacedFootprint.Footprint.Depth = 1;
+			dstLoc.PlacedFootprint.Footprint.RowPitch = D3DUtil::CalcConstantBufferByteSize(mClientWidth * sizeof(FLOAT));
+			dstLoc.SubresourceIndex = 0;
+
+			//복사소스 설정
+			D3D12_TEXTURE_COPY_LOCATION srcLoc;
+			srcLoc.pResource = server->mRenderTargetBuffer.Get();
+			srcLoc.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+			srcLoc.SubresourceIndex = 0;
+
+			//복사
+			cmdList->CopyTextureRegion(&dstLoc, 0, 0, 0, &srcLoc, nullptr);
+			//mCommandList->CopyBufferRegion(mCurrFrameResource->mSurface.Get(), 0, CurrentBackBuffer(), 0, GetSurfaceSize());
+
+			//배리어 다시 원래대로
+			cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(server->mRenderTargetBuffer.Get(),
+				D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_GENERIC_READ));
+
+			ThrowIfFailed(cmdList->Close());
+
+			ID3D12CommandList* cmdsLists2[] = { cmdList.Get() };
+
+			mCommandQueue->ExecuteCommandLists(_countof(cmdsLists2), cmdsLists2);
+
+			FlushCommandQueue();
+
+			CopyBuffer();
+		}
+
+	});
+	clientRenderThread->detach();
+
+}
+*/
+	/*
+//서버 시점 그리기
+if (serverRenderThread == nullptr) {
+	serverRenderThread = new std::thread([&]() -> void {
+		//현재 프레임 자원의 할당자를 가져옴
+		auto cmdListAlloc = mCurrFrameResource->CmdListAlloc;
+
+		//명령할당자, 명령리스트 리셋
+		ThrowIfFailed(cmdListAlloc->Reset());
+		ThrowIfFailed(mCommandList->Reset(cmdListAlloc.Get(), mPSOs["opaque"].Get()));
+
+		//뷰포트 가위사각설정
+		mCommandList->RSSetViewports(1, &mScreenViewport);
+		mCommandList->RSSetScissorRects(1, &mScissorRect);
+
+		//백버퍼 배리어 전환 제시 -> 렌더타겟
+		mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
+			D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
+
+		//RTV, DSV 클리어
+		mCommandList->ClearRenderTargetView(CurrentBackBufferView(), Colors::SteelBlue, 0, nullptr);
+		mCommandList->ClearDepthStencilView(DepthStencilView(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+
+		mCommandList->OMSetRenderTargets(1, &CurrentBackBufferView(), true, &DepthStencilView());
+
+
+		ID3D12DescriptorHeap* descriptorHeaps[] = { mSrvDescriptorHeap.Get() };
+		mCommandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+
+		mCommandList->SetGraphicsRootSignature(mRootSignature.Get());
+
+		//셰이더 자원 서술자
+		auto matBuffer = mCurrFrameResource->MaterialBuffer->Resource();
+		mCommandList->SetGraphicsRootShaderResourceView(1, matBuffer->GetGPUVirtualAddress());
+
+		//상수버퍼서술자
+		auto passCB = mCurrFrameResource->PassCB->Resource();
+		mCommandList->SetGraphicsRootConstantBufferView(2, passCB->GetGPUVirtualAddress());
+
+		//서술자 테이블
+		mCommandList->SetGraphicsRootDescriptorTable(3, mSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+
+		//와이어 프레임 설정 켜져 있을 시 파이프상태 변경
+		if (isWire_frame)
+			mCommandList->SetPipelineState(mPSOs["opaque_wireFrame"].Get());
+
+		//여기서 그리기 수행
+		DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::Opaque]);
+
+		mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
+			D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
+
+		ThrowIfFailed(mCommandList->Close());
+
+		ID3D12CommandList* cmdsLists[] = { mCommandList.Get() };
+		mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+
+		ThrowIfFailed(mSwapChain->Present(0, 0));
+		mCurBackBuffer = (mCurBackBuffer + 1) % mSwapChainBufferCount;
+
+		FlushCommandQueue();
+	});
+	serverRenderThread->detach();
+}
+*/
+	//delete serverRenderThread;
+	//delete clientRenderThread;
+
+	//serverRenderThread = nullptr;
+	//clientRenderThread = nullptr;
 }
 
 
@@ -874,8 +1048,8 @@ void D3D12WND::UpdateClientPassCB(const GameTimer& gt) {
 		mClientPassCB.Lights[2].Direction = { 0.0f, -0.707f, -0.707f };
 		mClientPassCB.Lights[2].Strength = { 0.15f, 0.15f, 0.15f };
 
-		auto currPassCB = mCurrFrameResource->SubPassCB[i].get();
-		currPassCB->CopyData(0, mClientPassCB);
+		auto currPassCB = mCurrFrameResource->PassCB.get();
+		currPassCB->CopyData(1 + i, mClientPassCB);
 	}
 	
 }
@@ -1021,7 +1195,7 @@ void D3D12WND::BuildFrameResources() {
 	for (int i = 0; i < gNumFrameResources; ++i)
 	{
 		mFrameResources.push_back(std::make_unique<FrameResource>(md3dDevice.Get(),
-			1, num, (UINT)mMaterials.size(), server->GetClientNum()));
+			1 + server->GetClientNum(), num, (UINT)mMaterials.size(), server->GetClientNum()));
 	}
 }
 
@@ -1261,7 +1435,7 @@ FLOAT* D3D12WND::GetReadBackBuffer() {
 void D3D12WND::InputPump(const GameTimer& gt) {
 	for (int i = 0; i < server->GetClientNum(); ++i) {
 		//auto curClient = server->GetClients()[i];
-		while (server->GetClients()[i]->reqHeader.mCommand == COMMAND::COMMAND_INPUT_KEY) {
+		while (ntohs(server->GetClients()[i]->reqHeader.mCommand) == COMMAND::COMMAND_INPUT_KEY) {
 			//입력 처리
 			const float dt = gt.DeltaTime();
 
@@ -1338,16 +1512,22 @@ void D3D12WND::CreateRTVDSV_Server() {
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 		D3D12_HEAP_FLAG_NONE,
 		&renderTexDesc,
-		D3D12_RESOURCE_STATE_GENERIC_READ,
+		D3D12_RESOURCE_STATE_PRESENT,
 		nullptr,
 		IID_PPV_ARGS(server->mRenderTargetBuffer.GetAddressOf())));
 
 	//RTV생성
+	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc;
+	rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+	rtvDesc.Format = mBackBufferFormat;
+	rtvDesc.Texture2D.MipSlice = 0;
+	rtvDesc.Texture2D.PlaneSlice = 0;
+
 	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvDescriptor(
 		mRtvHeap->GetCPUDescriptorHandleForHeapStart(),
 		2, mRtvDescriptorSize);
 	
-	md3dDevice->CreateRenderTargetView(server->mRenderTargetBuffer.Get(), nullptr, rtvDescriptor);
+	md3dDevice->CreateRenderTargetView(server->mRenderTargetBuffer.Get(), &rtvDesc, rtvDescriptor);
 
 
 	//네트워크용 DSV생성
@@ -1385,5 +1565,22 @@ void D3D12WND::CreateRTVDSV_Server() {
 	md3dDevice->CreateDepthStencilView(server->mDepthStencilBuffer.Get(), nullptr, dsvDescriptor);
 }
 
+void D3D12WND::InitClient() {
+	for (int i = 0; i < server->GetClientNum(); ++i) {
+		auto curClient = server->GetClients()[i];
+		/**/
+		ThrowIfFailed(md3dDevice->CreateCommandAllocator(
+			D3D12_COMMAND_LIST_TYPE_DIRECT,
+			IID_PPV_ARGS(curClient->mDirectCmdListAlloc.GetAddressOf())));
 
+		ThrowIfFailed(md3dDevice->CreateCommandList(
+			0,
+			D3D12_COMMAND_LIST_TYPE_DIRECT,
+			curClient->mDirectCmdListAlloc.Get(), // 연관된 cmdAlloc
+			nullptr,                   // 초기화 PSO
+			IID_PPV_ARGS(curClient->mCommandList.GetAddressOf())));
+		curClient->mCommandList->Close();
+	}
+
+}
 

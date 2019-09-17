@@ -182,6 +182,8 @@ private:
 	Server* server = nullptr;
 	BitmapQueue* queue = nullptr;
 	PassConstants mClientPassCB;
+	std::thread* serverRenderThread = nullptr;
+	std::thread* clientRenderThread = nullptr;
 	/*------------------------------------------------------------------------------------------------------*/
 	PassConstants mMainPassCB;
 
@@ -236,6 +238,7 @@ public:
 	void RecvRequest();
 	void InputPump(const GameTimer& gt);
 	void CreateRTVDSV_Server();
+	void InitClient();
 
 	/*------------------------------------------------------------------------------------------------------*/
 	void OnKeyboardInput(const GameTimer& gt);
