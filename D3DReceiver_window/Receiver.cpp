@@ -32,7 +32,7 @@ bool Client::Init() {
 
 bool Client::Connection() {
 	//서버와 커넥트
-	if (connect(serverSock, (sockaddr*)& serverAddr, sizeof(serverAddr)) == INVALID_SOCKET) {
+	if (connect(serverSock, (sockaddr*)& serverAddr, sizeof(serverAddr)) == SOCKET_ERROR) {
 		return false;
 	}
 
