@@ -7,11 +7,11 @@
 
 #pragma comment(lib, "ws2_32.lib")
  
-#define PORT 3500
+#define PORT 45000
 #define BUFFER_SIZE 1024
 
 
-#define CLIENT_MAX_NUM 0
+#define CLIENT_MAX_NUM 1
 
 
 enum COMMAND {

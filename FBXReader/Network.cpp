@@ -49,16 +49,7 @@ void Server::WaitForClient() {
 
 	SOCKET tempSock = INVALID_SOCKET;
 	sockaddr_in tempAddr;
-	/*
-	int addrSize = sizeof(tempAddr);
-	tempSock = accept(serverSock, (sockaddr*)&tempAddr, &addrSize);
 
-	char str[256];
-	InetNtopA(AF_INET, &tempAddr.sin_addr, str, sizeof(str));
-
-	clients.push_back(new Client(tempSock, tempAddr));
-
-	*/
 	int i = 0;
 	while (i < CLIENT_MAX_NUM) {
 		int addrSize = sizeof(tempAddr);
