@@ -15,7 +15,7 @@ bool Client::Init() {
 	}
 
 	//家南 积己
-	if ((serverSock = socket(AF_INET, SOCK_STREAM, 0)) == INVALID_SOCKET) {
+	if ((serverSock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) == INVALID_SOCKET) {
 		return false;
 	}
 
