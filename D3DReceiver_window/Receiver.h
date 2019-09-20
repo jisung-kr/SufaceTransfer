@@ -12,7 +12,6 @@
 #define SERVER_IP "119.192.192.116"
 
 enum COMMAND {
-	//임시 명령
 	COMMAND_REQ_FRAME = 0,
 	COMMAND_RES_FRAME = 1,
 	COMMAND_INPUT_KEY,
@@ -34,31 +33,26 @@ struct INPUT_DATA {
 	float z;
 };
 
-
 struct HEADER {
-	UINT mDataLen;
-	UINT mCommand;
+	INT mDataLen;
+	INT mCommand;
 };
 
+//헤더 생성 보조 구조체
 struct CHEADER : HEADER {
 	CHEADER() {
 		mDataLen = 0;
-		mCommand = htons(COMMAND::COMMAND_REQ_FRAME);
+		mCommand = htonl(COMMAND::COMMAND_REQ_FRAME);
 	}
 
 	CHEADER(USHORT command) {
 		mDataLen = 0;
-		mCommand = htons(command);
+		mCommand = htonl(command);
 	}
 	CHEADER(USHORT command, UINT dataLen) {
 		mDataLen = htonl(dataLen);
-		mCommand = htons(command);
+		mCommand = htonl(command);
 	}
-};
-
-struct NETWORK_MSG {
-	HEADER header;
-	char* data;
 };
 
 
