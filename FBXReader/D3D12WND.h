@@ -1,6 +1,6 @@
 #pragma once
-
-#include "Network.h"
+#include "IOCP.h"
+//#include "Network.h"
 #include "BitmapQueue.h"
 #include "D3DUtil.h"
 #include "GameTimer.h"
@@ -179,7 +179,8 @@ private:
 	//그려진 텍스쳐 데이터를 받아올 버퍼
 	FLOAT* mBuffer;
 	std::vector<FLOAT*> mBuffers;
-	Server* server = nullptr;
+	IOCPServer* server = nullptr;
+	//Server* server = nullptr;
 	BitmapQueue* queue = nullptr;
 	PassConstants mClientPassCB;
 	std::thread* serverRenderThread = nullptr;

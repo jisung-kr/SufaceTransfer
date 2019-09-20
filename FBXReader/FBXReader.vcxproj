@@ -160,6 +160,7 @@
     <ClCompile Include="FrameResource.cpp" />
     <ClCompile Include="GameTImer.cpp" />
     <ClCompile Include="GeometryGenerator.cpp" />
+    <ClCompile Include="IOCP.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="MainWindow.cpp" />
     <ClCompile Include="MathHelper.cpp" />
@@ -175,6 +176,7 @@
     <ClInclude Include="FrameResource.h" />
     <ClInclude Include="GameTimer.h" />
     <ClInclude Include="GeometryGenerator.h" />
+    <ClInclude Include="IOCP.h" />
     <ClInclude Include="MainWindow.h" />
     <ClInclude Include="MathHelper.h" />
     <ClInclude Include="Network.h" />
