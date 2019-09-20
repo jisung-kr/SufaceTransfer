@@ -119,12 +119,14 @@ bool D3D12WND::InitDirect3D() {
 	queue = new BitmapQueue();
 
 	/* 서버 소켓 생성및 초기화 */
-	server = new Server();
+	//server = new Server();
+	server = new IOCPServer();
 	if (!server->Init())
 		return false;
 
 	//서버 클라이언트 정해진 인원 만큼 대기
-	server->WaitForClient();
+	//server->WaitForClient();
+	server->AcceptClient();
 
 	CreateRTVDSV_Server();
 
@@ -489,7 +491,7 @@ void D3D12WND::Draw(const GameTimer& gt) {
 	/*			*/
 	UINT passCBByteSize = D3DUtil::CalcConstantBufferByteSize(sizeof(PassConstants));
 	for (UINT i = 0; i < server->GetClientNum(); ++i) {
-		auto curClient = server->GetClients()[i];
+		auto curClient = server->GetClient(i);
 
 		//auto cmdAlloc = mCurrFrameResource->CmdListAlloc;
 		auto cmdAlloc = curClient->mDirectCmdListAlloc;
@@ -914,10 +916,10 @@ void D3D12WND::OnKeyboardInput(const GameTimer& gt) {
 	mCamera.UpdateViewMatrix();
 
 	for (int i = 0; i < server->GetClientNum(); ++i) {
-		server->GetClients()[i]->mCamera.UpdateViewMatrix();
+		server->GetClient(i)->mCamera.UpdateViewMatrix();
 
 		char str[256];
-		sprintf(str, "Camera_%d : x=%x, y=%x, z=%x\n", i, server->GetClients()[i]->mCamera.GetPosition3f().x, server->GetClients()[i]->mCamera.GetPosition3f().y, server->GetClients()[i]->mCamera.GetPosition3f().z);
+		sprintf(str, "Camera_%d : x=%x, y=%x, z=%x\n", i, server->GetClient(i)->mCamera.GetPosition3f().x, server->GetClient(i)->mCamera.GetPosition3f().y, server->GetClient(i)->mCamera.GetPosition3f().z);
 		OutputDebugStringA(str);
 	}
 }
@@ -1015,7 +1017,7 @@ void D3D12WND::UpdateMainPassCB(const GameTimer& gt) {
 
 void D3D12WND::UpdateClientPassCB(const GameTimer& gt) {
 	for (UINT i = 0; i < server->GetClientNum(); ++i) {
-		auto curClient = server->GetClients()[i];
+		auto curClient = server->GetClient(i);
 
 		XMMATRIX view = curClient->mCamera.GetView();
 		XMMATRIX proj = curClient->mCamera.GetProj();
@@ -1409,11 +1411,13 @@ void D3D12WND::CopyBuffer() {
 	D3D12_RANGE range{ 0, GetSurfaceSize() };
 
 	for (int i = 0; i < server->GetClientNum(); ++i) {
-		auto& curClient = server->GetClients()[i];
-		mCurrFrameResource->mSurfaces[i]->Map(0, &range, (void**)& curClient->data);
+		auto curClient = server->GetClient(i);
+		//mCurrFrameResource->mSurfaces[i]->Map(0, &range, (void**)& curClient->data);
+		mCurrFrameResource->mSurfaces[i]->Map(0, &range, (void**)& curClient->wsaWriteBuf[1].buf);
 		mCurrFrameResource->mSurfaces[i]->Unmap(0, 0);
 
-		curClient->dataSize = htonl(GetSurfaceSize());
+		//curClient->dataSize = htonl(GetSurfaceSize());
+		curClient->wsaWriteBuf[1].len = htonl(GetSurfaceSize());
 	}
 
 }
@@ -1425,39 +1429,43 @@ FLOAT* D3D12WND::GetReadBackBuffer() {
 void D3D12WND::InputPump(const GameTimer& gt) {
 	for (int i = 0; i < server->GetClientNum(); ++i) {
 		//auto curClient = server->GetClients()[i];
-		while (ntohs(server->GetClients()[i]->reqHeader.mCommand) == COMMAND::COMMAND_INPUT_KEY) {
+		HEADER* header = (HEADER*)server->GetClient(i)->wsaReadBuf[0].buf;
+		while (ntohl(header->mCommand) == COMMAND::COMMAND_INPUT_KEY) {
 			//입력 처리
 			const float dt = gt.DeltaTime();
 
-			INPUT_DATA* inputData = (INPUT_DATA*)server->GetClients()[i]->data;
+			INPUT_DATA* inputData = (INPUT_DATA*)server->GetClient(i)->wsaReadBuf[1].buf;
 
 			if (inputData->mInputType == INPUT_TYPE::INPUT_KEY_W) {
-				server->GetClients()[i]->mCamera.Walk(100.0f * dt);
+				server->GetClient(i)->mCamera.Walk(100.0f * dt);
 				OutputDebugStringA("Input W\n");
 			}
 
 			if (inputData->mInputType == INPUT_TYPE::INPUT_KEY_S) {
-				server->GetClients()[i]->mCamera.Walk(-100.0f * dt);
+				server->GetClient(i)->mCamera.Walk(-100.0f * dt);
 				OutputDebugStringA("Input S\n");
 			}
 
 			if (inputData->mInputType == INPUT_TYPE::INPUT_KEY_A) {
-				server->GetClients()[i]->mCamera.Strafe(-100.0f * dt);
+				server->GetClient(i)->mCamera.Strafe(-100.0f * dt);
 				OutputDebugStringA("Input A\n");
 			}
 
 			if (inputData->mInputType == INPUT_TYPE::INPUT_KEY_D) {
-				server->GetClients()[i]->mCamera.Strafe(100.0f * dt);
+				server->GetClient(i)->mCamera.Strafe(100.0f * dt);
 				OutputDebugStringA("Input D\n");
 			}
 				
-			server->GetClients()[i]->mCamera.UpdateViewMatrix();
+			server->GetClient(i)->mCamera.UpdateViewMatrix();
 
 			//입력 처리후 다시 Request 받아오기
+			server->RequestRecv(i);
+			/*
 			if (!server->RecvRequest(i)) {
 				OutputDebugStringA("RecvREQ 수신 중 오류 발생!\n");
 				break;
 			}
+			*/
 		}
 	}
 	
@@ -1465,20 +1473,34 @@ void D3D12WND::InputPump(const GameTimer& gt) {
 
 void D3D12WND::RecvRequest() {
 	for (int i = 0; i < server->GetClientNum(); ++i) {
+		server->RequestRecv(i);
+	}
+
+	/*
+	for (int i = 0; i < server->GetClientNum(); ++i) {
+
 		if (!server->RecvRequest(i)) {
 			OutputDebugStringA("RecvREQ 수신 중 오류 발생!\n");
 		}
 		else {
 		}
+		
 	}
+	*/
 }
 
 void D3D12WND::SendFrame() {
+	for (int i = 0; i < server->GetClientNum(); ++i) {
+		server->RequestSend(i, CHEADER(COMMAND::COMMAND_RES_FRAME, server->GetClient(i)->wsaWriteBuf[1].len), server->GetClient(i)->wsaWriteBuf[1].buf);
+
+	}
+	/*
 	for (int i = 0; i < server->GetClientNum(); ++i) {
 		if (!server->SendMSG(i, CHEADER::CHEADER(COMMAND::COMMAND_RES_FRAME, server->GetClients()[i]->dataSize), server->GetClients()[i]->data)) {
 			OutputDebugStringA("프레임 전송 실패!\n");
 		}
 	}
+	*/
 }
 
 void D3D12WND::CreateRTVDSV_Server() {
@@ -1557,7 +1579,7 @@ void D3D12WND::CreateRTVDSV_Server() {
 
 void D3D12WND::InitClient() {
 	for (int i = 0; i < server->GetClientNum(); ++i) {
-		auto curClient = server->GetClients()[i];
+		auto curClient = server->GetClient(i);
 		/**/
 		ThrowIfFailed(md3dDevice->CreateCommandAllocator(
 			D3D12_COMMAND_LIST_TYPE_DIRECT,
