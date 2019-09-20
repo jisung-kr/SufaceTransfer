@@ -37,7 +37,7 @@ struct INPUT_DATA {
 
 struct HEADER {
 	UINT mDataLen;
-	USHORT mCommand;
+	UINT mCommand;
 };
 
 struct CHEADER : HEADER {

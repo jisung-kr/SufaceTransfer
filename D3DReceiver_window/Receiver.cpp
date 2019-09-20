@@ -97,7 +97,7 @@ bool Client::ReadData() {
 
 bool Client::RecvResponse() {
 	//RES수신
-	memset(&resHeader, -1, sizeof(HEADER));
+	memset(&resHeader, 0x00, sizeof(HEADER));
 	const INT headerSize = sizeof(HEADER);
 	INT totSize = 0;
 	INT nowSize = 0;
@@ -116,9 +116,10 @@ bool Client::RecvResponse() {
 			return false;
 		}
 	}
+	OutputDebugStringA("RES헤더 수신 성공\n");
 
 	//버퍼에 데이터 받아오기
-	const INT size = ntohl(resHeader.mDataLen);
+	const DWORD size = ntohl(resHeader.mDataLen);
 
 	if (size < 0)
 		return false;
@@ -195,6 +196,7 @@ bool Client::Request(HEADER reqHeader, void* data) {
 		}
 	}
 
+	OutputDebugStringA("REQ송신 성공\n");
 	return true;
 }
 

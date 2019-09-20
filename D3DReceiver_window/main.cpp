@@ -19,7 +19,8 @@ Client* client = nullptr;	//클라이언트
 UINT mClientWidth = 640;
 UINT mClientHeight = 480;
 
-std::thread* mNetworkThread = nullptr;
+std::thread* mNetworkReadThread = nullptr;
+std::thread* mNetworkWriteThread = nullptr;
 std::thread* mRenderingThread = nullptr;
 BitmapQueue queue;
 
@@ -86,28 +87,43 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 		else
 		{
 
-			/*
-			if (mNetworkThread == nullptr) {
-				mNetworkThread = new std::thread([&]() -> void {
+			/*	
+			if (mNetworkWriteThread == nullptr) {
+				mNetworkWriteThread = new std::thread([&]() -> void {
 
 					while (true) {
-						client->Request(CHEADER::CHEADER(COMMAND::COMMAND_REQ_FRAME));
-
-						if (!client->RecvResponse()) {
+						if (!client->Request(CHEADER::CHEADER(COMMAND::COMMAND_REQ_FRAME))) {
 							delete client;
 							client = nullptr;
 						}
+						else {
 
-						if (client == nullptr)
-							break;
-
-						queue.PushItem(client->GetData());
+						}
 					}
 
 				});
 			}
 			*/
-			/*			*/
+			/*
+			if (mNetworkReadThread == nullptr) {
+				mNetworkReadThread = new std::thread([&]() -> void {
+
+					while (true) {
+
+						if (!client->RecvResponse()) {
+							delete client;
+							client = nullptr;
+						}
+						else {
+							queue.PushItem(client->GetData());
+						}
+
+					}
+
+				});
+			}
+		*/
+			/*				
 			if (GetAsyncKeyState('W') & 0x8000) {
 				INPUT_DATA data;
 				memset(&data, 0x00, sizeof(INPUT_DATA));
@@ -140,18 +156,27 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 				client->Request(CHEADER::CHEADER(COMMAND::COMMAND_INPUT_KEY, sizeof(INPUT_DATA)), &data);
 			}
 			
-
+		*/
+			/*				*/
 			//프레임 데이터 요청
-			client->Request(CHEADER::CHEADER(COMMAND::COMMAND_REQ_FRAME));
+			if (!client->Request(CHEADER::CHEADER(COMMAND::COMMAND_REQ_FRAME))) {
+				delete client;
+				client = nullptr;
+				continue;
+			}
 
 			//프레임 데이터 수신
 			if (!client->RecvResponse()) {
 				delete client;
 				client = nullptr;
+				break;
 			}
-
-			queue.PushItem(client->GetData());
-
+		
+		/*
+			if (client->GetData() != nullptr) {
+				queue.PushItem(client->GetData());
+			}
+			*/
 			mTimer.Tick();
 
 			if (queue.Size() > 0) {
@@ -182,6 +207,9 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 
 		}
 	}
+
+	delete mNetworkWriteThread;
+	mNetworkWriteThread = nullptr;
 
 	return 0;
 }
