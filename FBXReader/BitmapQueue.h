@@ -12,6 +12,8 @@ public:
 
 private:
 	std::queue<void*> mQueue;
+
+public:
 	static std::mutex mMutex;
 
 public:
@@ -19,10 +21,10 @@ public:
 	void* FrontItem();
 
 	//Queue의 마지막 원소에 데이터 넣기
-	void PushItem(void* item, std::mutex& mutex);
+	void PushItem(void* item, std::mutex& mutex = mMutex);
 
 	//Queue의 첫번째 원소 삭제
-	void PopItem(std::mutex& mutex);
+	void PopItem(std::mutex& mutex = mMutex);
 
 	//현재  Queue의 Item 갯수 반환
 	int Size();

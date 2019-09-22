@@ -2,7 +2,6 @@
 
 #include "D3D12WND.h"
 
-
 class MainWindow {
 public:
 	MainWindow(HINSTANCE hInst) : mhInst(hInst) { instance = this; }

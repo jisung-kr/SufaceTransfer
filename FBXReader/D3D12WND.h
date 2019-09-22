@@ -185,6 +185,7 @@ private:
 	PassConstants mClientPassCB;
 	std::thread* serverRenderThread = nullptr;
 	std::thread* clientRenderThread = nullptr;
+
 	/*------------------------------------------------------------------------------------------------------*/
 	PassConstants mMainPassCB;
 

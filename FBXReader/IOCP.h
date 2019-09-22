@@ -8,6 +8,7 @@
 #include <atomic>
 
 #include "Camera.h"
+#include "BitmapQueue.h"
 
 #define PORT 45000
 
@@ -66,8 +67,8 @@ struct INPUT_DATA {
 };
 
 struct HEADER {
-	INT mDataLen;
-	INT mCommand;
+	DWORD mDataLen;
+	DWORD mCommand;
 };
 
 //헤더 생성 보조 구조체
@@ -77,54 +78,39 @@ struct CHEADER : HEADER {
 		mCommand = htonl(COMMAND::COMMAND_REQ_FRAME);
 	}
 
-	CHEADER(USHORT command) {
+	CHEADER(DWORD command) {
 		mDataLen = 0;
 		mCommand = htonl(command);
 	}
-	CHEADER(USHORT command, UINT dataLen) {
+	CHEADER(DWORD command, DWORD dataLen) {
 		mDataLen = htonl(dataLen);
 		mCommand = htonl(command);
 	}
 };
 
+//Overlapped 확장 구조체
+struct OVERLAPPEDEX{
+	OVERLAPPED overlapped;
+	WSABUF wsaBuf[2];
+	DWORD flag;
+	DWORD numberOfByte;
+};
+
 //SocketInfo 구조체
 struct SocketInfo {
-	OVERLAPPED overlapped;
 	SOCKET socket;
 	sockaddr_in clientAddr;
-	WSABUF wsaReadBuf[2];
-	WSABUF wsaWriteBuf[2];
-	DWORD flag;
-	DWORD readn;
-	DWORD writen;
 
 	Camera mCamera;
+
+	BitmapQueue queue;
+
+	OVERLAPPEDEX* overlappedRead = nullptr;
+	OVERLAPPEDEX* overlappedWrite = nullptr;
 
 	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> mDirectCmdListAlloc;	//CmdList Allocator
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> mCommandList;	//Command List
 
-	bool mIsReadBufUsing = false;
-	bool mIsWriteBufUsing = false;
-
-	~SocketInfo() {
-		if (wsaReadBuf[0].buf != nullptr) {
-			delete wsaReadBuf[0].buf;
-			wsaReadBuf[0].buf = nullptr;
-		}
-		if (wsaReadBuf[1].buf != nullptr) {
-			delete wsaReadBuf[1].buf;
-			wsaReadBuf[1].buf = nullptr;
-		}
-
-		if (wsaWriteBuf[0].buf != nullptr) {
-			delete wsaWriteBuf[0].buf;
-			wsaWriteBuf[0].buf = nullptr;
-		}
-		if (wsaWriteBuf[1].buf != nullptr) {
-			delete wsaWriteBuf[1].buf;
-			wsaWriteBuf[1].buf = nullptr;
-		}
-	}
 };
 
 //Server클래스
@@ -136,7 +122,9 @@ public:
 private:
 	SOCKET listenSock;	//서버 듣기용 소켓
 	sockaddr_in serverAddr;	//서버 주소
-	std::vector<std::shared_ptr<SocketInfo>> clients;	//접속된 클라이언트들
+	std::vector<SocketInfo*> clients;	//접속된 클라이언트들
+
+	const DWORD headerSize = sizeof(HEADER);
 
 	int count = 0;
 public:
@@ -151,7 +139,7 @@ public:
 	Microsoft::WRL::ComPtr<ID3D12Resource> mDepthStencilBuffer;	//DepthStencil Buffer
 
 	INT GetClientNum() { return clients.size(); }
-	std::shared_ptr<SocketInfo> GetClient(int idx) { return clients[idx]; }
+	SocketInfo* GetClient(int idx) { return clients[idx]; }
 private:
 	void RunNetwork(void* cp) override;	//스레드
 

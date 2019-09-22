@@ -25,6 +25,12 @@
     <Filter Include="소스 파일\Network">
       <UniqueIdentifier>{7f54ff92-20ec-4ec0-aefb-8eec66630d81}</UniqueIdentifier>
     </Filter>
+    <Filter Include="소스 파일\Queue">
+      <UniqueIdentifier>{d93dae7a-8f90-4202-ac92-23c3fc9e0328}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\Queue">
+      <UniqueIdentifier>{931935cd-4840-4112-8201-ff643a1fd3a8}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Camera.cpp">
@@ -60,11 +66,11 @@
     <ClCompile Include="Network.cpp">
       <Filter>소스 파일\Network</Filter>
     </ClCompile>
-    <ClCompile Include="BitmapQueue.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
     <ClCompile Include="IOCP.cpp">
       <Filter>소스 파일\Network</Filter>
+    </ClCompile>
+    <ClCompile Include="BitmapQueue.cpp">
+      <Filter>소스 파일\Queue</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -104,11 +110,11 @@
     <ClInclude Include="Network.h">
       <Filter>헤더 파일\Network</Filter>
     </ClInclude>
-    <ClInclude Include="BitmapQueue.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
     <ClInclude Include="IOCP.h">
       <Filter>헤더 파일\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="BitmapQueue.h">
+      <Filter>헤더 파일\Queue</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
