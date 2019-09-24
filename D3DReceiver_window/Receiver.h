@@ -34,8 +34,8 @@ struct INPUT_DATA {
 };
 
 struct HEADER {
-	INT mDataLen;
-	INT mCommand;
+	DWORD mDataLen;
+	DWORD mCommand;
 };
 
 //헤더 생성 보조 구조체
@@ -45,11 +45,11 @@ struct CHEADER : HEADER {
 		mCommand = htonl(COMMAND::COMMAND_REQ_FRAME);
 	}
 
-	CHEADER(USHORT command) {
+	CHEADER(DWORD command) {
 		mDataLen = 0;
 		mCommand = htonl(command);
 	}
-	CHEADER(USHORT command, UINT dataLen) {
+	CHEADER(DWORD command, DWORD dataLen) {
 		mDataLen = htonl(dataLen);
 		mCommand = htonl(command);
 	}
@@ -67,17 +67,26 @@ private:
 	SOCKET serverSock;
 	sockaddr_in serverAddr;
 
-	HEADER resHeader;
-	void* data = nullptr;
+
+	WSABUF wsaReadBuf[2];
+	WSABUF wsaWriteBuf[2];
+
+	DWORD headerSize = sizeof(HEADER);
 
 public:
 	bool Init();
 	bool Connection();
-	bool ReadData();
+
+	bool RecvMSG();
+	bool SendMSG(HEADER header, void* data = nullptr);
+
 	char* GetData();
-
-	bool Request(HEADER header, void* data = nullptr);
-	bool RecvResponse();
-
 	void ReleaseBuffer();
+
+private:
+	bool RecvHeader();
+	bool SendHeader();
+
+	bool RecvData();
+	bool SendData();
 };
