@@ -1,5 +1,5 @@
 #include "Receiver.h"
-#include "BitmapQueue.h"
+
 #include "GameTimer.h"
 
 #include <Windows.h>
@@ -22,7 +22,6 @@ UINT mClientHeight = 480;
 std::thread* mNetworkReadThread = nullptr;
 std::thread* mNetworkWriteThread = nullptr;
 std::thread* mRenderingThread = nullptr;
-BitmapQueue queue;
 
 GameTimer mTimer;
 
@@ -86,49 +85,15 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 		}
 		else
 		{
-			/*				*/	
-	
-			if (mNetworkWriteThread == nullptr) {
-				mNetworkWriteThread = new std::thread([&]() -> void {
-
-					while (true) {
-						if (!client->SendMSG(CHEADER(COMMAND::COMMAND_REQ_FRAME))) {
-							delete client;
-							client = nullptr;
-							continue;
-						}
-						else {
-
-						}
-					}
-
-				});
+			/*			*/
+			if (client->wQueue.Size() < 1) {
+				client->wQueue.PushItem(new Packet(new CHEADER(COMMAND::COMMAND_REQ_FRAME)));
 			}
-				
-			if (mNetworkReadThread == nullptr) {
-				mNetworkReadThread = new std::thread([&]() -> void {
 
-					while (true) {
-
-						if (!client->RecvMSG()) {
-							delete client;
-							client = nullptr;
-							break;
-						}
-						else {
-							queue.PushItem(client->GetData());
-						}
-
-					}
-
-				});
-			}
-	
-			/*			
-			if (!client->SendMSG(CHEADER(COMMAND::COMMAND_REQ_FRAME))) {
+			if (!client->SendMSG()) {
 				delete client;
 				client = nullptr;
-				continue;
+				break;
 			}
 
 			if (!client->RecvMSG()) {
@@ -136,11 +101,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 				client = nullptr;
 				break;
 			}
-			else {
-				queue.PushItem(client->GetData());
-			}
-
-			*/
+			
 			/*		
 			if (GetAsyncKeyState('W') & 0x8000) {
 				INPUT_DATA data;
@@ -178,15 +139,15 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 
 			mTimer.Tick();
 
-			if (queue.Size() > 0) {
+			if (client->rQueue.Size() > 0) {
 				CalculateFrameStatus();
 
 				Render();	//렌더링
 
-				delete queue.FrontItem();
-				queue.PopItem();
+				client->rQueue.PopItem();
 			}
 			Sleep(1000);
+			OutputDebugStringA("-------------------------좀 쉬고 해요 ----------------------------\n");
 		}
 	}
 
@@ -207,7 +168,7 @@ void Render() {
 		//hdc = BeginPaint(mhMainWnd, &ps);
 
 		hMemDC = CreateCompatibleDC(hdc);
-		hBitmap = CreateBitmap(640, 441, 1, 32, queue.FrontItem());	//비트맵 사이즈 중요!!!
+		hBitmap = CreateBitmap(640, 441, 1, 32, client->GetData());	//비트맵 사이즈 중요!!!
 		//hBitmap = CreateCompatibleBitmap(hdc, 640, 441);	//비트맵 사이즈 중요!!!
 		hOldBitmap = (HBITMAP)SelectObject(hMemDC, hBitmap);
 		BitBlt(hdc, 0, 0, mClientWidth, mClientHeight, hMemDC, 0, 0, SRCCOPY);

@@ -1,6 +1,7 @@
 #pragma once
 #include <WinSock2.h>
 #include <WS2tcpip.h>
+#include "BitmapQueue.h"
 
 #pragma comment(lib, "ws2_32.lib")
 
@@ -55,21 +56,53 @@ struct CHEADER : HEADER {
 	}
 };
 
+struct Packet {
+	WSABUF mHeader;
+	WSABUF mData;
+	const DWORD headerSize = sizeof(HEADER);
+
+	Packet(int dataSize = 0) {
+		mHeader.buf = new char[headerSize];
+		mHeader.len = headerSize;
+
+		if (dataSize != 0) {
+			mData.buf = new char[dataSize];
+			mData.len = dataSize;
+		}
+	}
+
+	Packet(HEADER* hedaer, void* data = nullptr, int dataSize = 0) {
+		mHeader.buf = (char*)hedaer;
+		mHeader.len = headerSize;
+
+		if (dataSize != 0 && data != nullptr) {
+			mData.buf = (char*)data;
+			mData.len = dataSize;
+		}
+	}
+
+	void AllocDataBuffer(int size) {
+		if (mData.buf != nullptr) {
+			mData.buf = new char[size];
+			mData.len = size;
+		}
+	}
+
+};
 
 class Client {
 public:
 	Client() = default;
 	virtual ~Client();
 
-private:
-	WSAData wsaData;
+public:
+	QueueEX<Packet*> rQueue;
+	QueueEX<Packet*> wQueue;
 
+private:
+	WSADATA wsaData;
 	SOCKET serverSock;
 	sockaddr_in serverAddr;
-
-
-	WSABUF wsaReadBuf[2];
-	WSABUF wsaWriteBuf[2];
 
 	DWORD headerSize = sizeof(HEADER);
 
@@ -78,15 +111,15 @@ public:
 	bool Connection();
 
 	bool RecvMSG();
-	bool SendMSG(HEADER header, void* data = nullptr);
+	bool SendMSG();
 
 	char* GetData();
 	void ReleaseBuffer();
 
 private:
-	bool RecvHeader();
-	bool SendHeader();
+	bool RecvHeader(Packet& packet);
+	bool RecvData(Packet& packet);
 
-	bool RecvData();
-	bool SendData();
+	bool SendHeader(Packet& packet);
+	bool SendData(Packet& packet);
 };
