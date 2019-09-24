@@ -75,8 +75,6 @@ void IOCPServer::AcceptClient() {
 		SocketInfo* tempSInfo = new SocketInfo();
 		tempSInfo->socket = tempClientSock;
 		tempSInfo->mCamera.SetPosition(0.0f, 2.0f, -30.0f);
-		tempSInfo->overlappedRead = new OVERLAPPEDEX();
-		tempSInfo->overlappedWrite = new OVERLAPPEDEX();
 		memcpy(&(tempSInfo->clientAddr), &tempClientAddr, addrLen);
 
 		//소켓을 CP에 등록
@@ -87,78 +85,9 @@ void IOCPServer::AcceptClient() {
 }
 
 
-
-void IOCPServer::RequestSend(int sockIdx, HEADER header, void* data, bool overlapped) {
-
-	auto curClient = clients[sockIdx];
-	auto overlappedEx = curClient->overlappedWrite;
-
-	overlappedEx->numberOfByte = headerSize;
-	overlappedEx->flag = IOCP_FLAG_WRITE;
-
-	//헤더 설정
-	overlappedEx->wsaBuf[0].len = headerSize;
-	overlappedEx->wsaBuf[0].buf = new char[headerSize];
-	memcpy(overlappedEx->wsaBuf[0].buf, &header, headerSize);
-
-	//데이터 설정
-	/*
-	if (data != nullptr) {
-		DWORD dataSize = ntohl(header.mDataLen);
-		curClient->wsaWriteBuf[1].len = dataSize;
-		curClient->wsaWriteBuf[1].buf = new char[dataSize];
-		memcpy(curClient->wsaWriteBuf[1].buf, data, dataSize);
-	}
-	*/
-	if (overlapped) {
-		if (WSASend(curClient->socket, &(overlappedEx->wsaBuf[0]), 1, &(overlappedEx->numberOfByte), overlappedEx->flag, &(overlappedEx->overlapped), NULL) == 0) {
-			char str[256];
-			sprintf(str, "%d 만큼 보냄\n", overlappedEx->numberOfByte);
-			OutputDebugStringA(str);
-		}
-	}
-	else {
-		if (!SendHeader(curClient, 0))
-			return;
-		if (!SendData(curClient))
-			return;
-	}
-
-
-	
-	
-	
-}
-
-void IOCPServer::RequestRecv(int sockIdx, bool overlapped) {
-	auto curClient = clients[sockIdx];
-	auto overlappedEx = curClient->overlappedRead;
-
-
-	overlappedEx->numberOfByte = headerSize;
-	overlappedEx->flag = IOCP_FLAG_READ;
-	overlappedEx->wsaBuf[0].len = headerSize;
-	overlappedEx->wsaBuf[0].buf = new char[headerSize];
-
-	if (overlapped)
-		WSARecv(curClient->socket, &(overlappedEx->wsaBuf[0]), 1, (LPDWORD) & (overlappedEx->numberOfByte), (LPDWORD) & (overlappedEx->flag), &(overlappedEx->overlapped), NULL);
-	else {
-		if (!RecvHeader(curClient, 0))
-			return;
-		if (!RecvData(curClient))
-			return;
-	}
-
-
-	
-}
-
-
-
 void IOCPServer::RunNetwork(void* param) {
 	while (true) {
 		DWORD nowSize = 0;
-		DWORD64 coKey = 0;
 		SocketInfo* sInfo = nullptr;
 		OVERLAPPEDEX* overlappedEx;
 
@@ -175,33 +104,70 @@ void IOCPServer::RunNetwork(void* param) {
 			continue;
 		}
 
-		switch (overlappedEx->flag) {
+		switch (overlappedEx->mFlag) {
 
 		case IOCP_FLAG_READ:	//READ요청이었을 시
-			if (!RecvHeader(sInfo, nowSize)) {
+			if (!RecvHeader(sInfo, *overlappedEx, nowSize)) {
 				continue;
 			}
-			if (!RecvData(sInfo)) {
+			if (!RecvData(sInfo, *overlappedEx)) {
 				continue;
 			}
+			
+			rQueue.PushItem(overlappedEx->mPacket);
+			OutputDebugStringA("Queue에 Packet 저장\n");
 			break;
 
 		case IOCP_FLAG_WRITE:	//WRITE요청이었을 시
-			if (!SendHeader(sInfo, nowSize)) {
+			if (!SendHeader(sInfo, *overlappedEx, nowSize)) {
 				continue;
 			}
-			if (!SendData(sInfo)) {
+			if (!SendData(sInfo, *overlappedEx)) {
 				continue;
 			}
+
+			wQueue.PopItem();
+			OutputDebugStringA("Queue에서 Packet 삭제\n");
+
 			break;
 		}
 	}
 	
 }
 
-bool IOCPServer::RecvHeader(SocketInfo* sInfo, DWORD nowSize) {
+void IOCPServer::RequestRecv(int sockIdx, bool overlapped) {
+	auto curClient = clients[sockIdx];
+
+	//수신용 오버랩드 생성
+	//OVERLAPPEDEX* overlappedEx = new OVERLAPPEDEX(new Packet(headerSize), IOCP_FLAG_READ);
+	OVERLAPPEDEX* overlappedEx = new OVERLAPPEDEX();
+	overlappedEx->mFlag = IOCP_FLAG_READ;
+	overlappedEx->mNumberOfByte = headerSize;
+	overlappedEx->mPacket = new Packet(headerSize);
+
+	if (overlapped)
+		WSARecv(curClient->socket, &(overlappedEx->mPacket->mHeader), 1, (LPDWORD) & (overlappedEx->mNumberOfByte), (LPDWORD) & (overlappedEx->mFlag), &(overlappedEx->mOverlapped), NULL);
+	else {
+		//동기 처리
+		if (!RecvHeader(curClient, *overlappedEx, 0)) {
+			OutputDebugStringA("Error: RequestRecv - Recv Header\n");
+			return;
+		}
+
+		if (!RecvData(curClient, *overlappedEx)) {
+			OutputDebugStringA("Error: RequestRecv -Recv Data\n");
+			return;
+		}
+
+		rQueue.PushItem(overlappedEx->mPacket);
+		OutputDebugStringA("Queue에 Packet 저장\n");
+	}
+
+}
+
+
+bool IOCPServer::RecvHeader(SocketInfo* sInfo, OVERLAPPEDEX& overlappedEx, DWORD nowSize) {
 	DWORD totSize = 0;
-	auto overlapped = sInfo->overlappedRead;
 
 	//헤더의 크기만큼 받아오기
 	while (true) {
@@ -215,38 +181,15 @@ bool IOCPServer::RecvHeader(SocketInfo* sInfo, DWORD nowSize) {
 			OutputDebugStringA("헤더 수신 실패\n");
 			break;
 		}
-		nowSize = recv(sInfo->socket, overlapped->wsaBuf[0].buf + totSize, headerSize - totSize, 0);
+		nowSize = recv(sInfo->socket, overlappedEx.mPacket->mHeader.buf + totSize, headerSize - totSize, 0);
 	}
 	OutputDebugStringA("헤더 수신 성공\n");
 	return true;
 }
 
-bool IOCPServer::SendHeader(SocketInfo* sInfo, DWORD nowSize) {
-	DWORD totSize = 0;
-	auto overlapped = sInfo->overlappedWrite;
+bool IOCPServer::RecvData(SocketInfo* sInfo, OVERLAPPEDEX& overlappedEx) {
 
-	//헤더의 크기만큼 전부 보내기
-	while (true) {
-		if (nowSize >= 0) {
-			totSize += nowSize;
-			if (totSize >= headerSize)
-				break;
-		}
-		else {
-			OutputDebugStringA("헤더 송신 실패\n");
-			return false;
-		}
-
-		nowSize = send(sInfo->socket, overlapped->wsaBuf[0].buf + totSize, headerSize - totSize, 0);
-	}
-
-	OutputDebugStringA("헤더 송신 성공\n");
-	return true;
-}
-
-bool IOCPServer::RecvData(SocketInfo* sInfo) {
-	auto overlapped = sInfo->overlappedRead;
-	HEADER* header = (HEADER*)overlapped->wsaBuf[0].buf;
+	HEADER* header = (HEADER*)overlappedEx.mPacket->mHeader.buf;
 
 	//헤더에서 데이터 크기 가져옴
 	const DWORD size = ntohl(header->mDataLen);
@@ -260,12 +203,11 @@ bool IOCPServer::RecvData(SocketInfo* sInfo) {
 		DWORD nowSize = 0;	//recv로 읽어온 크기
 
 		//data할당 및 size저장
-		overlapped->wsaBuf[1].buf = new char[size];
-		overlapped->wsaBuf[1].len = size;
+		overlappedEx.mPacket->AllocDataBuffer(size);
 
 		//데이터 크기만큼 읽어오기
 		while (true) {
-			nowSize = recv(sInfo->socket, (char*)(overlapped->wsaBuf[1].buf) + totSize, size - totSize, 0);
+			nowSize = recv(sInfo->socket, (char*)(overlappedEx.mPacket->mData.buf) + totSize, size - totSize, 0);
 
 			if (nowSize > 0) {
 				totSize += nowSize;
@@ -289,18 +231,78 @@ bool IOCPServer::RecvData(SocketInfo* sInfo) {
 	return true;
 }
 
-bool IOCPServer::SendData(SocketInfo* sInfo) {
-	auto overlapped = sInfo->overlappedWrite;
-	HEADER* header = (HEADER*)overlapped->wsaBuf[0].buf;
+
+void IOCPServer::RequestSend(int sockIdx, bool overlapped) {
+	if (wQueue.Size() > 0) {
+		auto curClient = clients[sockIdx];
+
+		Packet* packet = wQueue.FrontItem();
+
+		//패킷 전송용 오버랩드 생성
+		//OVERLAPPEDEX* overlappedEx = new OVERLAPPEDEX(packet, IOCP_FLAG_WRITE);
+		
+		OVERLAPPEDEX* overlappedEx = new OVERLAPPEDEX();
+		overlappedEx->mFlag = IOCP_FLAG_WRITE;
+		overlappedEx->mNumberOfByte = headerSize;
+		overlappedEx->mPacket = packet;
+
+		if (overlapped) {
+			if (WSASend(curClient->socket, &(overlappedEx->mPacket->mHeader), 1, &(overlappedEx->mNumberOfByte), overlappedEx->mFlag, &(overlappedEx->mOverlapped), NULL) == 0) {
+				char str[256];
+				sprintf(str, "%d 만큼 보냄\n", overlappedEx->mNumberOfByte);
+				OutputDebugStringA(str);
+			}
+		}
+		else {
+			if (!SendHeader(curClient, *overlappedEx, 0))
+				return;
+			if (!SendData(curClient, *overlappedEx))
+				return;
+
+			wQueue.PopItem();
+			OutputDebugStringA("Queue에서 Packet 삭제\n");
+		}
+	}
+
+
+}
+
+bool IOCPServer::SendHeader(SocketInfo* sInfo, OVERLAPPEDEX& overlappedEx, DWORD nowSize) {
+	DWORD totSize = 0;
+
+	//헤더의 크기만큼 전부 보내기
+	while (true) {
+		if (nowSize >= 0) {
+			totSize += nowSize;
+			if (totSize >= headerSize)
+				break;
+		}
+		else {
+			OutputDebugStringA("헤더 송신 실패\n");
+			return false;
+		}
+
+		nowSize = send(sInfo->socket, overlappedEx.mPacket->mHeader.buf + totSize, headerSize - totSize, 0);
+	}
+
+	OutputDebugStringA("헤더 송신 성공\n");
+	return true;
+}
+
+bool IOCPServer::SendData(SocketInfo* sInfo, OVERLAPPEDEX& overlappedEx) {
+
+	HEADER* header = (HEADER*)overlappedEx.mPacket->mHeader.buf;
+	WSABUF& data = overlappedEx.mPacket->mData;
+
 	const DWORD dataSize = ntohl(header->mDataLen);
 
 	//데이터 크기만큼 쓰기
-	if (overlapped->wsaBuf[1].buf != nullptr && dataSize > 0) {
+	if (data.buf != nullptr && dataSize > 0) {
 		DWORD totSize = 0;
 		DWORD nowSize = 0;
 
 		while (true) {
-			nowSize = send(sInfo->socket, overlapped->wsaBuf[1].buf + totSize, dataSize - totSize, 0);
+			nowSize = send(sInfo->socket, data.buf + totSize, dataSize - totSize, 0);
 			if (nowSize > 0) {
 				totSize += nowSize;
 

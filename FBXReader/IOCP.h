@@ -14,6 +14,7 @@
 
 #define MAXCLIENT 1
 
+
 //IOCP 가상클래스
 class IOCP {
 protected:
@@ -88,12 +89,58 @@ struct CHEADER : HEADER {
 	}
 };
 
+struct Packet {
+	WSABUF mHeader;
+	WSABUF mData;
+	const DWORD headerSize = sizeof(HEADER);
+
+	Packet(int dataSize = 0) {
+		mHeader.buf = new char[headerSize];
+		mHeader.len = headerSize;
+
+		if (dataSize != 0) {
+			mData.buf = new char[dataSize];
+			mData.len = dataSize;
+		}
+	}
+
+	Packet(HEADER* hedaer, void* data = nullptr, int dataSize = 0) {
+		mHeader.buf = (char*)hedaer;
+		mHeader.len = headerSize;
+
+		if (dataSize != 0 && data != nullptr) {
+			mData.buf = (char*)data;
+			mData.len = dataSize;
+		}
+	}
+
+	void AllocDataBuffer(int size) {
+		if (mData.buf != nullptr) {
+			mData.buf = new char[size];
+			mData.len = size;
+		}
+	}
+
+};
+
 //Overlapped 확장 구조체
 struct OVERLAPPEDEX{
-	OVERLAPPED overlapped;
-	WSABUF wsaBuf[2];
-	DWORD flag;
-	DWORD numberOfByte;
+	OVERLAPPED mOverlapped;
+	DWORD mFlag;
+	DWORD mNumberOfByte;
+
+	Packet* mPacket = nullptr;
+	const DWORD headerSize = sizeof(HEADER);
+	/*
+	OVERLAPPEDEX() {}
+
+	OVERLAPPEDEX(IOCP_FLAG flag, int numOfByte = 0) : mFlag(flag){
+		mNumberOfByte = headerSize;
+	}
+	OVERLAPPEDEX(Packet* packet, IOCP_FLAG flag, int numOfByte = 0) : mFlag(flag), mPacket(packet){
+		mNumberOfByte = headerSize;
+	}
+	*/
 };
 
 //SocketInfo 구조체
@@ -102,11 +149,6 @@ struct SocketInfo {
 	sockaddr_in clientAddr;
 
 	Camera mCamera;
-
-	BitmapQueue queue;
-
-	OVERLAPPEDEX* overlappedRead = nullptr;
-	OVERLAPPEDEX* overlappedWrite = nullptr;
 
 	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> mDirectCmdListAlloc;	//CmdList Allocator
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> mCommandList;	//Command List
@@ -118,6 +160,10 @@ class IOCPServer : public IOCP {
 public:
 	IOCPServer() = default;
 	virtual ~IOCPServer();
+
+public:
+	QueueEX<Packet*> rQueue;
+	QueueEX<Packet*> wQueue;
 
 private:
 	SOCKET listenSock;	//서버 듣기용 소켓
@@ -132,7 +178,7 @@ public:
 	void AcceptClient();	//Client 접속
 
 	void RequestRecv(int sockIdx, bool overlapped = true);	//중첩소켓에 수신요청
-	void RequestSend(int sockIdx, HEADER header, void* data = nullptr, bool overlapped = true);	//중첩소켓에 송신요청
+	void RequestSend(int sockIdx, bool overlapped = true);	//중첩소켓에 송신요청
 
 
 	Microsoft::WRL::ComPtr<ID3D12Resource> mRenderTargetBuffer;	//RenderTarget Buffer
@@ -143,10 +189,10 @@ public:
 private:
 	void RunNetwork(void* cp) override;	//스레드
 
-	bool RecvHeader(SocketInfo* sInfo, DWORD nowSize);	//Header 수신
-	bool SendHeader(SocketInfo* sInfo, DWORD nowSize);	//Header 송신
+	bool RecvHeader(SocketInfo* sInfo, OVERLAPPEDEX& overlappedEx, DWORD nowSize);	//Header 수신
+	bool RecvData(SocketInfo* sInfo, OVERLAPPEDEX& overlappedEx);	//Data 수신
 
-	bool RecvData(SocketInfo* sInfo);	//Data 수신
-	bool SendData(SocketInfo* sInfo);	//Data 송신
-
+	bool SendHeader(SocketInfo* sInfo, OVERLAPPEDEX& overlappedEx, DWORD nowSize);	//Header 송신
+	bool SendData(SocketInfo* sInfo, OVERLAPPEDEX& overlappedEx);	//Data 송신
 }; 
+

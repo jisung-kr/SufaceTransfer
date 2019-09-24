@@ -180,11 +180,11 @@ private:
 	FLOAT* mBuffer;
 	std::vector<FLOAT*> mBuffers;
 	IOCPServer* server = nullptr;
-	//Server* server = nullptr;
-	BitmapQueue* queue = nullptr;
+
 	PassConstants mClientPassCB;
 	std::thread* serverRenderThread = nullptr;
 	std::thread* clientRenderThread = nullptr;
+
 
 	/*------------------------------------------------------------------------------------------------------*/
 	PassConstants mMainPassCB;

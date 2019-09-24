@@ -1,5 +1,6 @@
 #include "BitmapQueue.h"
 
+
 std::mutex BitmapQueue::mMutex;
 
 //»ý¼ºÀÚ
@@ -38,3 +39,6 @@ void BitmapQueue::PopItem(std::mutex& mutex) {
 int BitmapQueue::Size() {
 	return (int)mQueue.size();
 }
+
+
+

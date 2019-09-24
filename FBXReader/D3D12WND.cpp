@@ -120,8 +120,6 @@ bool D3D12WND::InitDirect3D() {
 	if (!server->Init())
 		return false;
 
-	//큐 생성
-	queue = new BitmapQueue();
 
 	//서버 클라이언트 정해진 인원 만큼 대기
 	//server->WaitForClient();
@@ -492,8 +490,8 @@ void D3D12WND::Draw(const GameTimer& gt) {
 	UINT passCBByteSize = D3DUtil::CalcConstantBufferByteSize(sizeof(PassConstants));
 	for (UINT i = 0; i < server->GetClientNum(); ++i) {
 		auto curClient = server->GetClient(i);
-		HEADER* header = (HEADER*)curClient->overlappedRead->wsaBuf->buf;
-		if (header != nullptr && ntohl(header->mCommand) == COMMAND::COMMAND_REQ_FRAME) {
+		//HEADER* header = (HEADER*)curClient->overlappedRead->wsaBuf->buf;
+		//if (header != nullptr && ntohl(header->mCommand) == COMMAND::COMMAND_REQ_FRAME) {
 			auto cmdAlloc = curClient->mDirectCmdListAlloc;
 			auto cmdList = curClient->mCommandList;
 
@@ -594,7 +592,7 @@ void D3D12WND::Draw(const GameTimer& gt) {
 			FlushCommandQueue();
 
 			CopyBuffer();
-		}
+		//}
 	
 	}
 
@@ -1401,19 +1399,20 @@ void D3D12WND::CreateReadBackTex() {
 }
 
 void D3D12WND::CopyBuffer() {
-
-	D3D12_RANGE range{ 0, GetSurfaceSize() };
+	DWORD size = GetSurfaceSize();
+	D3D12_RANGE range{ 0, size };
 
 	for (int i = 0; i < server->GetClientNum(); ++i) {
 		auto curClient = server->GetClient(i);
-		//mCurrFrameResource->mSurfaces[i]->Map(0, &range, (void**)& curClient->data);
-		mCurrFrameResource->mSurfaces[i]->Map(0, &range, (void**)& curClient->overlappedWrite->wsaBuf[1].buf);
+		
+		//패킷 생성
+		Packet* packet = new Packet(new CHEADER(COMMAND::COMMAND_RES_FRAME,size));
+		packet->mData.len = size;
+
+		mCurrFrameResource->mSurfaces[i]->Map(0, &range, (void**)&packet->mData.buf);
 		mCurrFrameResource->mSurfaces[i]->Unmap(0, 0);
 
-		//curClient->dataSize = htonl(GetSurfaceSize());
-		curClient->overlappedWrite->wsaBuf[1].len = GetSurfaceSize();
-
-		curClient->queue.PushItem(curClient->overlappedWrite->wsaBuf[1].buf);
+		server->wQueue.PushItem(packet);
 	}
 
 }
@@ -1423,6 +1422,7 @@ FLOAT* D3D12WND::GetReadBackBuffer() {
 }
 
 void D3D12WND::InputPump(const GameTimer& gt) {
+	/*
 	for (int i = 0; i < server->GetClientNum(); ++i) {
 		//auto curClient = server->GetClients()[i];
 		HEADER* header = (HEADER*)server->GetClient(i)->overlappedRead->wsaBuf[0].buf;
@@ -1456,14 +1456,15 @@ void D3D12WND::InputPump(const GameTimer& gt) {
 
 			//입력 처리후 다시 Request 받아오기
 			server->RequestRecv(i);
-			/*
+
 			if (!server->RecvRequest(i)) {
 				OutputDebugStringA("RecvREQ 수신 중 오류 발생!\n");
 				break;
 			}
-			*/
+	
 		}
 	}
+	*/
 	
 }
 
@@ -1472,40 +1473,14 @@ void D3D12WND::RecvRequest() {
 		server->RequestRecv(i);
 	}
 
-	/*
-	for (int i = 0; i < server->GetClientNum(); ++i) {
 
-		if (!server->RecvRequest(i)) {
-			OutputDebugStringA("RecvREQ 수신 중 오류 발생!\n");
-		}
-		else {
-		}
-		
-	}
-	*/
 }
 
 void D3D12WND::SendFrame() {
 	for (int i = 0; i < server->GetClientNum(); ++i) {
-		auto curClient = server->GetClient(i);
-		if (curClient->queue.Size() > 0) {
-			auto buffer = curClient->queue.FrontItem();
-
-			server->RequestSend(i, CHEADER(COMMAND::COMMAND_RES_FRAME, GetSurfaceSize()), buffer, false);
-
-			//delete curClient->queue.FrontItem();
-			curClient->queue.PopItem();
-		}
-
-
+		server->RequestSend(i);
 	}
-	/*
-	for (int i = 0; i < server->GetClientNum(); ++i) {
-		if (!server->SendMSG(i, CHEADER::CHEADER(COMMAND::COMMAND_RES_FRAME, server->GetClients()[i]->dataSize), server->GetClients()[i]->data)) {
-			OutputDebugStringA("프레임 전송 실패!\n");
-		}
-	}
-	*/
+
 }
 
 void D3D12WND::CreateRTVDSV_Server() {
