@@ -86,15 +86,16 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 		}
 		else
 		{
-
-			/*	
+			/*				
+	
 			if (mNetworkWriteThread == nullptr) {
 				mNetworkWriteThread = new std::thread([&]() -> void {
 
 					while (true) {
-						if (!client->Request(CHEADER::CHEADER(COMMAND::COMMAND_REQ_FRAME))) {
+						if (!client->SendMSG(CHEADER(COMMAND::COMMAND_REQ_FRAME))) {
 							delete client;
 							client = nullptr;
+							continue;
 						}
 						else {
 
@@ -103,16 +104,16 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 
 				});
 			}
-			*/
-			/*
+				
 			if (mNetworkReadThread == nullptr) {
 				mNetworkReadThread = new std::thread([&]() -> void {
 
 					while (true) {
 
-						if (!client->RecvResponse()) {
+						if (!client->RecvMSG()) {
 							delete client;
 							client = nullptr;
+							break;
 						}
 						else {
 							queue.PushItem(client->GetData());
@@ -123,13 +124,28 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 				});
 			}
 		*/
-			/*				
+			/*			*/
+			if (!client->SendMSG(CHEADER(COMMAND::COMMAND_REQ_FRAME))) {
+				delete client;
+				client = nullptr;
+				continue;
+			}
+
+			if (!client->RecvMSG()) {
+				delete client;
+				client = nullptr;
+				break;
+			}
+			else {
+				queue.PushItem(client->GetData());
+			}
+
+			/*		*/		
 			if (GetAsyncKeyState('W') & 0x8000) {
 				INPUT_DATA data;
 				memset(&data, 0x00, sizeof(INPUT_DATA));
 				data.mInputType = INPUT_TYPE::INPUT_KEY_W;
-
-				client->Request(CHEADER::CHEADER(COMMAND::COMMAND_INPUT_KEY, sizeof(INPUT_DATA)), &data);
+				client->SendMSG(CHEADER::CHEADER(COMMAND::COMMAND_INPUT_KEY, sizeof(INPUT_DATA)), &data);
 			}
 
 			if (GetAsyncKeyState('S') & 0x8000) {
@@ -137,7 +153,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 				memset(&data, 0x00, sizeof(INPUT_DATA));
 				data.mInputType = INPUT_TYPE::INPUT_KEY_S;
 
-				client->Request(CHEADER::CHEADER(COMMAND::COMMAND_INPUT_KEY, sizeof(INPUT_DATA)), &data);
+				client->SendMSG(CHEADER::CHEADER(COMMAND::COMMAND_INPUT_KEY, sizeof(INPUT_DATA)), &data);
 			}
 
 			if (GetAsyncKeyState('A') & 0x8000) {
@@ -145,7 +161,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 				memset(&data, 0x00, sizeof(INPUT_DATA));
 				data.mInputType = INPUT_TYPE::INPUT_KEY_A;
 
-				client->Request(CHEADER::CHEADER(COMMAND::COMMAND_INPUT_KEY, sizeof(INPUT_DATA)), &data);
+				client->SendMSG(CHEADER::CHEADER(COMMAND::COMMAND_INPUT_KEY, sizeof(INPUT_DATA)), &data);
 			}
 
 			if (GetAsyncKeyState('D') & 0x8000) {
@@ -153,30 +169,12 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 				memset(&data, 0x00, sizeof(INPUT_DATA));
 				data.mInputType = INPUT_TYPE::INPUT_KEY_D;
 
-				client->Request(CHEADER::CHEADER(COMMAND::COMMAND_INPUT_KEY, sizeof(INPUT_DATA)), &data);
+				client->SendMSG(CHEADER::CHEADER(COMMAND::COMMAND_INPUT_KEY, sizeof(INPUT_DATA)), &data);
 			}
 			
-		*/
-			/*				*/
-			//프레임 데이터 요청
-			if (!client->Request(CHEADER::CHEADER(COMMAND::COMMAND_REQ_FRAME))) {
-				delete client;
-				client = nullptr;
-				continue;
-			}
-
-			//프레임 데이터 수신
-			if (!client->RecvResponse()) {
-				delete client;
-				client = nullptr;
-				break;
-			}
 		
-		/*
-			if (client->GetData() != nullptr) {
-				queue.PushItem(client->GetData());
-			}
-			*/
+
+
 			mTimer.Tick();
 
 			if (queue.Size() > 0) {
@@ -187,24 +185,6 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 				delete queue.FrontItem();
 				queue.PopItem();
 			}
-
-			/*
-			if (mRenderingThread == nullptr) {
-				mRenderingThread = new std::thread([&]() -> void {
-					while (true) {
-						if (queue.Size() > 1) {
-							CalculateFrameStatus();
-
-							Render();	//렌더링
-
-							delete queue.FrontItem();
-							queue.PopItem();
-						}
-					}
-					});
-			}
-			*/
-
 		}
 	}
 
