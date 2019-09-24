@@ -115,8 +115,8 @@ void IOCPServer::RunNetwork(void* param) {
 				continue;
 			}
 			
-
 			sInfo->rQueue.PushItem(overlappedEx->mPacket);
+			sInfo->IsUsingRQueue = false;
 			OutputDebugStringA("Queue에 Packet 저장\n");
 			break;
 
@@ -129,6 +129,7 @@ void IOCPServer::RunNetwork(void* param) {
 			}
 
 			sInfo->wQueue.PopItem();
+			sInfo->IsUsingWQueue = false;
 			OutputDebugStringA("Queue에서 Packet 삭제\n");
 
 			break;
@@ -139,7 +140,9 @@ void IOCPServer::RunNetwork(void* param) {
 
 void IOCPServer::RequestRecv(int sockIdx, bool overlapped) {
 	auto curClient = clients[sockIdx];
-	if (curClient->wQueue.Size() < 1) {
+
+	if (curClient->rQueue.Size() < 1 && curClient->IsUsingRQueue == false) {
+		curClient->IsUsingRQueue = true;
 		//수신용 오버랩드 생성
 		//OVERLAPPEDEX* overlappedEx = new OVERLAPPEDEX(new Packet(headerSize), IOCP_FLAG_READ);
 		OVERLAPPEDEX* overlappedEx = new OVERLAPPEDEX();
@@ -237,13 +240,14 @@ bool IOCPServer::RecvData(SocketInfo* sInfo, OVERLAPPEDEX& overlappedEx) {
 
 void IOCPServer::RequestSend(int sockIdx, bool overlapped) {
 	auto curClient = clients[sockIdx];
-	if (curClient->wQueue.Size() > 0) {
 
+	if (curClient->wQueue.Size() > 0 && curClient->IsUsingWQueue == false) {
+		curClient->IsUsingWQueue = true;
 		Packet* packet = curClient->wQueue.FrontItem();
 
 		//패킷 전송용 오버랩드 생성
 		//OVERLAPPEDEX* overlappedEx = new OVERLAPPEDEX(packet, IOCP_FLAG_WRITE);
-		
+
 		OVERLAPPEDEX* overlappedEx = new OVERLAPPEDEX();
 		overlappedEx->mFlag = IOCP_FLAG_WRITE;
 		overlappedEx->mNumberOfByte = 0;
@@ -251,9 +255,7 @@ void IOCPServer::RequestSend(int sockIdx, bool overlapped) {
 
 		if (overlapped) {
 			if (WSASend(curClient->socket, &(overlappedEx->mPacket->mHeader), 1, &(overlappedEx->mNumberOfByte), overlappedEx->mFlag, &(overlappedEx->mOverlapped), NULL) == 0) {
-				char str[256];
-				sprintf(str, "%d 만큼 보냄\n", overlappedEx->mNumberOfByte);
-				OutputDebugStringA(str);
+
 			}
 		}
 		else {
@@ -266,7 +268,6 @@ void IOCPServer::RequestSend(int sockIdx, bool overlapped) {
 			OutputDebugStringA("Queue에서 Packet 삭제\n");
 		}
 	}
-
 
 }
 

@@ -152,6 +152,10 @@ struct SocketInfo {
 
 	QueueEX<Packet*> rQueue;
 	QueueEX<Packet*> wQueue;
+	
+	std::atomic<bool> IsUsingRQueue = false;
+	std::atomic<bool> IsUsingWQueue = false;
+
 
 	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> mDirectCmdListAlloc;	//CmdList Allocator
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> mCommandList;	//Command List
