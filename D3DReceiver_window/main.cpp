@@ -86,7 +86,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 		}
 		else
 		{
-			/*				
+			/*				*/	
 	
 			if (mNetworkWriteThread == nullptr) {
 				mNetworkWriteThread = new std::thread([&]() -> void {
@@ -123,8 +123,8 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 
 				});
 			}
-		*/
-			/*			*/
+	
+			/*			
 			if (!client->SendMSG(CHEADER(COMMAND::COMMAND_REQ_FRAME))) {
 				delete client;
 				client = nullptr;
@@ -140,7 +140,8 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 				queue.PushItem(client->GetData());
 			}
 
-			/*		*/		
+			*/
+			/*		
 			if (GetAsyncKeyState('W') & 0x8000) {
 				INPUT_DATA data;
 				memset(&data, 0x00, sizeof(INPUT_DATA));
@@ -173,7 +174,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 			}
 			
 		
-
+			*/
 
 			mTimer.Tick();
 
@@ -185,11 +186,10 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 				delete queue.FrontItem();
 				queue.PopItem();
 			}
+			Sleep(1000);
 		}
 	}
 
-	delete mNetworkWriteThread;
-	mNetworkWriteThread = nullptr;
 
 	return 0;
 }
