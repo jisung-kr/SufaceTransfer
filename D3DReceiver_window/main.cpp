@@ -28,6 +28,7 @@ GameTimer mTimer;
 LRESULT WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam);
 void Render();
 void CalculateFrameStatus();
+void Input();
 
 int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmdShow) {
 	WNDCLASS wndCls;
@@ -85,57 +86,59 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 		}
 		else
 		{
-			/*			*/
-			if (client->wQueue.Size() < 1) {
-				client->wQueue.PushItem(new Packet(new CHEADER(COMMAND::COMMAND_REQ_FRAME)));
-			}
+			Input();
+			/*
+			mNetworkReadThread = new std::thread([&]() -> void {
 
-			if (!client->SendMSG()) {
-				delete client;
-				client = nullptr;
-				break;
-			}
+				while (true) {
+					if (client->rQueue.Size() < 1) {
+						client->wQueue.PushItem(new Packet(new CHEADER(COMMAND::COMMAND_REQ_FRAME)));
 
-			if (!client->RecvMSG()) {
-				delete client;
-				client = nullptr;
-				break;
-			}
-			
-			/*		
-			if (GetAsyncKeyState('W') & 0x8000) {
-				INPUT_DATA data;
-				memset(&data, 0x00, sizeof(INPUT_DATA));
-				data.mInputType = INPUT_TYPE::INPUT_KEY_W;
-				client->SendMSG(CHEADER::CHEADER(COMMAND::COMMAND_INPUT_KEY, sizeof(INPUT_DATA)), &data);
-			}
+						if (!client->SendMSG()) {
+							delete client;
+							client = nullptr;
+							break;
+						}
+					}
+				}
 
-			if (GetAsyncKeyState('S') & 0x8000) {
-				INPUT_DATA data;
-				memset(&data, 0x00, sizeof(INPUT_DATA));
-				data.mInputType = INPUT_TYPE::INPUT_KEY_S;
+			});
 
-				client->SendMSG(CHEADER::CHEADER(COMMAND::COMMAND_INPUT_KEY, sizeof(INPUT_DATA)), &data);
-			}
+			mNetworkWriteThread = new std::thread([&]() -> void {
 
-			if (GetAsyncKeyState('A') & 0x8000) {
-				INPUT_DATA data;
-				memset(&data, 0x00, sizeof(INPUT_DATA));
-				data.mInputType = INPUT_TYPE::INPUT_KEY_A;
+				while (true) {
+					if (client->wQueue.Size() > 0) {
 
-				client->SendMSG(CHEADER::CHEADER(COMMAND::COMMAND_INPUT_KEY, sizeof(INPUT_DATA)), &data);
-			}
+						if (!client->RecvMSG()) {
+							delete client;
+							client = nullptr;
+							break;
+						}
+					}
+				}
 
-			if (GetAsyncKeyState('D') & 0x8000) {
-				INPUT_DATA data;
-				memset(&data, 0x00, sizeof(INPUT_DATA));
-				data.mInputType = INPUT_TYPE::INPUT_KEY_D;
+			});
 
-				client->SendMSG(CHEADER::CHEADER(COMMAND::COMMAND_INPUT_KEY, sizeof(INPUT_DATA)), &data);
-			}
-			
-		
 			*/
+
+			if (client->rQueue.Size() < 1) {
+				client->wQueue.PushItem(new Packet(new CHEADER(COMMAND::COMMAND_REQ_FRAME)));
+
+				if (!client->SendMSG()) {
+					delete client;
+					client = nullptr;
+					break;
+				}
+			}
+
+			if (client->rQueue.Size() < 1) {
+
+				if (!client->RecvMSG()) {
+					delete client;
+					client = nullptr;
+					break;
+				}
+			}
 
 			mTimer.Tick();
 
@@ -146,13 +149,59 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 
 				client->rQueue.PopItem();
 			}
-			Sleep(1000);
-			OutputDebugStringA("-------------------------좀 쉬고 해요 ----------------------------\n");
+			//Sleep(1000);
+
 		}
 	}
 
 
 	return 0;
+}
+
+void Input() {
+	if (GetAsyncKeyState('W') & 0x8000) {
+		INPUT_DATA* data = new INPUT_DATA();
+		int dataSize = sizeof(INPUT_DATA);
+		memset(data, 0x00, dataSize);
+		data->mInputType = INPUT_TYPE::INPUT_KEY_W;
+
+		OutputDebugStringA("W 입력\n");
+		client->wQueue.PushItem(new Packet(new CHEADER(COMMAND::COMMAND_INPUT_KEY, dataSize), data));
+		client->SendMSG();
+	}
+
+	if (GetAsyncKeyState('S') & 0x8000) {
+		INPUT_DATA* data = new INPUT_DATA();
+		int dataSize = sizeof(INPUT_DATA);
+		memset(data, 0x00, dataSize);
+		data->mInputType = INPUT_TYPE::INPUT_KEY_S;
+
+		OutputDebugStringA("S 입력\n");
+		client->wQueue.PushItem(new Packet(new CHEADER(COMMAND::COMMAND_INPUT_KEY, dataSize), data));
+		client->SendMSG();
+	}
+
+	if (GetAsyncKeyState('A') & 0x8000) {
+		INPUT_DATA* data = new INPUT_DATA();
+		int dataSize = sizeof(INPUT_DATA);
+		memset(data, 0x00, dataSize);
+		data->mInputType = INPUT_TYPE::INPUT_KEY_A;
+
+		OutputDebugStringA("A 입력\n");
+		client->wQueue.PushItem(new Packet(new CHEADER(COMMAND::COMMAND_INPUT_KEY, dataSize), data));
+		client->SendMSG();
+	}
+
+	if (GetAsyncKeyState('D') & 0x8000) {
+		INPUT_DATA* data = new INPUT_DATA();
+		int dataSize = sizeof(INPUT_DATA);
+		memset(data, 0x00, dataSize);
+		data->mInputType = INPUT_TYPE::INPUT_KEY_D;
+
+		OutputDebugStringA("D 입력\n");
+		client->wQueue.PushItem(new Packet(new CHEADER(COMMAND::COMMAND_INPUT_KEY, dataSize), data));
+		client->SendMSG();
+	}
 }
 
 void Render() {

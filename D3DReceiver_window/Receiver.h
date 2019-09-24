@@ -71,10 +71,11 @@ struct Packet {
 		}
 	}
 
-	Packet(HEADER* hedaer, void* data = nullptr, int dataSize = 0) {
-		mHeader.buf = (char*)hedaer;
+	Packet(HEADER* header, void* data = nullptr) {
+		mHeader.buf = (char*)header;
 		mHeader.len = headerSize;
 
+		DWORD dataSize = ntohl(header->mDataLen);
 		if (dataSize != 0 && data != nullptr) {
 			mData.buf = (char*)data;
 			mData.len = dataSize;
