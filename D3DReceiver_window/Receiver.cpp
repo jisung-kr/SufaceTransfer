@@ -173,7 +173,7 @@ bool Client::SendMSG(HEADER header, void* data) {
 	wsaWriteBuf[0].buf = new char[headerSize];
 	wsaWriteBuf[0].len = headerSize;
 	memcpy(wsaWriteBuf[0].buf, &header, headerSize);
-
+	
 	if (data != nullptr) {
 		DWORD dataSize = ntohl(header.mDataLen);
 		wsaWriteBuf[1].buf = new char[dataSize];
