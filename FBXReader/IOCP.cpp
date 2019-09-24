@@ -93,17 +93,18 @@ void IOCPServer::RunNetwork(void* param) {
 
 		if (GetQueuedCompletionStatus(param, &nowSize, (PULONG_PTR)& sInfo, (LPOVERLAPPED*)& overlappedEx, INFINITE) == FALSE) {
 			OutputDebugStringA("Error - GetQueuedCompletionStatus Failure\n");
-			closesocket(sInfo->socket);
+			//closesocket(sInfo->socket);
 			continue;
 		}
 
 		//읽어온 값이 0인 경우 클라이언트 종료
+		/*
 		if (nowSize == 0) {
 			OutputDebugStringA("Error - Client Exit\n");
 			closesocket(sInfo->socket);
 			continue;
 		}
-
+		*/
 		switch (overlappedEx->mFlag) {
 
 		case IOCP_FLAG_READ:	//READ요청이었을 시
@@ -115,7 +116,7 @@ void IOCPServer::RunNetwork(void* param) {
 			}
 			
 
-			rQueue.PushItem(overlappedEx->mPacket);
+			sInfo->rQueue.PushItem(overlappedEx->mPacket);
 			OutputDebugStringA("Queue에 Packet 저장\n");
 			break;
 
@@ -127,7 +128,7 @@ void IOCPServer::RunNetwork(void* param) {
 				continue;
 			}
 
-			wQueue.PopItem();
+			sInfo->wQueue.PopItem();
 			OutputDebugStringA("Queue에서 Packet 삭제\n");
 
 			break;
@@ -138,32 +139,33 @@ void IOCPServer::RunNetwork(void* param) {
 
 void IOCPServer::RequestRecv(int sockIdx, bool overlapped) {
 	auto curClient = clients[sockIdx];
+	if (curClient->wQueue.Size() < 1) {
+		//수신용 오버랩드 생성
+		//OVERLAPPEDEX* overlappedEx = new OVERLAPPEDEX(new Packet(headerSize), IOCP_FLAG_READ);
+		OVERLAPPEDEX* overlappedEx = new OVERLAPPEDEX();
+		overlappedEx->mFlag = IOCP_FLAG_READ;
+		overlappedEx->mNumberOfByte = 0;
+		overlappedEx->mPacket = new Packet(0);
 
-	//수신용 오버랩드 생성
-	//OVERLAPPEDEX* overlappedEx = new OVERLAPPEDEX(new Packet(headerSize), IOCP_FLAG_READ);
-	OVERLAPPEDEX* overlappedEx = new OVERLAPPEDEX();
-	overlappedEx->mFlag = IOCP_FLAG_READ;
-	overlappedEx->mNumberOfByte = headerSize;
-	overlappedEx->mPacket = new Packet(headerSize);
+		if (overlapped)
+			WSARecv(curClient->socket, &(overlappedEx->mPacket->mHeader), 1, (LPDWORD) & (overlappedEx->mNumberOfByte), (LPDWORD) & (overlappedEx->mFlag), &(overlappedEx->mOverlapped), NULL);
+		else {
+			//동기 처리
+			if (!RecvHeader(curClient, *overlappedEx, 0)) {
+				OutputDebugStringA("Error: RequestRecv - Recv Header\n");
+				return;
+			}
 
-	if (overlapped)
-		WSARecv(curClient->socket, &(overlappedEx->mPacket->mHeader), 1, (LPDWORD) & (overlappedEx->mNumberOfByte), (LPDWORD) & (overlappedEx->mFlag), &(overlappedEx->mOverlapped), NULL);
-	else {
-		//동기 처리
-		if (!RecvHeader(curClient, *overlappedEx, 0)) {
-			OutputDebugStringA("Error: RequestRecv - Recv Header\n");
-			return;
+			if (!RecvData(curClient, *overlappedEx)) {
+				OutputDebugStringA("Error: RequestRecv -Recv Data\n");
+				return;
+			}
+
+			curClient->rQueue.PushItem(overlappedEx->mPacket);
+			OutputDebugStringA("Queue에 Packet 저장\n");
 		}
-
-		if (!RecvData(curClient, *overlappedEx)) {
-			OutputDebugStringA("Error: RequestRecv -Recv Data\n");
-			return;
-		}
-
-		rQueue.PushItem(overlappedEx->mPacket);
-		OutputDebugStringA("Queue에 Packet 저장\n");
 	}
-
+	
 }
 
 
@@ -234,17 +236,17 @@ bool IOCPServer::RecvData(SocketInfo* sInfo, OVERLAPPEDEX& overlappedEx) {
 
 
 void IOCPServer::RequestSend(int sockIdx, bool overlapped) {
-	if (wQueue.Size() > 0) {
-		auto curClient = clients[sockIdx];
+	auto curClient = clients[sockIdx];
+	if (curClient->wQueue.Size() > 0) {
 
-		Packet* packet = wQueue.FrontItem();
+		Packet* packet = curClient->wQueue.FrontItem();
 
 		//패킷 전송용 오버랩드 생성
 		//OVERLAPPEDEX* overlappedEx = new OVERLAPPEDEX(packet, IOCP_FLAG_WRITE);
 		
 		OVERLAPPEDEX* overlappedEx = new OVERLAPPEDEX();
 		overlappedEx->mFlag = IOCP_FLAG_WRITE;
-		overlappedEx->mNumberOfByte = headerSize;
+		overlappedEx->mNumberOfByte = 0;
 		overlappedEx->mPacket = packet;
 
 		if (overlapped) {
@@ -260,7 +262,7 @@ void IOCPServer::RequestSend(int sockIdx, bool overlapped) {
 			if (!SendData(curClient, *overlappedEx))
 				return;
 
-			wQueue.PopItem();
+			curClient->wQueue.PopItem();
 			OutputDebugStringA("Queue에서 Packet 삭제\n");
 		}
 	}

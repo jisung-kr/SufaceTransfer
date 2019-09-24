@@ -96,7 +96,7 @@ struct Packet {
 
 	Packet(int dataSize = 0) {
 		mHeader.buf = new char[headerSize];
-		mHeader.len = headerSize;
+		mHeader.len = 0;
 
 		if (dataSize != 0) {
 			mData.buf = new char[dataSize];
@@ -106,7 +106,7 @@ struct Packet {
 
 	Packet(HEADER* hedaer, void* data = nullptr, int dataSize = 0) {
 		mHeader.buf = (char*)hedaer;
-		mHeader.len = headerSize;
+		mHeader.len = 0;
 
 		if (dataSize != 0 && data != nullptr) {
 			mData.buf = (char*)data;
@@ -150,6 +150,9 @@ struct SocketInfo {
 
 	Camera mCamera;
 
+	QueueEX<Packet*> rQueue;
+	QueueEX<Packet*> wQueue;
+
 	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> mDirectCmdListAlloc;	//CmdList Allocator
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> mCommandList;	//Command List
 
@@ -160,10 +163,6 @@ class IOCPServer : public IOCP {
 public:
 	IOCPServer() = default;
 	virtual ~IOCPServer();
-
-public:
-	QueueEX<Packet*> rQueue;
-	QueueEX<Packet*> wQueue;
 
 private:
 	SOCKET listenSock;	//서버 듣기용 소켓

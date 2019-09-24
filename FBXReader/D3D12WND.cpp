@@ -518,7 +518,9 @@ void D3D12WND::Draw(const GameTimer& gt) {
 				1,
 				mDsvDescriptorSize);
 
-			cmdList->ClearRenderTargetView(rtvHandle, Colors::SteelBlue, 0, nullptr);
+			//디버깅을 위해 잠시빼둠
+			//cmdList->ClearRenderTargetView(rtvHandle, Colors::Black, 0, nullptr);
+
 			cmdList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
 			cmdList->OMSetRenderTargets(1, &rtvHandle, true, &dsvHandle);
@@ -614,7 +616,7 @@ void D3D12WND::Draw(const GameTimer& gt) {
 		D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
 
 	//RTV, DSV 클리어
-	mCommandList->ClearRenderTargetView(CurrentBackBufferView(), Colors::SteelBlue, 0, nullptr);
+	mCommandList->ClearRenderTargetView(CurrentBackBufferView(), Colors::Black, 0, nullptr);
 	mCommandList->ClearDepthStencilView(DepthStencilView(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
 	mCommandList->OMSetRenderTargets(1, &CurrentBackBufferView(), true, &DepthStencilView());
@@ -1412,7 +1414,7 @@ void D3D12WND::CopyBuffer() {
 		mCurrFrameResource->mSurfaces[i]->Map(0, &range, (void**)&packet->mData.buf);
 		mCurrFrameResource->mSurfaces[i]->Unmap(0, 0);
 
-		server->wQueue.PushItem(packet);
+		curClient->wQueue.PushItem(packet);
 	}
 
 }
@@ -1422,58 +1424,60 @@ FLOAT* D3D12WND::GetReadBackBuffer() {
 }
 
 void D3D12WND::InputPump(const GameTimer& gt) {
-	/*
+	/*	*/
 	for (int i = 0; i < server->GetClientNum(); ++i) {
-		//auto curClient = server->GetClients()[i];
-		HEADER* header = (HEADER*)server->GetClient(i)->overlappedRead->wsaBuf[0].buf;
-		while (ntohl(header->mCommand) == COMMAND::COMMAND_INPUT_KEY) {
-			//입력 처리
+		auto curClient = server->GetClient(i);
+
+		while (curClient->rQueue.Size() > 0) {
+			HEADER* header = (HEADER*)curClient->rQueue.FrontItem()->mHeader.buf;
+
+			char str[256];
+			sprintf(str, "입력된 명령 : %s\n", ntohl(header->mCommand) == COMMAND::COMMAND_REQ_FRAME ? "CMD_REQ_FRAME" : "COMD_INPUT");
+			OutputDebugStringA(str);
+
+			if (ntohl(header->mCommand) != COMMAND::COMMAND_INPUT_KEY)
+				break;
+
 			const float dt = gt.DeltaTime();
 
-			INPUT_DATA* inputData = (INPUT_DATA*)server->GetClient(i)->overlappedRead->wsaBuf[1].buf;
+			INPUT_DATA* inputData = (INPUT_DATA*)curClient->rQueue.FrontItem()->mData.buf;
 
 			if (inputData->mInputType == INPUT_TYPE::INPUT_KEY_W) {
-				server->GetClient(i)->mCamera.Walk(100.0f * dt);
+				curClient->mCamera.Walk(100.0f * dt);
 				OutputDebugStringA("Input W\n");
 			}
 
 			if (inputData->mInputType == INPUT_TYPE::INPUT_KEY_S) {
-				server->GetClient(i)->mCamera.Walk(-100.0f * dt);
+				curClient->mCamera.Walk(-100.0f * dt);
 				OutputDebugStringA("Input S\n");
 			}
 
 			if (inputData->mInputType == INPUT_TYPE::INPUT_KEY_A) {
-				server->GetClient(i)->mCamera.Strafe(-100.0f * dt);
+				curClient->mCamera.Strafe(-100.0f * dt);
 				OutputDebugStringA("Input A\n");
 			}
 
 			if (inputData->mInputType == INPUT_TYPE::INPUT_KEY_D) {
-				server->GetClient(i)->mCamera.Strafe(100.0f * dt);
+				curClient->mCamera.Strafe(100.0f * dt);
 				OutputDebugStringA("Input D\n");
 			}
-				
-			//server->GetClient(i)->mCamera.UpdateViewMatrix();
 
-			//입력 처리후 다시 Request 받아오기
-			server->RequestRecv(i);
+			delete curClient->rQueue.FrontItem();
+			curClient->rQueue.PopItem();
 
-			if (!server->RecvRequest(i)) {
-				OutputDebugStringA("RecvREQ 수신 중 오류 발생!\n");
-				break;
-			}
-	
+			curClient->mCamera.UpdateViewMatrix();
+
 		}
+
+		
+
 	}
-	*/
-	
 }
 
 void D3D12WND::RecvRequest() {
 	for (int i = 0; i < server->GetClientNum(); ++i) {
 		server->RequestRecv(i);
 	}
-
-
 }
 
 void D3D12WND::SendFrame() {
