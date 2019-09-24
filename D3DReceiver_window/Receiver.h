@@ -1,6 +1,7 @@
 #pragma once
 #include <WinSock2.h>
 #include <WS2tcpip.h>
+#include <atomic>
 #include "BitmapQueue.h"
 
 #pragma comment(lib, "ws2_32.lib")
@@ -99,6 +100,9 @@ public:
 public:
 	QueueEX<Packet*> rQueue;
 	QueueEX<Packet*> wQueue;
+
+	std::atomic<bool> IsUsingRQueue = false;
+	std::atomic<bool> IsUsingWQueue = false;
 
 private:
 	WSADATA wsaData;

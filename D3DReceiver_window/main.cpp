@@ -87,11 +87,11 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 		else
 		{
 			Input();
-			/*
-			mNetworkReadThread = new std::thread([&]() -> void {
 
-				while (true) {
-					if (client->rQueue.Size() < 1) {
+			/*				*/
+			if (mNetworkReadThread == nullptr) {
+				mNetworkReadThread = new std::thread([&]() -> void {
+					while (true) {
 						client->wQueue.PushItem(new Packet(new CHEADER(COMMAND::COMMAND_REQ_FRAME)));
 
 						if (!client->SendMSG()) {
@@ -99,29 +99,31 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 							client = nullptr;
 							break;
 						}
+
 					}
-				}
 
-			});
+					});
+			}
 
-			mNetworkWriteThread = new std::thread([&]() -> void {
 
-				while (true) {
-					if (client->wQueue.Size() > 0) {
-
+			if (mNetworkWriteThread == nullptr) {
+				mNetworkWriteThread = new std::thread([&]() -> void {
+					while (true) {
 						if (!client->RecvMSG()) {
 							delete client;
 							client = nullptr;
 							break;
 						}
+
 					}
-				}
 
-			});
+					});
+			}
 
-			*/
+			
 
-			if (client->rQueue.Size() < 1) {
+			/*
+			if (client->rQueue.Size() < 10) {
 				client->wQueue.PushItem(new Packet(new CHEADER(COMMAND::COMMAND_REQ_FRAME)));
 
 				if (!client->SendMSG()) {
@@ -129,9 +131,6 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 					client = nullptr;
 					break;
 				}
-			}
-
-			if (client->rQueue.Size() < 1) {
 
 				if (!client->RecvMSG()) {
 					delete client;
@@ -139,17 +138,16 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 					break;
 				}
 			}
-
+			*/
 			mTimer.Tick();
 
 			if (client->rQueue.Size() > 0) {
 				CalculateFrameStatus();
 
 				Render();	//·»´õ¸µ
-
+				delete client->rQueue.FrontItem();
 				client->rQueue.PopItem();
 			}
-			//Sleep(1000);
 
 		}
 	}
@@ -159,6 +157,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 }
 
 void Input() {
+
 	if (GetAsyncKeyState('W') & 0x8000) {
 		INPUT_DATA* data = new INPUT_DATA();
 		int dataSize = sizeof(INPUT_DATA);

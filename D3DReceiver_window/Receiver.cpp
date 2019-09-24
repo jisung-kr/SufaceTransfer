@@ -41,17 +41,23 @@ bool Client::Connection() {
 }
 
 bool Client::RecvMSG() {
-	Packet* packet = new Packet();
+	if (IsUsingRQueue == false) {
+		IsUsingRQueue = true;
+		Packet* packet = new Packet();
 
-	if (!RecvHeader(*packet)) {
-		return false;
-	}
-	if (!RecvData(*packet)) {
-		return false;
+		if (!RecvHeader(*packet)) {
+			return false;
+		}
+		if (!RecvData(*packet)) {
+			return false;
+		}
+
+
+		rQueue.PushItem(packet);
+		IsUsingRQueue = false;
+		OutputDebugStringA("Queue에 Packet 저장\n");
 	}
 
-	rQueue.PushItem(packet);
-	OutputDebugStringA("Queue에 Packet 저장\n");
 	return true;
 }
 
@@ -117,7 +123,9 @@ bool Client::RecvData(Packet& packet) {
 }
 
 bool Client::SendMSG() {
-	if (wQueue.Size() > 0) {
+
+	if (wQueue.Size() > 0 && IsUsingWQueue == false) {
+		IsUsingWQueue = true;
 		Packet* packet = wQueue.FrontItem();
 
 		if (!SendHeader(*packet))
@@ -125,8 +133,10 @@ bool Client::SendMSG() {
 		if (!SendData(*packet)) {
 			return false;
 		}
-
+		
+		delete wQueue.FrontItem();
 		wQueue.PopItem();
+		IsUsingWQueue = false;
 		OutputDebugStringA("Queue에서 Packet 삭제\n");
 	}
 
