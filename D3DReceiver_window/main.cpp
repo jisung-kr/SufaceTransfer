@@ -86,7 +86,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 		}
 		else
 		{
-			Input();
+			//Input();
 
 			/*				*/
 			if (mNetworkReadThread == nullptr) {
@@ -97,6 +97,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 						if (!client->SendMSG()) {
 							delete client;
 							client = nullptr;
+							OutputDebugStringA("SendMSG Error\n");
 							break;
 						}
 
@@ -112,33 +113,15 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 						if (!client->RecvMSG()) {
 							delete client;
 							client = nullptr;
+							OutputDebugStringA("RecvMSG Error\n");
 							break;
 						}
 
 					}
 
-					});
+				});
 			}
 
-			
-
-			/*
-			if (client->rQueue.Size() < 10) {
-				client->wQueue.PushItem(new Packet(new CHEADER(COMMAND::COMMAND_REQ_FRAME)));
-
-				if (!client->SendMSG()) {
-					delete client;
-					client = nullptr;
-					break;
-				}
-
-				if (!client->RecvMSG()) {
-					delete client;
-					client = nullptr;
-					break;
-				}
-			}
-			*/
 			mTimer.Tick();
 
 			if (client->rQueue.Size() > 0) {

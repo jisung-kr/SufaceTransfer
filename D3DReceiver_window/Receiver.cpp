@@ -52,7 +52,6 @@ bool Client::RecvMSG() {
 			return false;
 		}
 
-
 		rQueue.PushItem(packet);
 		IsUsingRQueue = false;
 		OutputDebugStringA("Queueø° Packet ¿˙¿Â\n");
