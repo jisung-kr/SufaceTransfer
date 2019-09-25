@@ -88,7 +88,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 		{
 			//Input();
 
-			/*				*/
+			/*						*/
 			if (mNetworkReadThread == nullptr) {
 				mNetworkReadThread = new std::thread([&]() -> void {
 					while (true) {
@@ -121,7 +121,23 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 
 				});
 			}
+	
+			/*
+			client->wQueue.PushItem(new Packet(new CHEADER(COMMAND::COMMAND_REQ_FRAME)));
 
+			if (!client->SendMSG()) {
+				delete client;
+				client = nullptr;
+				OutputDebugStringA("SendMSG Error\n");
+				break;
+			}
+			if (!client->RecvMSG()) {
+				delete client;
+				client = nullptr;
+				OutputDebugStringA("RecvMSG Error\n");
+				break;
+			}
+			*/
 			mTimer.Tick();
 
 			if (client->rQueue.Size() > 0) {
