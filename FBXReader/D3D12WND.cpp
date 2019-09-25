@@ -595,7 +595,6 @@ void D3D12WND::Draw(const GameTimer& gt) {
 		FlushCommandQueue();
 
 		CopyBuffer();
-
 	
 	}
 
