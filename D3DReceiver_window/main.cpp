@@ -210,9 +210,6 @@ void Render() {
 
 		ReleaseDC(mhMainWnd, hdc);
 		//EndPaint(mhMainWnd, &ps);
-
-
-		//client->ReleaseBuffer();
 	}
 
 }
