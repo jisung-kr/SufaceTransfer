@@ -538,7 +538,7 @@ void D3D12WND::Draw(const GameTimer& gt) {
 		cmdList->SetGraphicsRootConstantBufferView(2, passCBAddress);
 		*/
 		auto passCB = mCurrFrameResource->PassCB->Resource();
-		mCommandList->SetGraphicsRootConstantBufferView(2, passCB->GetGPUVirtualAddress());
+		cmdList->SetGraphicsRootConstantBufferView(2, passCB->GetGPUVirtualAddress());
 
 		//서술자 테이블
 		cmdList->SetGraphicsRootDescriptorTable(3, mSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
