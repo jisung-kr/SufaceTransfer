@@ -532,11 +532,12 @@ void D3D12WND::Draw(const GameTimer& gt) {
 		cmdList->SetGraphicsRootShaderResourceView(1, matBuffer->GetGPUVirtualAddress());
 
 		//상수버퍼서술자 
-		/*
+		/*		
 		auto passCB = mCurrFrameResource->PassCB->Resource();
 		D3D12_GPU_VIRTUAL_ADDRESS passCBAddress = passCB->GetGPUVirtualAddress() + ((DWORD64)1 + i) * passCBByteSize;
 		cmdList->SetGraphicsRootConstantBufferView(2, passCBAddress);
 		*/
+		/**/
 		auto passCB = mCurrFrameResource->PassCB->Resource();
 		cmdList->SetGraphicsRootConstantBufferView(2, passCB->GetGPUVirtualAddress());
 
