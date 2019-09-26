@@ -86,13 +86,16 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 		}
 		else
 		{
-			//Input();
+
 
 			/*						*/
 			if (mNetworkReadThread == nullptr) {
 				mNetworkReadThread = new std::thread([&]() -> void {
 					while (true) {
-						client->wQueue.PushItem(new Packet(new CHEADER(COMMAND::COMMAND_REQ_FRAME)));
+						Input();
+
+						if(client->wQueue.Size() < 3)
+							client->wQueue.PushItem(new Packet(new CHEADER(COMMAND::COMMAND_REQ_FRAME)));
 
 						if (!client->SendMSG()) {
 							delete client;
@@ -138,12 +141,15 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 				break;
 			}
 			*/
+
 			mTimer.Tick();
 
-			if (client->rQueue.Size() > 0) {
+			if (client->rQueue.Size() > 1) {
+	
 				CalculateFrameStatus();
 
 				Render();	//·»´õ¸µ
+
 				delete client->rQueue.FrontItem();
 				client->rQueue.PopItem();
 			}
