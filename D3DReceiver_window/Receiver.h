@@ -9,9 +9,9 @@
 #define BUFFER_SIZE 1024
 #define PORT 45000
 
-#define SERVER_IP "127.0.0.1"
+//#define SERVER_IP "127.0.0.1"
 //#define SERVER_IP "61.73.65.218"
-//#define SERVER_IP "121.131.167.123"
+#define SERVER_IP "121.131.167.123"
 
 enum COMMAND {
 	COMMAND_REQ_FRAME = 0,
@@ -97,17 +97,18 @@ public:
 	Client() = default;
 	virtual ~Client();
 
-public:
+private:
+	WSADATA wsaData;
+	SOCKET serverSock;
+	sockaddr_in serverAddr;
+
 	QueueEX<Packet*> rQueue;
 	QueueEX<Packet*> wQueue;
 
 	std::atomic<bool> IsUsingRQueue = false;
 	std::atomic<bool> IsUsingWQueue = false;
 
-private:
-	WSADATA wsaData;
-	SOCKET serverSock;
-	sockaddr_in serverAddr;
+	std::atomic<int> CountCMDRequestFrame = 0;
 
 	DWORD headerSize = sizeof(HEADER);
 
@@ -117,6 +118,12 @@ public:
 
 	bool RecvMSG();
 	bool SendMSG();
+
+	void PushPacketWQueue(Packet* packet);
+	void PopPacketRQueue();
+
+	int SizeRQueue() { return rQueue.Size(); }
+	int SizeWQueue() { return wQueue.Size(); }
 
 	char* GetData();
 	void ReleaseBuffer();

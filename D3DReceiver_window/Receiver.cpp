@@ -135,6 +135,7 @@ bool Client::SendMSG() {
 		
 		delete wQueue.FrontItem();
 		wQueue.PopItem();
+		--CountCMDRequestFrame;
 		IsUsingWQueue = false;
 		OutputDebugStringA("Queue에서 Packet 삭제\n");
 	}
@@ -194,7 +195,37 @@ bool Client::SendData(Packet& packet) {
 	return true;
 }
 
+void Client::PushPacketWQueue(Packet* packet) {
 
+	HEADER* header = (HEADER*)packet->mHeader.buf;
+
+	if (ntohl(header->mCommand) == COMMAND::COMMAND_REQ_FRAME) {
+		++CountCMDRequestFrame;
+
+		if (CountCMDRequestFrame > 3) {
+			return;
+		}
+
+	}
+
+	wQueue.PushItem(packet);
+
+}
+void Client::PopPacketRQueue() {
+	Packet* packet = rQueue.FrontItem();
+	if (packet->mHeader.buf != nullptr) {
+		delete packet->mHeader.buf;
+		packet->mHeader.buf = nullptr;
+	}
+
+	if (packet->mData.buf != nullptr) {
+		delete packet->mData.buf;
+		packet->mData.buf = nullptr;
+	}
+
+	delete rQueue.FrontItem();
+	rQueue.PopItem();
+}
 
 char* Client::GetData() {
 	Packet* packet = rQueue.FrontItem();

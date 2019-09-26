@@ -73,6 +73,8 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 		return 1;
 	}
 
+	client->PushPacketWQueue(new Packet(new CHEADER(COMMAND::COMMAND_REQ_FRAME)));
+
 	mTimer.Reset();
 
 	MSG msg = { 0 };
@@ -87,24 +89,12 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 		else
 		{
 
-
 			/*						*/
 			if (mNetworkReadThread == nullptr) {
 				mNetworkReadThread = new std::thread([&]() -> void {
 					while (true) {
+
 						Input();
-
-						if (client->wQueue.Size() > 0) {
-							HEADER* header = (HEADER*)client->wQueue.FrontItem()->mHeader.buf;
-
-							if (ntohl(header->mCommand) != COMMAND::COMMAND_REQ_FRAME)
-								client->wQueue.PushItem(new Packet(new CHEADER(COMMAND::COMMAND_REQ_FRAME)));
-
-						}
-						else {
-							client->wQueue.PushItem(new Packet(new CHEADER(COMMAND::COMMAND_REQ_FRAME)));
-						}
-
 
 						if (!client->SendMSG()) {
 							delete client;
@@ -115,9 +105,8 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 
 					}
 
-					});
+				});
 			}
-
 
 			if (mNetworkWriteThread == nullptr) {
 				mNetworkWriteThread = new std::thread([&]() -> void {
@@ -134,33 +123,18 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 				});
 			}
 	
-			/*
-			client->wQueue.PushItem(new Packet(new CHEADER(COMMAND::COMMAND_REQ_FRAME)));
-
-			if (!client->SendMSG()) {
-				delete client;
-				client = nullptr;
-				OutputDebugStringA("SendMSG Error\n");
-				break;
-			}
-			if (!client->RecvMSG()) {
-				delete client;
-				client = nullptr;
-				OutputDebugStringA("RecvMSG Error\n");
-				break;
-			}
-			*/
 
 			mTimer.Tick();
 
-			if (client->rQueue.Size() > 0) {
+			if (client->SizeRQueue() >  0) {
 	
 				CalculateFrameStatus();
 
 				Render();	//렌더링
 
-				delete client->rQueue.FrontItem();
-				client->rQueue.PopItem();
+				client->PopPacketRQueue();
+
+				client->PushPacketWQueue(new Packet(new CHEADER(COMMAND::COMMAND_REQ_FRAME)));
 			}
 
 		}
@@ -179,8 +153,7 @@ void Input() {
 		data->mInputType = INPUT_TYPE::INPUT_KEY_W;
 
 		OutputDebugStringA("W 입력\n");
-		client->wQueue.PushItem(new Packet(new CHEADER(COMMAND::COMMAND_INPUT_KEY, dataSize), data));
-		client->SendMSG();
+		client->PushPacketWQueue(new Packet(new CHEADER(COMMAND::COMMAND_INPUT_KEY, dataSize), data));
 	}
 
 	if (GetAsyncKeyState('S') & 0x8000) {
@@ -190,8 +163,7 @@ void Input() {
 		data->mInputType = INPUT_TYPE::INPUT_KEY_S;
 
 		OutputDebugStringA("S 입력\n");
-		client->wQueue.PushItem(new Packet(new CHEADER(COMMAND::COMMAND_INPUT_KEY, dataSize), data));
-		client->SendMSG();
+		client->PushPacketWQueue(new Packet(new CHEADER(COMMAND::COMMAND_INPUT_KEY, dataSize), data));
 	}
 
 	if (GetAsyncKeyState('A') & 0x8000) {
@@ -201,8 +173,7 @@ void Input() {
 		data->mInputType = INPUT_TYPE::INPUT_KEY_A;
 
 		OutputDebugStringA("A 입력\n");
-		client->wQueue.PushItem(new Packet(new CHEADER(COMMAND::COMMAND_INPUT_KEY, dataSize), data));
-		client->SendMSG();
+		client->PushPacketWQueue(new Packet(new CHEADER(COMMAND::COMMAND_INPUT_KEY, dataSize), data));
 	}
 
 	if (GetAsyncKeyState('D') & 0x8000) {
@@ -212,8 +183,7 @@ void Input() {
 		data->mInputType = INPUT_TYPE::INPUT_KEY_D;
 
 		OutputDebugStringA("D 입력\n");
-		client->wQueue.PushItem(new Packet(new CHEADER(COMMAND::COMMAND_INPUT_KEY, dataSize), data));
-		client->SendMSG();
+		client->PushPacketWQueue(new Packet(new CHEADER(COMMAND::COMMAND_INPUT_KEY, dataSize), data));
 	}
 }
 
