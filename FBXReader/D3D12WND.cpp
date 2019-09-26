@@ -532,15 +532,15 @@ void D3D12WND::Draw(const GameTimer& gt) {
 		cmdList->SetGraphicsRootShaderResourceView(1, matBuffer->GetGPUVirtualAddress());
 
 		//상수버퍼서술자 
-		/*		
+		/*			
 		auto passCB = mCurrFrameResource->PassCB->Resource();
 		D3D12_GPU_VIRTUAL_ADDRESS passCBAddress = passCB->GetGPUVirtualAddress() + ((DWORD64)1 + i) * passCBByteSize;
 		cmdList->SetGraphicsRootConstantBufferView(2, passCBAddress);
-		*/
-		/**/
+	*/
+		/*	*/
 		auto passCB = mCurrFrameResource->PassCB->Resource();
 		cmdList->SetGraphicsRootConstantBufferView(2, passCB->GetGPUVirtualAddress());
-
+	
 		//서술자 테이블
 		cmdList->SetGraphicsRootDescriptorTable(3, mSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
 
@@ -599,6 +599,7 @@ void D3D12WND::Draw(const GameTimer& gt) {
 	
 	}
 
+	/*	*/
 	//서버 DrawCall 
 
 	//현재 프레임 자원의 할당자를 가져옴

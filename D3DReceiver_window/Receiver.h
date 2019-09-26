@@ -9,9 +9,9 @@
 #define BUFFER_SIZE 1024
 #define PORT 45000
 
-//#define SERVER_IP "127.0.0.1"
+#define SERVER_IP "127.0.0.1"
 //#define SERVER_IP "61.73.65.218"
-#define SERVER_IP "121.131.167.123"
+//#define SERVER_IP "121.131.167.123"
 
 enum COMMAND {
 	COMMAND_REQ_FRAME = 0,

@@ -94,7 +94,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 					while (true) {
 						//Input();
 
-						if(client->wQueue.Size() < 3)
+						if(true)
 							client->wQueue.PushItem(new Packet(new CHEADER(COMMAND::COMMAND_REQ_FRAME)));
 
 						if (!client->SendMSG()) {
