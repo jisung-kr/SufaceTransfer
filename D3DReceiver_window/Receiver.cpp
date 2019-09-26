@@ -198,16 +198,16 @@ bool Client::SendData(Packet& packet) {
 void Client::PushPacketWQueue(Packet* packet) {
 
 	HEADER* header = (HEADER*)packet->mHeader.buf;
-
+	/*
 	if (ntohl(header->mCommand) == COMMAND::COMMAND_REQ_FRAME) {
 		++CountCMDRequestFrame;
 
-		if (CountCMDRequestFrame > 3) {
+		if (CountCMDRequestFrame > 4) {
 			return;
 		}
 
 	}
-
+	*/
 	wQueue.PushItem(packet);
 
 }

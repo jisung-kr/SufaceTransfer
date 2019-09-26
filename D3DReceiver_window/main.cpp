@@ -2,9 +2,10 @@
 
 #include "GameTimer.h"
 
-#include <Windows.h>
+#include <WindowsX.h>
 #include <thread>
 #include <string>
+#include <DirectXMath.h>
 
 HINSTANCE mhInst;	//인스턴스 핸들
 HWND mhMainWnd;	//메인 윈도우 핸들
@@ -28,7 +29,10 @@ GameTimer mTimer;
 LRESULT WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam);
 void Render();
 void CalculateFrameStatus();
-void Input();
+void Input(GameTimer& timer);
+void OnMouseDown(WPARAM btnState, int x, int y);
+void OnMouseUp(WPARAM btnState, int x, int y);
+void OnMouseMove(WPARAM btnState, int x, int y);
 
 int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmdShow) {
 	WNDCLASS wndCls;
@@ -94,8 +98,6 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 				mNetworkReadThread = new std::thread([&]() -> void {
 					while (true) {
 
-						Input();
-
 						if (!client->SendMSG()) {
 							delete client;
 							client = nullptr;
@@ -123,19 +125,27 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 				});
 			}
 	
+			if (mRenderingThread == nullptr) {
+				mRenderingThread = new std::thread([&]() -> void {
+					while (true) {
+						mTimer.Tick();
 
-			mTimer.Tick();
+						if (client->SizeRQueue() > 0) {
+							Input(mTimer);
 
-			if (client->SizeRQueue() >  0) {
-	
-				CalculateFrameStatus();
+							CalculateFrameStatus();
 
-				Render();	//렌더링
+							Render();	//렌더링
 
-				client->PopPacketRQueue();
+							client->PopPacketRQueue();
 
-				client->PushPacketWQueue(new Packet(new CHEADER(COMMAND::COMMAND_REQ_FRAME)));
+							client->PushPacketWQueue(new Packet(new CHEADER(COMMAND::COMMAND_REQ_FRAME)));
+						}
+					}
+					
+				});
 			}
+
 
 		}
 	}
@@ -144,16 +154,17 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 	return 0;
 }
 
-void Input() {
+void Input(GameTimer& timer) {
 
 	if (GetAsyncKeyState('W') & 0x8000) {
 		INPUT_DATA* data = new INPUT_DATA();
 		int dataSize = sizeof(INPUT_DATA);
 		memset(data, 0x00, dataSize);
 		data->mInputType = INPUT_TYPE::INPUT_KEY_W;
+		data->deltaTime = timer.DeltaTime() ;
 
 		OutputDebugStringA("W 입력\n");
-		client->PushPacketWQueue(new Packet(new CHEADER(COMMAND::COMMAND_INPUT_KEY, dataSize), data));
+		client->PushPacketWQueue(new Packet(new CHEADER(COMMAND::COMMAND_INPUT, dataSize), data));
 	}
 
 	if (GetAsyncKeyState('S') & 0x8000) {
@@ -161,9 +172,10 @@ void Input() {
 		int dataSize = sizeof(INPUT_DATA);
 		memset(data, 0x00, dataSize);
 		data->mInputType = INPUT_TYPE::INPUT_KEY_S;
+		data->deltaTime = timer.DeltaTime();
 
 		OutputDebugStringA("S 입력\n");
-		client->PushPacketWQueue(new Packet(new CHEADER(COMMAND::COMMAND_INPUT_KEY, dataSize), data));
+		client->PushPacketWQueue(new Packet(new CHEADER(COMMAND::COMMAND_INPUT, dataSize), data));
 	}
 
 	if (GetAsyncKeyState('A') & 0x8000) {
@@ -171,9 +183,10 @@ void Input() {
 		int dataSize = sizeof(INPUT_DATA);
 		memset(data, 0x00, dataSize);
 		data->mInputType = INPUT_TYPE::INPUT_KEY_A;
+		data->deltaTime = timer.DeltaTime() ;
 
 		OutputDebugStringA("A 입력\n");
-		client->PushPacketWQueue(new Packet(new CHEADER(COMMAND::COMMAND_INPUT_KEY, dataSize), data));
+		client->PushPacketWQueue(new Packet(new CHEADER(COMMAND::COMMAND_INPUT, dataSize), data));
 	}
 
 	if (GetAsyncKeyState('D') & 0x8000) {
@@ -181,9 +194,10 @@ void Input() {
 		int dataSize = sizeof(INPUT_DATA);
 		memset(data, 0x00, dataSize);
 		data->mInputType = INPUT_TYPE::INPUT_KEY_D;
+		data->deltaTime = timer.DeltaTime();
 
 		OutputDebugStringA("D 입력\n");
-		client->PushPacketWQueue(new Packet(new CHEADER(COMMAND::COMMAND_INPUT_KEY, dataSize), data));
+		client->PushPacketWQueue(new Packet(new CHEADER(COMMAND::COMMAND_INPUT, dataSize), data));
 	}
 }
 
@@ -245,6 +259,19 @@ LRESULT WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 
 	switch (iMsg)
 	{
+	case WM_LBUTTONDOWN:
+	case WM_MBUTTONDOWN:
+	case WM_RBUTTONDOWN:
+		OnMouseDown(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+		return 0;
+	case WM_LBUTTONUP:
+	case WM_MBUTTONUP:
+	case WM_RBUTTONUP:
+		OnMouseUp(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+		return 0;
+	case WM_MOUSEMOVE:
+		OnMouseMove(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+		return 0;
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		return 0;
@@ -252,4 +279,40 @@ LRESULT WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam) {
 
 	return DefWindowProc(hWnd, iMsg, wParam, lParam);
 
+}
+POINT lastMousePos;
+
+void OnMouseDown(WPARAM btnState, int x, int y) {
+	if ((btnState & MK_LBUTTON) != 0) {
+		lastMousePos.x = x;
+		lastMousePos.y = y;
+
+		SetCapture(mhMainWnd);
+	}
+}
+void OnMouseUp(WPARAM btnState, int x, int y) {
+	ReleaseCapture();
+}
+
+void OnMouseMove(WPARAM btnState, int x, int y) {
+	if ((btnState & MK_LBUTTON) != 0) {
+		float dx = DirectX::XMConvertToRadians(0.25f * static_cast<float>(x - lastMousePos.x));
+		float dy = DirectX::XMConvertToRadians(0.25f * static_cast<float>(y - lastMousePos.y));
+
+		//dx, dy각도 만큼 카메라 회전
+		INPUT_DATA* data = new INPUT_DATA();
+		int dataSize = sizeof(INPUT_DATA);
+		memset(data, 0x00, dataSize);
+		data->mInputType = INPUT_TYPE::INPUT_MOUSE_MOVE;
+		data->x = dx;
+		data->y = dy;
+
+		//data->deltaTime = timer.DeltaTime();
+
+		OutputDebugStringA("Mouse 입력\n");
+		client->PushPacketWQueue(new Packet(new CHEADER(COMMAND::COMMAND_INPUT, dataSize), data));
+	}
+
+	lastMousePos.x = x;
+	lastMousePos.y = y;
 }
