@@ -48,7 +48,7 @@ enum IOCP_FLAG {
 enum COMMAND {
 	COMMAND_REQ_FRAME = 0,
 	COMMAND_RES_FRAME = 1,
-	COMMAND_INPUT_KEY,
+	COMMAND_INPUT,
 	COMMAND_MAX
 };
 
@@ -57,11 +57,13 @@ enum INPUT_TYPE {
 	INPUT_KEY_S = 1,
 	INPUT_KEY_A = 2,
 	INPUT_KEY_D = 3,
+	INPUT_MOUSE_MOVE,
 	INPUT_MAX
 };
 
 struct INPUT_DATA {
 	INPUT_TYPE mInputType;
+	float deltaTime;
 	float x;
 	float y;
 	float z;
@@ -122,8 +124,8 @@ struct Packet {
 			case COMMAND::COMMAND_REQ_FRAME:
 				sprintf(str, "COMMAND_REQ_FRAME");
 				break;
-			case COMMAND::COMMAND_INPUT_KEY:
-				sprintf(str, "COMMAND_INPUT_KEY");
+			case COMMAND::COMMAND_INPUT:
+				sprintf(str, "COMMAND_INPUT");
 				break;
 		}
 

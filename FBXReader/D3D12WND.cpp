@@ -369,7 +369,7 @@ void D3D12WND::OnMouseMove(WPARAM btnState, int x, int y) {
 	{
 		float dx = XMConvertToRadians(0.25f*static_cast<float>(x - mLastMousePos.x));
 		float dy = XMConvertToRadians(0.25f*static_cast<float>(y - mLastMousePos.y));
-
+	
 		mCamera.Pitch(dy);
 		mCamera.RotateY(dx);
 	}
@@ -532,15 +532,15 @@ void D3D12WND::Draw(const GameTimer& gt) {
 		cmdList->SetGraphicsRootShaderResourceView(1, matBuffer->GetGPUVirtualAddress());
 
 		//상수버퍼서술자 
-		/*			
+		/*			*/	
 		auto passCB = mCurrFrameResource->PassCB->Resource();
 		D3D12_GPU_VIRTUAL_ADDRESS passCBAddress = passCB->GetGPUVirtualAddress() + ((DWORD64)1 + i) * passCBByteSize;
 		cmdList->SetGraphicsRootConstantBufferView(2, passCBAddress);
-		*/
-		/*	*/
+	
+		/*		
 		auto passCB = mCurrFrameResource->PassCB->Resource();
 		cmdList->SetGraphicsRootConstantBufferView(2, passCB->GetGPUVirtualAddress());
-	
+	*/
 		//서술자 테이블
 		cmdList->SetGraphicsRootDescriptorTable(3, mSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
 
@@ -1248,12 +1248,14 @@ void D3D12WND::InputPump(const GameTimer& gt) {
 		while (curClient->rQueue.Size() > 0) {
 			HEADER* header = (HEADER*)curClient->rQueue.FrontItem()->mHeader.buf;
 
-			if (ntohl(header->mCommand) != COMMAND::COMMAND_INPUT_KEY)
+			if (ntohl(header->mCommand) != COMMAND::COMMAND_INPUT)
 				break;
 
-			const float dt = gt.DeltaTime();
+			
 
 			INPUT_DATA* inputData = (INPUT_DATA*)curClient->rQueue.FrontItem()->mData.buf;
+			const float dtC = inputData->deltaTime;
+			const float dt = gt.DeltaTime();
 
 			if (inputData->mInputType == INPUT_TYPE::INPUT_KEY_W) {
 				curClient->mCamera.Walk(100.0f * dt);
@@ -1274,6 +1276,16 @@ void D3D12WND::InputPump(const GameTimer& gt) {
 				curClient->mCamera.Strafe(100.0f * dt);
 				OutputDebugStringA("Input D\n");
 			}
+
+			if (inputData->mInputType == INPUT_TYPE::INPUT_MOUSE_MOVE) {
+				float dx = inputData->x;
+				float dy = inputData->y;
+
+				curClient->mCamera.Pitch(dy);
+				curClient->mCamera.RotateY(dx);
+			}
+
+
 
 			delete curClient->rQueue.FrontItem();
 			curClient->rQueue.PopItem();

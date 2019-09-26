@@ -76,6 +76,7 @@ int MainWindow::Run() {
 				//클라이언트로부터 프레임 요청이 오기 전 까지 입력 펌프를 만들어 입력 처리
 				d3dApp->InputPump(d3dApp->mTimer);
 
+
 				d3dApp->CalculateFrameStatus();
 				d3dApp->Update(d3dApp->mTimer);
 				d3dApp->Draw(d3dApp->mTimer);
