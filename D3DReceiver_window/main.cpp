@@ -144,7 +144,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 
 			mTimer.Tick();
 
-			if (client->rQueue.Size() > 1) {
+			if (client->rQueue.Size() > 0) {
 	
 				CalculateFrameStatus();
 
