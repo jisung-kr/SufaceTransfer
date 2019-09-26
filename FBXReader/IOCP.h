@@ -113,7 +113,22 @@ struct Packet {
 			mData.len = dataSize;
 		}
 	}
+	void OutputPacketCommand() {
+		HEADER* header = (HEADER*)mHeader.buf;
 
+		char str[256];
+
+		switch (ntohl(header->mCommand)) {
+			case COMMAND::COMMAND_REQ_FRAME:
+				sprintf(str, "COMMAND_REQ_FRAME");
+				break;
+			case COMMAND::COMMAND_INPUT_KEY:
+				sprintf(str, "COMMAND_INPUT_KEY");
+				break;
+		}
+
+		OutputDebugStringA(str);
+	}
 	void AllocDataBuffer(int size) {
 		if (mData.buf != nullptr) {
 			mData.buf = new char[size];

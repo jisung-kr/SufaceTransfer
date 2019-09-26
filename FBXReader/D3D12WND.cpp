@@ -532,15 +532,15 @@ void D3D12WND::Draw(const GameTimer& gt) {
 		cmdList->SetGraphicsRootShaderResourceView(1, matBuffer->GetGPUVirtualAddress());
 
 		//상수버퍼서술자 
-		/*			*/
+		/*			
 		auto passCB = mCurrFrameResource->PassCB->Resource();
 		D3D12_GPU_VIRTUAL_ADDRESS passCBAddress = passCB->GetGPUVirtualAddress() + ((DWORD64)1 + i) * passCBByteSize;
 		cmdList->SetGraphicsRootConstantBufferView(2, passCBAddress);
-	
-		/*
+		*/
+		/*	*/
 		auto passCB = mCurrFrameResource->PassCB->Resource();
 		cmdList->SetGraphicsRootConstantBufferView(2, passCB->GetGPUVirtualAddress());
-		*/
+	
 		//서술자 테이블
 		cmdList->SetGraphicsRootDescriptorTable(3, mSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
 
@@ -1217,17 +1217,20 @@ void D3D12WND::CopyBuffer() {
 	for (int i = 0; i < server->GetClientNum(); ++i) {
 		auto curClient = server->GetClient(i);
 
-		if (curClient->wQueue.Size() == 0) {
-			//패킷 생성
-			Packet* packet = new Packet(new CHEADER(COMMAND::COMMAND_RES_FRAME, size));
-			packet->mData.len = size;
+		if (curClient->rQueue.Size() > 0) {
+			HEADER* header = (HEADER*)curClient->rQueue.FrontItem()->mHeader.buf;
+			if (ntohl(header->mCommand) == COMMAND::COMMAND_REQ_FRAME) {
+				//패킷 생성
+				Packet* packet = new Packet(new CHEADER(COMMAND::COMMAND_RES_FRAME, size));
+				packet->mData.len = size;
 
-			mCurrFrameResource->mSurfaces[i]->Map(0, &range, (void**)& packet->mData.buf);
-			mCurrFrameResource->mSurfaces[i]->Unmap(0, 0);
+				mCurrFrameResource->mSurfaces[i]->Map(0, &range, (void**)& packet->mData.buf);
+				mCurrFrameResource->mSurfaces[i]->Unmap(0, 0);
 
-			curClient->wQueue.PushItem(packet);
+				curClient->wQueue.PushItem(packet);
+				curClient->rQueue.PopItem();
+			}
 		}
-
 	}
 
 }

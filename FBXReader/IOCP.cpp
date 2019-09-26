@@ -117,6 +117,7 @@ void IOCPServer::RunNetwork(void* param) {
 			
 			sInfo->rQueue.PushItem(overlappedEx->mPacket);
 			sInfo->IsUsingRQueue = false;
+			overlappedEx->mPacket->OutputPacketCommand();
 			OutputDebugStringA("Queue에 Packet 저장\n");
 			break;
 
@@ -163,7 +164,6 @@ void IOCPServer::RequestRecv(int sockIdx, bool overlapped) {
 				OutputDebugStringA("Error: RequestRecv -Recv Data\n");
 				return;
 			}
-
 			curClient->rQueue.PushItem(overlappedEx->mPacket);
 			OutputDebugStringA("Queue에 Packet 저장\n");
 		}
