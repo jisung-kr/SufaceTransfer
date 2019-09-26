@@ -92,10 +92,19 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 			if (mNetworkReadThread == nullptr) {
 				mNetworkReadThread = new std::thread([&]() -> void {
 					while (true) {
-						//Input();
+						Input();
 
-						if(true)
+						if (client->wQueue.Size() > 0) {
+							HEADER* header = (HEADER*)client->wQueue.FrontItem()->mHeader.buf;
+
+							if (ntohl(header->mCommand) != COMMAND::COMMAND_REQ_FRAME)
+								client->wQueue.PushItem(new Packet(new CHEADER(COMMAND::COMMAND_REQ_FRAME)));
+
+						}
+						else {
 							client->wQueue.PushItem(new Packet(new CHEADER(COMMAND::COMMAND_REQ_FRAME)));
+						}
+
 
 						if (!client->SendMSG()) {
 							delete client;
