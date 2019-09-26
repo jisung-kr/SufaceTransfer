@@ -92,7 +92,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 			if (mNetworkReadThread == nullptr) {
 				mNetworkReadThread = new std::thread([&]() -> void {
 					while (true) {
-						Input();
+						//Input();
 
 						if(client->wQueue.Size() < 3)
 							client->wQueue.PushItem(new Packet(new CHEADER(COMMAND::COMMAND_REQ_FRAME)));
