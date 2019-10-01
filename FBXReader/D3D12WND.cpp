@@ -532,7 +532,7 @@ void D3D12WND::Draw(const GameTimer& gt) {
 		cmdList->SetGraphicsRootShaderResourceView(1, matBuffer->GetGPUVirtualAddress());
 
 		//상수버퍼서술자 
-		/*		*/			
+		/*				*/	
 		auto passCB = mCurrFrameResource->PassCB->Resource();
 		D3D12_GPU_VIRTUAL_ADDRESS passCBAddress = passCB->GetGPUVirtualAddress() + ((DWORD64)1 + i) * passCBByteSize;
 		cmdList->SetGraphicsRootConstantBufferView(2, passCBAddress);
@@ -540,7 +540,7 @@ void D3D12WND::Draw(const GameTimer& gt) {
 		/*				
 		auto passCB = mCurrFrameResource->PassCB->Resource();
 		cmdList->SetGraphicsRootConstantBufferView(2, passCB->GetGPUVirtualAddress());
-		*/
+	*/	
 		//서술자 테이블
 		cmdList->SetGraphicsRootDescriptorTable(3, mSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
 
@@ -1277,14 +1277,23 @@ void D3D12WND::InputPump(const GameTimer& gt) {
 				OutputDebugStringA("Input D\n");
 			}
 
-			if (inputData->mInputType == INPUT_TYPE::INPUT_MOUSE_MOVE) {
-				float dx = inputData->x;
-				float dy = inputData->y;
+
+			if (inputData->mInputType == INPUT_TYPE::INPUT_AXIS_CAMERA_MOVE) {
+				float speed = 100.0f;
+				float dx = inputData->x * speed * dt;
+				float dy = inputData->y * speed * dt;
+
+				curClient->mCamera.Walk(dy);
+				curClient->mCamera.Strafe(dx);
+			}
+
+			if (inputData->mInputType == INPUT_TYPE::INPUT_AXIS_CAMERA_ROT) {
+				float dx = inputData->z;
+				float dy = inputData->w;
 
 				curClient->mCamera.Pitch(dy);
 				curClient->mCamera.RotateY(dx);
 			}
-
 
 
 			delete curClient->rQueue.FrontItem();
