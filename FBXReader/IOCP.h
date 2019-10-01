@@ -70,8 +70,9 @@ struct INPUT_DATA {
 };
 
 struct HEADER {
-	DWORD mDataLen;
-	DWORD mCommand;
+	DWORD64 mDataLen;
+	DWORD64 mCommand;
+	
 };
 
 //헤더 생성 보조 구조체
@@ -81,11 +82,11 @@ struct CHEADER : HEADER {
 		mCommand = htonl(COMMAND::COMMAND_REQ_FRAME);
 	}
 
-	CHEADER(DWORD command) {
+	CHEADER(DWORD64 command) {
 		mDataLen = 0;
 		mCommand = htonl(command);
 	}
-	CHEADER(DWORD command, DWORD dataLen) {
+	CHEADER(DWORD64 command, DWORD64 dataLen) {
 		mDataLen = htonl(dataLen);
 		mCommand = htonl(command);
 	}
@@ -94,7 +95,7 @@ struct CHEADER : HEADER {
 struct Packet {
 	WSABUF mHeader;
 	WSABUF mData;
-	const DWORD headerSize = sizeof(HEADER);
+	const DWORD64 headerSize = sizeof(HEADER);
 
 	Packet(int dataSize = 0) {
 		mHeader.buf = new char[headerSize];
@@ -147,7 +148,7 @@ struct OVERLAPPEDEX{
 	DWORD mNumberOfByte;
 
 	Packet* mPacket = nullptr;
-	const DWORD headerSize = sizeof(HEADER);
+	const DWORD64 headerSize = sizeof(HEADER);
 	/*
 	OVERLAPPEDEX() {}
 
@@ -190,7 +191,7 @@ private:
 	sockaddr_in serverAddr;	//서버 주소
 	std::vector<SocketInfo*> clients;	//접속된 클라이언트들
 
-	const DWORD headerSize = sizeof(HEADER);
+	const DWORD64 headerSize = sizeof(HEADER);
 
 	int count = 0;
 public:

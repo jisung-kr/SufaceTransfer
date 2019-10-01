@@ -173,7 +173,7 @@ void IOCPServer::RequestRecv(int sockIdx, bool overlapped) {
 
 
 bool IOCPServer::RecvHeader(SocketInfo* sInfo, OVERLAPPEDEX& overlappedEx, DWORD nowSize) {
-	DWORD totSize = 0;
+	DWORD64 totSize = 0;
 
 	//헤더의 크기만큼 받아오기
 	while (true) {
@@ -198,15 +198,15 @@ bool IOCPServer::RecvData(SocketInfo* sInfo, OVERLAPPEDEX& overlappedEx) {
 	HEADER* header = (HEADER*)overlappedEx.mPacket->mHeader.buf;
 
 	//헤더에서 데이터 크기 가져옴
-	const DWORD size = ntohl(header->mDataLen);
+	const DWORD64 size = ntohl(header->mDataLen);
 
 	if (size < 0)
 		return false;
 
 	//데이터가 있을 시
 	if (size > 0) {
-		DWORD totSize = 0;	//누적 크기
-		DWORD nowSize = 0;	//recv로 읽어온 크기
+		DWORD64 totSize = 0;	//누적 크기
+		DWORD64 nowSize = 0;	//recv로 읽어온 크기
 
 		//data할당 및 size저장
 		overlappedEx.mPacket->AllocDataBuffer(size);
@@ -272,7 +272,7 @@ void IOCPServer::RequestSend(int sockIdx, bool overlapped) {
 }
 
 bool IOCPServer::SendHeader(SocketInfo* sInfo, OVERLAPPEDEX& overlappedEx, DWORD nowSize) {
-	DWORD totSize = 0;
+	DWORD64 totSize = 0;
 
 	//헤더의 크기만큼 전부 보내기
 	while (true) {
@@ -298,12 +298,12 @@ bool IOCPServer::SendData(SocketInfo* sInfo, OVERLAPPEDEX& overlappedEx) {
 	HEADER* header = (HEADER*)overlappedEx.mPacket->mHeader.buf;
 	WSABUF& data = overlappedEx.mPacket->mData;
 
-	const DWORD dataSize = ntohl(header->mDataLen);
+	const DWORD64 dataSize = ntohl(header->mDataLen);
 
 	//데이터 크기만큼 쓰기
 	if (data.buf != nullptr && dataSize > 0) {
-		DWORD totSize = 0;
-		DWORD nowSize = 0;
+		DWORD64 totSize = 0;
+		DWORD64 nowSize = 0;
 
 		while (true) {
 			nowSize = send(sInfo->socket, data.buf + totSize, dataSize - totSize, 0);
