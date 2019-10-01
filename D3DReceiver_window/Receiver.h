@@ -25,7 +25,8 @@ enum INPUT_TYPE {
 	INPUT_KEY_S = 1,
 	INPUT_KEY_A = 2,
 	INPUT_KEY_D = 3,
-	INPUT_MOUSE_MOVE,
+	INPUT_AXIS_CAMERA_MOVE,
+	INPUT_AXIS_CAMERA_ROT,
 	INPUT_MAX
 };
 
@@ -35,6 +36,7 @@ struct INPUT_DATA {
 	float x;
 	float y;
 	float z;
+	float w;
 };
 
 struct HEADER {
