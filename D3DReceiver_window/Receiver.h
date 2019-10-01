@@ -25,7 +25,8 @@ enum INPUT_TYPE {
 	INPUT_KEY_S = 1,
 	INPUT_KEY_A = 2,
 	INPUT_KEY_D = 3,
-	INPUT_MOUSE_MOVE,
+	INPUT_AXIS_CAMERA_MOVE,
+	INPUT_AXIS_CAMERA_ROT,
 	INPUT_MAX
 };
 
@@ -35,11 +36,12 @@ struct INPUT_DATA {
 	float x;
 	float y;
 	float z;
+	float w;
 };
 
 struct HEADER {
-	DWORD mDataLen;
-	DWORD mCommand;
+	DWORD64 mDataLen;
+	DWORD64 mCommand;
 };
 
 //헤더 생성 보조 구조체
@@ -49,11 +51,11 @@ struct CHEADER : HEADER {
 		mCommand = htonl(COMMAND::COMMAND_REQ_FRAME);
 	}
 
-	CHEADER(DWORD command) {
+	CHEADER(DWORD64 command) {
 		mDataLen = 0;
 		mCommand = htonl(command);
 	}
-	CHEADER(DWORD command, DWORD dataLen) {
+	CHEADER(DWORD64 command, DWORD64 dataLen) {
 		mDataLen = htonl(dataLen);
 		mCommand = htonl(command);
 	}
@@ -62,31 +64,27 @@ struct CHEADER : HEADER {
 struct Packet {
 	WSABUF mHeader;
 	WSABUF mData;
-	const DWORD headerSize = sizeof(HEADER);
+	const DWORD64 headerSize = sizeof(HEADER);
 
-	Packet(int dataSize = 0) {
+	Packet() {
 		mHeader.buf = new char[headerSize];
 		mHeader.len = headerSize;
-
-		if (dataSize != 0) {
-			mData.buf = new char[dataSize];
-			mData.len = dataSize;
-		}
+		mData.buf = nullptr;
 	}
 
 	Packet(HEADER* header, void* data = nullptr) {
 		mHeader.buf = (char*)header;
 		mHeader.len = headerSize;
-
-		DWORD dataSize = ntohl(header->mDataLen);
-		if (dataSize != 0 && data != nullptr) {
+		mData.buf = nullptr;
+		if (data != nullptr) {
+			DWORD64 dataSize = ntohl(header->mDataLen);
 			mData.buf = (char*)data;
 			mData.len = dataSize;
 		}
 	}
 
 	void AllocDataBuffer(int size) {
-		if (mData.buf != nullptr) {
+		if (mData.buf == nullptr) {
 			mData.buf = new char[size];
 			mData.len = size;
 		}
@@ -112,7 +110,7 @@ private:
 
 	std::atomic<int> CountCMDRequestFrame = 0;
 
-	DWORD headerSize = sizeof(HEADER);
+	DWORD64 headerSize = sizeof(HEADER);
 
 public:
 	bool Init();

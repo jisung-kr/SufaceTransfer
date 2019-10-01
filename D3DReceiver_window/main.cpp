@@ -304,9 +304,9 @@ void OnMouseMove(WPARAM btnState, int x, int y) {
 		INPUT_DATA* data = new INPUT_DATA();
 		int dataSize = sizeof(INPUT_DATA);
 		memset(data, 0x00, dataSize);
-		data->mInputType = INPUT_TYPE::INPUT_MOUSE_MOVE;
-		data->x = dx;
-		data->y = dy;
+		data->mInputType = INPUT_TYPE::INPUT_AXIS_CAMERA_MOVE;
+		data->z= dx;
+		data->w = dy;
 
 		//data->deltaTime = timer.DeltaTime();
 
