@@ -78,7 +78,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 	}
 
 	client->PushPacketWQueue(new Packet(new CHEADER(COMMAND::COMMAND_REQ_FRAME)));
-	client->PushPacketWQueue(new Packet(new CHEADER(COMMAND::COMMAND_REQ_FRAME)));
+	//client->PushPacketWQueue(new Packet(new CHEADER(COMMAND::COMMAND_REQ_FRAME)));
 
 	mTimer.Reset();
 

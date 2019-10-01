@@ -61,12 +61,12 @@ bool Client::RecvMSG() {
 }
 
 bool Client::RecvHeader(Packet& packet) {
-	DWORD totSize = 0;
-	DWORD nowSize = 0;
+	DWORD64 totSize = 0;
+	DWORD64 nowSize = 0;
 
 	//헤더 수신
 	while (true) {
-		DWORD flag = 0;
+		DWORD64 flag = 0;
 
 		nowSize = recv(serverSock, (char*)packet.mHeader.buf + totSize, headerSize - totSize, 0);
 		if (nowSize > 0) {
@@ -91,9 +91,9 @@ bool Client::RecvHeader(Packet& packet) {
 
 bool Client::RecvData(Packet& packet) {
 	HEADER* header = (HEADER*)packet.mHeader.buf;
-	DWORD size = ntohl(header->mDataLen);
-	DWORD totSize = 0;
-	DWORD nowSize = 0;
+	DWORD64 size = ntohl(header->mDataLen);
+	DWORD64 totSize = 0;
+	DWORD64 nowSize = 0;
 
 	if (size > 0) {
 		packet.AllocDataBuffer(size);
@@ -144,8 +144,8 @@ bool Client::SendMSG() {
 }
 
 bool Client::SendHeader(Packet& packet) {
-	DWORD totSize = 0;
-	DWORD nowSize = 0;
+	DWORD64 totSize = 0;
+	DWORD64 nowSize = 0;
 
 	//헤더 송신
 	while (true) {
@@ -170,10 +170,10 @@ bool Client::SendHeader(Packet& packet) {
 bool Client::SendData(Packet& packet) {
 	HEADER* header = (HEADER*)packet.mHeader.buf;
 	WSABUF& data = packet.mData;
-	const DWORD dataSize = ntohl(header->mDataLen);
+	const DWORD64 dataSize = ntohl(header->mDataLen);
 
-	DWORD totSize = 0;
-	DWORD nowSize = 0;
+	DWORD64 totSize = 0;
+	DWORD64 nowSize = 0;
 
 	if (data.buf != nullptr && dataSize > 0) {
 		while (true) {
