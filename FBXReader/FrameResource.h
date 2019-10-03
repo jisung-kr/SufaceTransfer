@@ -2,6 +2,10 @@
 #include "D3DUtil.h"
 #include "UploadBuffer.h"
 
+struct SkinnedConstants {
+	DirectX::XMFLOAT4X4 BoneTransforms[96];
+};
+
 struct InstanceData
 {
 	DirectX::XMFLOAT4X4 World = MathHelper::Identity4x4();
@@ -11,7 +15,6 @@ struct InstanceData
 	UINT InstancePad1;
 	UINT InstancePad2;
 	UINT NumFramesDirty = gNumFrameResources;
-	bool Visible = false;
 };
 
 struct PassConstants
@@ -49,7 +52,7 @@ struct MaterialData
 	DirectX::XMFLOAT4X4 MatTransform = MathHelper::Identity4x4();
 
 	UINT DiffuseMapIndex = 0;
-	UINT MaterialPad0;
+	UINT NormalMapIndex = 0;
 	UINT MaterialPad1;
 	UINT MaterialPad2;
 };
@@ -59,7 +62,19 @@ struct Vertex
 	DirectX::XMFLOAT3 Pos;
 	DirectX::XMFLOAT3 Normal;
 	DirectX::XMFLOAT2 TexC;
+	DirectX::XMFLOAT3 TangentU;
 };
+
+struct SkinnedVertex
+{
+	DirectX::XMFLOAT3 Pos;
+	DirectX::XMFLOAT3 Normal;
+	DirectX::XMFLOAT2 TexC;
+	DirectX::XMFLOAT3 TangentU;
+	DirectX::XMFLOAT3 BoneWeights;
+	BYTE BoneIndices[4];
+};
+
 
 
 struct FrameResource
@@ -75,6 +90,7 @@ public:
 	std::unique_ptr<UploadBuffer<PassConstants>> PassCB = nullptr;
 	std::unique_ptr<UploadBuffer<InstanceData>> InstanceBuffer = nullptr;
 	std::unique_ptr<UploadBuffer<MaterialData>> MaterialBuffer = nullptr;
+	std::unique_ptr<UploadBuffer<SkinnedConstants>> SkinnedCB = nullptr;
 
 	//프레임자원으로서의 리드백자원
 	std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> mSurfaces;

@@ -31,6 +31,12 @@
     <Filter Include="헤더 파일\Queue">
       <UniqueIdentifier>{931935cd-4840-4112-8201-ff643a1fd3a8}</UniqueIdentifier>
     </Filter>
+    <Filter Include="소스 파일\Graphics\Animation">
+      <UniqueIdentifier>{18d542dd-683a-4878-b24a-cd4df3401cee}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\Graphics\Animation">
+      <UniqueIdentifier>{233e3c94-7bc1-47ed-90e2-2356c0d7b034}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Camera.cpp">
@@ -71,6 +77,12 @@
     </ClCompile>
     <ClCompile Include="BitmapQueue.cpp">
       <Filter>소스 파일\Queue</Filter>
+    </ClCompile>
+    <ClCompile Include="AnimationHelper.cpp">
+      <Filter>소스 파일\Graphics\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="LoadM3d.cpp">
+      <Filter>소스 파일\Graphics\Animation</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -115,6 +127,12 @@
     </ClInclude>
     <ClInclude Include="BitmapQueue.h">
       <Filter>헤더 파일\Queue</Filter>
+    </ClInclude>
+    <ClInclude Include="AnimationHelper.h">
+      <Filter>헤더 파일\Graphics\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="LoadM3d.h">
+      <Filter>헤더 파일\Graphics\Animation</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

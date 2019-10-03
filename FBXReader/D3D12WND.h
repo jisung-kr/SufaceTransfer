@@ -7,8 +7,9 @@
 #include "DDSTextureLoader.h"
 #include "Camera.h"
 #include "GeometryGenerator.h"
-
+#include "AnimationHelper.h"
 #include "FrameResource.h"
+#include "LoadM3d.h"
 
 #if defined(DEBUG) || defined(_DEBUG)
 #define _CRTDBG_MAP_ALLOC
@@ -22,50 +23,50 @@
 
 extern const int gNumFrameResources;
 
+
+struct SkinnedModelInstance {
+	SkinnedData* SkinnedInfo = nullptr;
+
+	std::vector<DirectX::XMFLOAT4X4> FinalTransforms;
+	std::string ClipName;
+
+	float TimePos = 0.0f;
+
+	void UpdateSkinnedAnimation(float dt) {
+		TimePos += dt;
+
+		if (TimePos > SkinnedInfo->GetClipEndTime(ClipName))
+			TimePos = 0.0f;
+
+		SkinnedInfo->GetFinalTransforms(ClipName, TimePos, FinalTransforms);
+	}
+};
+
 struct RenderItem
 {
 	RenderItem() = default;
 	RenderItem(const RenderItem& rhs) = delete;
 
-	DirectX::BoundingBox Bounds;
-	std::vector<InstanceData> Instances;
-
-	// World matrix of the shape that describes the object's local space
-	// relative to the world space, which defines the position, orientation,
-	// and scale of the object in the world.
-	DirectX::XMFLOAT4X4 World = MathHelper::Identity4x4();
-
-	DirectX::XMFLOAT4X4 TexTransform = MathHelper::Identity4x4();
-
-	// Index into GPU constant buffer corresponding to the ObjectCB for this render item.
-	UINT InstancingIndex = -1;
-
-	Material* Mat = nullptr;
 	MeshGeometry* Geo = nullptr;
-
 	// Primitive topology.
 	D3D12_PRIMITIVE_TOPOLOGY PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
 	// DrawIndexedInstanced parameters.
 	UINT IndexCount = 0;
-	UINT InstanceCount = 0;
 	UINT StartIndexLocation = 0;
 	int BaseVertexLocation = 0;
 
+	DirectX::BoundingBox Bounds;
+	std::vector<InstanceData> Instances;
+
+	UINT InstanceNum = 0;
 	UINT VisibleInstanceNum = 0;
+
+	UINT SkinnedCBIndex = -1;
+	SkinnedModelInstance* SkinnedModelInst = nullptr;
 };
 
-/* 서브매쉬 = 버텍스 버퍼에 들어있는 기하구조를 서브매쉬정보로 나누어둠
-	따라서 필요할때만 사용하면 됨.
-	필요없으면 사용 x(혹은 설정값을 처음부터 끝까지로 설정해둠)
-	렌더링 아이템에 필요한 정보 = 메쉬데이터(여기선 버퍼에 넣어둔 채로 넘겨줌//버퍼의 주소를 가지고 있음)
-												재질(Material로 처리, 원하는 텍스쳐와 표면에 대한 데이터를 이용해 재질 표현)
-												위치(월드상에서의 위치가 필요함(이 위치는 물체의 국소공간변환행렬이 됨)
-												기본도형(보통은 삼각형리스트로 설정)
-												텍스쳐변환행렬(텍스쳐를 변환할때, 잘 안쓰이므로 E행렬로 둠)
-												인스턴싱은 .... 위치정보를 인스턴싱 구조체로 옮기고 0~n개를 출력, 인스턴싱 갯수 표시!
-												*/
-
+/*
 struct CustomRenderItem{
 	CustomRenderItem() = default;
 	CustomRenderItem(const CustomRenderItem& rhs) = delete;
@@ -79,10 +80,12 @@ struct CustomRenderItem{
 	//기본도형
 	D3D12_PRIMITIVE_TOPOLOGY PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST; 
 };
-
+*/
 enum class RenderLayer : int{
 	None = 0,
-	Opaque = 1
+	Opaque = 1,
+	SkinnedOpaque = 2,
+	MAX
 };
 
 class D3D12WND {
@@ -158,7 +161,7 @@ private:
 	// List of all the render items.
 	std::vector<std::unique_ptr<RenderItem>> mAllRitems;
 
-	std::vector<RenderItem*> mRitemLayer[(int)RenderLayer::Opaque + 1];
+	std::vector<RenderItem*> mRitemLayer[(int)RenderLayer::MAX];
 
 	std::unordered_map<std::string, std::unique_ptr<MeshGeometry>> mGeometries;
 	std::unordered_map<std::string, std::unique_ptr<Material>> mMaterials;
@@ -190,10 +193,30 @@ private:
 	PassConstants mMainPassCB;
 
 	Camera mCamera;	//서버의 카메라
+	DirectX::BoundingFrustum mCamFrustum;
+	bool mFrustumCullingEnabled = true;
 
 	bool isWire_frame = false;
 
 	POINT mLastMousePos;
+
+	/*------------------------------------------------------------------------------------------------------*/
+	RenderItem* mBoxRitem = nullptr;
+	DirectX::XMFLOAT4X4 mBoxWorld = MathHelper::Identity4x4();
+	float mAnimTimePos = 0.0f;
+	BoneAnimation mBoxAnimation;
+
+	void DefineBoxAnimation();
+
+	std::vector<D3D12_INPUT_ELEMENT_DESC> mSkinnedInputLayout;
+	UINT mSkinnedSrvHeapStart = 0;
+	std::string mSkinnedModelFilename = "Models\\soldier.m3d";
+	std::unique_ptr<SkinnedModelInstance> mSkinnedModelInst;
+	SkinnedData mSkinnedInfo;
+	std::vector<M3DLoader::Subset> mSkinnedSubsets;
+	std::vector<M3DLoader::M3dMaterial> mSkinnedMats;
+	std::vector<std::string> mSkinnedTextureNames;
+	void LoadSkinnedModel();
 
 public:
 	Microsoft::WRL::ComPtr<ID3D12Device> GetD3DDevice();
@@ -222,9 +245,9 @@ public:
 	void BuildPSOs();
 	void BuildFrameResources();
 	void BuildMaterials();
-	void BuildRenderItems();
 
-	void BuildCubeMesh();
+	void BuildShapeGeometry();
+	void BuildWorldRenderItem();
 
 	void CreateReadBackTex();
 
@@ -248,6 +271,7 @@ public:
 	void UpdateInstanceData(const GameTimer& gt);
 	void UpdateMaterialBuffer(const GameTimer& gt);
 	void UpdateMainPassCB(const GameTimer& gt);
+	void UpdateSkinnedCBs(const GameTimer& gt);
 	/*------------------------------------------------------------------------------------------------------*/
 	void OnMouseDown(WPARAM btnState, int x, int y);
 	void OnMouseUp(WPARAM btnState, int x, int y);

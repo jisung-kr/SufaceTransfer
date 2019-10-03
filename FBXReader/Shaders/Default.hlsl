@@ -18,6 +18,24 @@
 // Include structures and functions for lighting.
 #include "LightingUtil.hlsl"
 
+float3 NormalSampleToWorldSpace(float3 normalMapSample, float3 unitNormalW, float3 tangentW)
+{
+	// Uncompress each component from [0,1] to [-1,1].
+	float3 normalT = 2.0f * normalMapSample - 1.0f;
+
+	// Build orthonormal basis.
+	float3 N = unitNormalW;
+	float3 T = normalize(tangentW - dot(tangentW, N) * N);
+	float3 B = cross(N, T);
+
+	float3x3 TBN = float3x3(T, B, N);
+
+	// Transform from tangent space to world space.
+	float3 bumpedNormalW = mul(normalT, TBN);
+
+	return bumpedNormalW;
+}
+
 struct InstanceData
 {
 	float4x4 World;
@@ -27,7 +45,6 @@ struct InstanceData
 	uint    InstPad1;
 	uint    InstPad2;
 	uint	NumFramesDirty;
-	bool    Visible;
 };
 
 struct MaterialData
@@ -37,14 +54,14 @@ struct MaterialData
     float    Roughness;
 	float4x4 MatTransform;
 	uint     DiffuseMapIndex;
-	uint     MatPad0;
+	uint     NormalMapIndex;
 	uint     MatPad1;
 	uint     MatPad2;
 };
 
 // An array of textures, which is only supported in shader model 5.1+.  Unlike Texture2DArray, the textures
 // in this array can be different sizes and formats, making it more flexible than texture arrays.
-Texture2D gDiffuseMap[3] : register(t0);
+Texture2D gTextureMap[16] : register(t0);
 
 // Put in space1, so the texture array does not overlap with these resources.  
 // The texture array will occupy registers t0, t1, ..., t6 in space0. 
@@ -84,11 +101,20 @@ cbuffer cbPass : register(b0)
     Light gLights[MaxLights];
 };
 
+cbuffer cbSkinned :  register(b1) {
+	float4x4 gBoneTransforms[96];	//캐릭터 당 최대 96개의 뼈대 지원
+}
+
 struct VertexIn
 {
 	float3 PosL    : POSITION;
     float3 NormalL : NORMAL;
 	float2 TexC    : TEXCOORD;
+	float4 TangentL	: TANGENT;
+#ifdef SKINNED
+	float3 BoneWeights	: WEIGHTS;
+	uint4 BoneIndices	: BONEINDICES;
+#endif
 };
 
 struct VertexOut
@@ -96,12 +122,15 @@ struct VertexOut
 	float4 PosH    : SV_POSITION;
     float3 PosW    : POSITION;
     float3 NormalW : NORMAL;
+	float3 TangentW : TANGENT;
 	float2 TexC    : TEXCOORD;
 	
 	// nointerpolation is used so the index is not interpolated 
 	// across the triangle.
 	nointerpolation uint MatIndex  : MATINDEX;
 };
+
+
 
 VertexOut VS(VertexIn vin, uint instanceID : SV_InstanceID)
 {
@@ -117,7 +146,29 @@ VertexOut VS(VertexIn vin, uint instanceID : SV_InstanceID)
 	
 	// Fetch the material data.
 	MaterialData matData = gMaterialData[matIndex];
-	
+
+#ifdef SKINNED
+	float weights[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+	weights[0] = vin.BoneWeights.x;
+	weights[1] = vin.BoneWeights.y;
+	weights[2] = vin.BoneWeights.z;
+	weights[3] = 1.0f - weights[0] - weights[1] - weights[2];
+
+	float3 posL = float3(0.0f, 0.0f, 0.0f);
+	float3 normalL = float3(0.0f, 0.0f, 0.0f);
+	float3 tangentL = float3(0.0f, 0.0f, 0.0f);
+	for (int i = 0; i < 4; ++i)
+	{
+		posL += weights[i] * mul(float4(vin.PosL, 1.0f), gBoneTransforms[vin.BoneIndices[i]]).xyz;
+		normalL += weights[i] * mul(vin.NormalL, (float3x3)gBoneTransforms[vin.BoneIndices[i]]);
+		tangentL += weights[i] * mul(vin.TangentL.xyz, (float3x3)gBoneTransforms[vin.BoneIndices[i]]);
+	}
+
+	vin.PosL = posL;
+	vin.NormalL = normalL;
+	vin.TangentL.xyz = tangentL;
+#endif
+
     // Transform to world space.
     float4 posW = mul(float4(vin.PosL, 1.0f), world);
     vout.PosW = posW.xyz;
@@ -143,12 +194,23 @@ float4 PS(VertexOut pin) : SV_Target
     float3 fresnelR0 = matData.FresnelR0;
     float  roughness = matData.Roughness;
 	uint diffuseTexIndex = matData.DiffuseMapIndex;
-	
+	uint normalMapIndex = matData.NormalMapIndex;
+
 	// Dynamically look up the texture in the array.
-    diffuseAlbedo *= gDiffuseMap[diffuseTexIndex].Sample(gsamLinearWrap, pin.TexC);
+    diffuseAlbedo *= gTextureMap[diffuseTexIndex].Sample(gsamAnisotropicWrap, pin.TexC);
+
+#ifdef ALPHA_TEST
+	// Discard pixel if texture alpha < 0.1.  We do this test as soon 
+	// as possible in the shader so that we can potentially exit the
+	// shader early, thereby skipping the rest of the shader code.
+	clip(diffuseAlbedo.a - 0.1f);
+#endif
 	
     // Interpolating normal can unnormalize it, so renormalize it.
     pin.NormalW = normalize(pin.NormalW);
+
+	float4 normalMapSample = gTextureMap[normalMapIndex].Sample(gsamAnisotropicWrap, pin.TexC);
+	float3 bumpedNormalW = NormalSampleToWorldSpace(normalMapSample.rgb, pin.NormalW, pin.TangentW);
 
     // Vector from point being lit to eye. 
     float3 toEyeW = normalize(gEyePosW - pin.PosW);
@@ -159,10 +221,13 @@ float4 PS(VertexOut pin) : SV_Target
     const float shininess = 1.0f - roughness;
     Material mat = { diffuseAlbedo, fresnelR0, shininess };
     float3 shadowFactor = 1.0f;
-    float4 directLight = ComputeLighting(gLights, mat, pin.PosW,
-        pin.NormalW, toEyeW, shadowFactor);
+	float4 directLight = ComputeLighting(gLights, mat, pin.PosW, bumpedNormalW, toEyeW, shadowFactor);
 
     float4 litColor = ambient + directLight;
+
+	float3 r = reflect(-toEyeW, bumpedNormalW);
+	float3 fresnelFactor = SchlickFresnel(fresnelR0, bumpedNormalW, r);
+	litColor.rgb += shininess * fresnelFactor * 0.4f;
 
     // Common convention to take alpha from diffuse albedo.
     litColor.a = diffuseAlbedo.a;

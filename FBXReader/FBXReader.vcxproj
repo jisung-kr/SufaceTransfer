@@ -152,6 +152,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="AnimationHelper.cpp" />
     <ClCompile Include="BitmapQueue.cpp" />
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="D3D12WND.cpp" />
@@ -161,12 +162,14 @@
     <ClCompile Include="GameTImer.cpp" />
     <ClCompile Include="GeometryGenerator.cpp" />
     <ClCompile Include="IOCP.cpp" />
+    <ClCompile Include="LoadM3d.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="MainWindow.cpp" />
     <ClCompile Include="MathHelper.cpp" />
     <ClCompile Include="Network.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AnimationHelper.h" />
     <ClInclude Include="BitmapQueue.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="D3D12WND.h" />
@@ -177,6 +180,7 @@
     <ClInclude Include="GameTimer.h" />
     <ClInclude Include="GeometryGenerator.h" />
     <ClInclude Include="IOCP.h" />
+    <ClInclude Include="LoadM3d.h" />
     <ClInclude Include="MainWindow.h" />
     <ClInclude Include="MathHelper.h" />
     <ClInclude Include="Network.h" />

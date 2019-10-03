@@ -11,7 +11,8 @@ FrameResource::FrameResource(ID3D12Device* device, UINT passCount, UINT maxInsta
 
 	MaterialBuffer = std::make_unique<UploadBuffer<MaterialData>>(device, materialCount, false);
 	InstanceBuffer = std::make_unique<UploadBuffer<InstanceData>>(device, maxInstanceCount, false);
-	
+	SkinnedCB = std::make_unique<UploadBuffer<SkinnedConstants>>(device, clientNum + 1, true);
+
 	mSurfaces.reserve(clientNum);
 	for (int i = 0; i < clientNum; ++i) {
 		mSurfaces.push_back(Microsoft::WRL::ComPtr<ID3D12Resource>());
