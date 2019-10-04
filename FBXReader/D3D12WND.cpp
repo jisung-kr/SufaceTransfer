@@ -2,7 +2,7 @@
 
 using namespace DirectX;
 using namespace Microsoft::WRL;
-
+using namespace std;
 const int gNumFrameResources = 3;
 
 D3D12WND::D3D12WND(HWND wnd) :mhMainWnd(wnd) { 
@@ -548,6 +548,9 @@ void D3D12WND::Draw(const GameTimer& gt) {
 		//여기서 그리기 수행
 		DrawRenderItems(cmdList.Get(), mRitemLayer[(int)RenderLayer::Opaque]);
 
+		mCommandList->SetPipelineState(mPSOs["skinnedOpaque"].Get());
+		DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::SkinnedOpaque]);
+
 		//리소스 배리어 전환
 		cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(server->mRenderTargetBuffer.Get(),
 			D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE));
@@ -643,6 +646,9 @@ void D3D12WND::Draw(const GameTimer& gt) {
 
 	//여기서 그리기 수행
 	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::Opaque]);
+
+	//mCommandList->SetPipelineState(mPSOs["skinnedOpaque"].Get());
+	//DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::SkinnedOpaque]);
 
 	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
 		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
@@ -748,7 +754,7 @@ void D3D12WND::AnimateMaterials(const GameTimer& gt) {
 }
 
 void D3D12WND::UpdateInstanceData(const GameTimer& gt) {
-	/*	*/
+	//서버쪽 절두체 선별
 	XMMATRIX view = mCamera.GetView();
 	XMMATRIX invView = XMMatrixInverse(&XMMatrixDeterminant(view), view);
 
@@ -1186,7 +1192,7 @@ void D3D12WND::BuildMaterials() {
 	tile0->Name = "tile0";
 	tile0->MatCBIndex = 2;
 	tile0->DiffuseSrvHeapIndex = 3;
-	tile0->NormalSrvHeapIndex = 3;
+	tile0->NormalSrvHeapIndex = 4;
 	tile0->DiffuseAlbedo = XMFLOAT4(0.9f, 0.9f, 0.9f, 1.0f);
 	tile0->FresnelR0 = XMFLOAT3(0.2f, 0.2f, 0.2f);
 	tile0->Roughness = 0.1f;
@@ -1194,8 +1200,8 @@ void D3D12WND::BuildMaterials() {
 	auto crate0 = std::make_unique<Material>();
 	crate0->Name = "crate0";
 	crate0->MatCBIndex = 3;
-	crate0->DiffuseSrvHeapIndex = 4;
-	crate0->NormalSrvHeapIndex = 4;
+	crate0->DiffuseSrvHeapIndex = 5;
+	crate0->NormalSrvHeapIndex = 5;
 	crate0->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 	crate0->FresnelR0 = XMFLOAT3(0.05f, 0.05f, 0.05f);
 	crate0->Roughness = 0.2f;
@@ -1489,6 +1495,9 @@ void D3D12WND::BuildWorldRenderItem() {
 
 	mAllRitems.push_back(std::move(sphereRitem));
 
+	for (auto& e : mAllRitems)
+		mRitemLayer[(int)RenderLayer::Opaque].push_back(e.get());
+
 	for (UINT i = 0; i < mSkinnedMats.size(); ++i)
 	{
 		std::string submeshName = "sm_" + std::to_string(i);
@@ -1522,8 +1531,7 @@ void D3D12WND::BuildWorldRenderItem() {
 		mAllRitems.push_back(std::move(ritem));
 	}
 
-	for (auto& e : mAllRitems)
-		mRitemLayer[(int)RenderLayer::Opaque].push_back(e.get());
+
 
 }
 
@@ -1663,13 +1671,14 @@ void D3D12WND::CopyBuffer() {
 			HEADER* header = (HEADER*)curClient->rQueue.FrontItem()->mHeader.buf;
 			if (ntohl(header->mCommand) == COMMAND::COMMAND_REQ_FRAME) {
 				//패킷 생성
-				Packet* packet = new Packet(new CHEADER(COMMAND::COMMAND_RES_FRAME, size));
+				std::unique_ptr<Packet> packet = std::make_unique<Packet>(new CHEADER(COMMAND::COMMAND_RES_FRAME, size));
 				packet->mData.len = size;
 
 				mCurrFrameResource->mSurfaces[i]->Map(0, &range, (void**)& packet->mData.buf);
 				mCurrFrameResource->mSurfaces[i]->Unmap(0, 0);
 
-				curClient->wQueue.PushItem(packet);
+				curClient->wQueue.PushItem(std::move(packet));
+				std::move(curClient->rQueue.FrontItem());
 				curClient->rQueue.PopItem();
 			}
 		}
@@ -1687,15 +1696,14 @@ void D3D12WND::InputPump(const GameTimer& gt) {
 		auto curClient = server->GetClient(i);
 
 
-		while (curClient->rQueue.Size() > 0) {
-			HEADER* header = (HEADER*)curClient->rQueue.FrontItem()->mHeader.buf;
+		while (curClient->inputRQueue.Size() > 0) {
+			HEADER* header = (HEADER*)curClient->inputRQueue.FrontItem()->mHeader.buf;
 
 			if (ntohl(header->mCommand) != COMMAND::COMMAND_INPUT)
 				break;
 
-			
-
-			INPUT_DATA* inputData = (INPUT_DATA*)curClient->rQueue.FrontItem()->mData.buf;
+			std::unique_ptr<Packet> packet = std::move(curClient->inputRQueue.FrontItem());
+			INPUT_DATA* inputData = (INPUT_DATA*)packet->mData.buf;
 			const float dtC = inputData->deltaTime;
 			const float dt = gt.DeltaTime();
 
@@ -1737,10 +1745,7 @@ void D3D12WND::InputPump(const GameTimer& gt) {
 				curClient->mCamera.RotateY(dx);
 			}
 
-
-			delete curClient->rQueue.FrontItem();
-			curClient->rQueue.PopItem();
-
+			curClient->inputRQueue.PopItem();
 		}	
 
 	}

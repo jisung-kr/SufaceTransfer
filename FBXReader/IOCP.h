@@ -12,7 +12,7 @@
 
 #define PORT 45000
 
-#define MAXCLIENT 0
+#define MAXCLIENT 1
 
 
 //IOCP 가상클래스
@@ -102,7 +102,7 @@ struct Packet {
 	Packet(int dataSize = 0) {
 		mHeader.buf = new char[headerSize];
 		mHeader.len = 0;
-
+		mData.buf = nullptr;
 		if (dataSize != 0) {
 			mData.buf = new char[dataSize];
 			mData.len = dataSize;
@@ -112,10 +112,18 @@ struct Packet {
 	Packet(HEADER* hedaer, void* data = nullptr, int dataSize = 0) {
 		mHeader.buf = (char*)hedaer;
 		mHeader.len = 0;
-
+		mData.buf = nullptr;
 		if (dataSize != 0 && data != nullptr) {
 			mData.buf = (char*)data;
 			mData.len = dataSize;
+		}
+	}
+	~Packet() {
+		if (mHeader.buf != nullptr) {
+			delete mHeader.buf;
+		}
+		if (mData.buf != nullptr) {
+			delete mData.buf;
 		}
 	}
 	void OutputPacketCommand() {
@@ -149,18 +157,8 @@ struct OVERLAPPEDEX{
 	DWORD mFlag;
 	DWORD mNumberOfByte;
 
-	Packet* mPacket = nullptr;
+	std::unique_ptr<Packet> mPacket = nullptr;
 	const DWORD64 headerSize = sizeof(HEADER);
-	/*
-	OVERLAPPEDEX() {}
-
-	OVERLAPPEDEX(IOCP_FLAG flag, int numOfByte = 0) : mFlag(flag){
-		mNumberOfByte = headerSize;
-	}
-	OVERLAPPEDEX(Packet* packet, IOCP_FLAG flag, int numOfByte = 0) : mFlag(flag), mPacket(packet){
-		mNumberOfByte = headerSize;
-	}
-	*/
 };
 
 //SocketInfo 구조체
@@ -170,12 +168,9 @@ struct SocketInfo {
 
 	Camera mCamera;
 
-	QueueEX<Packet*> rQueue;
-	QueueEX<Packet*> wQueue;
-	
-	std::atomic<bool> IsUsingRQueue = false;
-	std::atomic<bool> IsUsingWQueue = false;
-
+	QueueEX<std::unique_ptr<Packet>> rQueue;
+	QueueEX<std::unique_ptr<Packet>> wQueue;
+	QueueEX<std::unique_ptr<Packet>> inputRQueue;
 
 	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> mDirectCmdListAlloc;	//CmdList Allocator
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> mCommandList;	//Command List
