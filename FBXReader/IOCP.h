@@ -48,7 +48,7 @@ enum IOCP_FLAG {
 enum COMMAND {
 	COMMAND_REQ_FRAME = 0,
 	COMMAND_RES_FRAME = 1,
-	COMMAND_INPUT,
+	COMMAND_INPUT = 2,
 	COMMAND_MAX
 };
 
@@ -109,11 +109,12 @@ struct Packet {
 		}
 	}
 
-	Packet(HEADER* hedaer, void* data = nullptr, int dataSize = 0) {
-		mHeader.buf = (char*)hedaer;
+	Packet(HEADER* header, void* data = nullptr) {
+		mHeader.buf = (char*)header;
 		mHeader.len = 0;
 		mData.buf = nullptr;
-		if (dataSize != 0 && data != nullptr) {
+		if (data != nullptr) {
+			DWORD64 dataSize = ntohl(header->mDataLen);
 			mData.buf = (char*)data;
 			mData.len = dataSize;
 		}
@@ -143,7 +144,7 @@ struct Packet {
 		OutputDebugStringA(str);
 	}
 	void AllocDataBuffer(int size) {
-		if (mData.buf != nullptr) {
+		if (mData.buf == nullptr) {
 			mData.buf = new char[size];
 			mData.len = size;
 		}
@@ -171,6 +172,9 @@ struct SocketInfo {
 	QueueEX<std::unique_ptr<Packet>> rQueue;
 	QueueEX<std::unique_ptr<Packet>> wQueue;
 	QueueEX<std::unique_ptr<Packet>> inputRQueue;
+
+	std::atomic<bool> isUsingRecv = false;
+	std::atomic<bool> isUsingSend = false;
 
 	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> mDirectCmdListAlloc;	//CmdList Allocator
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> mCommandList;	//Command List

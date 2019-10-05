@@ -32,7 +32,12 @@ public:
 //Queue의 첫번째 원소 반환
 template <typename T>
 T& QueueEX<T>::FrontItem() {
-	std::lock_guard<std::mutex> lock(mMutex);
+	std::unique_lock<std::mutex> lock(mMutex);
+
+	while (mQueue.empty()) {
+		mCond.wait(lock);
+	}
+
 	return mQueue.front();
 }
 
@@ -48,9 +53,13 @@ void QueueEX<T>::PushItem(T item) {
 //Queue의 첫번째 원소 삭제
 template <typename T>
 void QueueEX<T>::PopItem() {
-	mMutex.lock();
+	std::unique_lock<std::mutex> lock(mMutex);
+
+	while (mQueue.empty()) {
+		mCond.wait(lock);
+	}
+
 	mQueue.pop();
-	mMutex.unlock();
 }
 
 //현재  Queue의 Item 갯수 반환
