@@ -1,5 +1,6 @@
 #include "Receiver.h"
 
+using namespace std;
 
 Client::~Client() {
 	
@@ -41,26 +42,27 @@ bool Client::Connection() {
 }
 
 bool Client::RecvMSG() {
-	if (IsUsingRQueue == false) {
-		IsUsingRQueue = true;
-		Packet* packet = new Packet();
+	if (isUsingRQueue == false) {
+		isUsingRQueue = true;
+		unique_ptr<Packet> packet = make_unique<Packet>();
 
-		if (!RecvHeader(*packet)) {
+		if (!RecvHeader(packet.get())) {
 			return false;
 		}
-		if (!RecvData(*packet)) {
+		if (!RecvData(packet.get())) {
 			return false;
 		}
+		isUsingRQueue = false;
+		rQueue.PushItem(std::move(packet));
 
-		rQueue.PushItem(packet);
-		IsUsingRQueue = false;
 		OutputDebugStringA("Queue에 Packet 저장\n");
 	}
 
+	
 	return true;
 }
 
-bool Client::RecvHeader(Packet& packet) {
+bool Client::RecvHeader(Packet* packet) {
 	DWORD64 totSize = 0;
 	DWORD64 nowSize = 0;
 
@@ -68,7 +70,7 @@ bool Client::RecvHeader(Packet& packet) {
 	while (true) {
 		DWORD64 flag = 0;
 
-		nowSize = recv(serverSock, (char*)packet.mHeader.buf + totSize, headerSize - totSize, 0);
+		nowSize = recv(serverSock, (char*)packet->mHeader.buf + totSize, headerSize - totSize, 0);
 		if (nowSize > 0) {
 			totSize += nowSize;
 
@@ -80,7 +82,7 @@ bool Client::RecvHeader(Packet& packet) {
 			return false;
 		}
 	}
-	HEADER* header = (HEADER*)packet.mHeader.buf;
+	HEADER* header = (HEADER*)packet->mHeader.buf;
 	if (ntohl(header->mCommand) >= COMMAND::COMMAND_MAX) {
 		OutputDebugStringA("헤더 수신 실패\n");
 		return false;
@@ -89,17 +91,17 @@ bool Client::RecvHeader(Packet& packet) {
 	return true;
 }
 
-bool Client::RecvData(Packet& packet) {
-	HEADER* header = (HEADER*)packet.mHeader.buf;
+bool Client::RecvData(Packet* packet) {
+	HEADER* header = (HEADER*)packet->mHeader.buf;
 	DWORD64 size = ntohl(header->mDataLen);
 	DWORD64 totSize = 0;
 	DWORD64 nowSize = 0;
 
 	if (size > 0) {
-		packet.AllocDataBuffer(size);
+		packet->AllocDataBuffer(size);
 
 		while (true) {
-			nowSize = recv(serverSock, (char*)packet.mData.buf + totSize, size - totSize, 0);
+			nowSize = recv(serverSock, (char*)packet->mData.buf + totSize, size - totSize, 0);
 			if (nowSize > 0) {
 				totSize += nowSize;
 
@@ -122,34 +124,44 @@ bool Client::RecvData(Packet& packet) {
 }
 
 bool Client::SendMSG() {
+	while (inputWQueue.Size() > 0 && isUsingInputWQueue == false) {
+		isUsingInputWQueue = true;
+		unique_ptr<Packet> packet = std::move(inputWQueue.FrontItem());
+		inputWQueue.PopItem();
 
-	if (wQueue.Size() > 0 && IsUsingWQueue == false) {
-		IsUsingWQueue = true;
-		Packet* packet = wQueue.FrontItem();
-
-		if (!SendHeader(*packet))
+		if (!SendHeader(packet.get()))
 			return false;
-		if (!SendData(*packet)) {
+		if (!SendData(packet.get())) {
 			return false;
 		}
-		
-		delete wQueue.FrontItem();
+		isUsingInputWQueue = false;
+		OutputDebugStringA("Queue에서 InputPacket 삭제\n");
+	}
+
+	if (wQueue.Size() > 0  && isUsingWQueue == false) {
+		isUsingWQueue = true;
+		unique_ptr<Packet> packet = std::move(wQueue.FrontItem());
 		wQueue.PopItem();
-		--CountCMDRequestFrame;
-		IsUsingWQueue = false;
+
+		if (!SendHeader(packet.get()))
+			return false;
+		if (!SendData(packet.get())) {
+			return false;
+		}
+		isUsingWQueue = false;
 		OutputDebugStringA("Queue에서 Packet 삭제\n");
 	}
 
 	return true;
 }
 
-bool Client::SendHeader(Packet& packet) {
+bool Client::SendHeader(Packet* packet) {
 	DWORD64 totSize = 0;
 	DWORD64 nowSize = 0;
 
 	//헤더 송신
 	while (true) {
-		nowSize = send(serverSock, (char*)packet.mHeader.buf + totSize, headerSize - totSize, 0);
+		nowSize = send(serverSock, (char*)packet->mHeader.buf + totSize, headerSize - totSize, 0);
 		if (nowSize > 0) {
 			totSize += nowSize;
 
@@ -167,9 +179,9 @@ bool Client::SendHeader(Packet& packet) {
 }
 
 
-bool Client::SendData(Packet& packet) {
-	HEADER* header = (HEADER*)packet.mHeader.buf;
-	WSABUF& data = packet.mData;
+bool Client::SendData(Packet* packet) {
+	HEADER* header = (HEADER*)packet->mHeader.buf;
+	WSABUF& data = packet->mData;
 	const DWORD64 dataSize = ntohl(header->mDataLen);
 
 	DWORD64 totSize = 0;
@@ -177,7 +189,7 @@ bool Client::SendData(Packet& packet) {
 
 	if (data.buf != nullptr && dataSize > 0) {
 		while (true) {
-			nowSize = send(serverSock, (char*)data.buf + totSize, dataSize - totSize, 0);
+			nowSize = send(serverSock, (char*)data.buf + totSize, (int)(dataSize - totSize), 0);
 			if (nowSize > 0) {
 				totSize += nowSize;
 
@@ -195,40 +207,27 @@ bool Client::SendData(Packet& packet) {
 	return true;
 }
 
-void Client::PushPacketWQueue(Packet* packet) {
+void Client::PushPacketWQueue(unique_ptr<Packet>&& packet) {
 
 	HEADER* header = (HEADER*)packet->mHeader.buf;
-	/*
-	if (ntohl(header->mCommand) == COMMAND::COMMAND_REQ_FRAME) {
-		++CountCMDRequestFrame;
 
-		if (CountCMDRequestFrame > 4) {
-			return;
-		}
-
+	if (ntohl(header->mCommand) == COMMAND::COMMAND_INPUT) {
+		inputWQueue.PushItem(std::move(packet));
 	}
-	*/
-	wQueue.PushItem(packet);
+	else if(reqFrameCount < 2){
+		++reqFrameCount;
+		wQueue.PushItem(std::move(packet));
+	}
 
 }
 void Client::PopPacketRQueue() {
-	Packet* packet = rQueue.FrontItem();
-	if (packet->mHeader.buf != nullptr) {
-		delete packet->mHeader.buf;
-		packet->mHeader.buf = nullptr;
-	}
-
-	if (packet->mData.buf != nullptr) {
-		delete packet->mData.buf;
-		packet->mData.buf = nullptr;
-	}
-
-	delete rQueue.FrontItem();
+	--reqFrameCount;
+	rQueue.FrontItem().release();
 	rQueue.PopItem();
 }
 
 char* Client::GetData() {
-	Packet* packet = rQueue.FrontItem();
+	Packet* packet = rQueue.FrontItem().get();
 	
 	return (char*)packet->mData.buf;
 }

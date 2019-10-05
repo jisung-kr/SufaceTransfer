@@ -59,6 +59,7 @@ struct CHEADER : HEADER {
 		mDataLen = htonl(dataLen);
 		mCommand = htonl(command);
 	}
+	~CHEADER() = default;
 };
 
 struct Packet {
@@ -82,6 +83,12 @@ struct Packet {
 			mData.len = dataSize;
 		}
 	}
+	~Packet() {
+		if (mHeader.buf != nullptr)
+			delete mHeader.buf;
+		if (mData.buf != nullptr)
+			delete mData.buf;
+	}
 
 	void AllocDataBuffer(int size) {
 		if (mData.buf == nullptr) {
@@ -102,13 +109,14 @@ private:
 	SOCKET serverSock;
 	sockaddr_in serverAddr;
 
-	QueueEX<Packet*> rQueue;
-	QueueEX<Packet*> wQueue;
+	QueueEX<std::unique_ptr<Packet>> rQueue;
+	QueueEX<std::unique_ptr<Packet>> wQueue;
+	QueueEX<std::unique_ptr<Packet>> inputWQueue;
 
-	std::atomic<bool> IsUsingRQueue = false;
-	std::atomic<bool> IsUsingWQueue = false;
-
-	std::atomic<int> CountCMDRequestFrame = 0;
+	std::atomic<bool> isUsingWQueue = false;
+	std::atomic<bool> isUsingInputWQueue = false;
+	std::atomic<bool> isUsingRQueue = false;
+	std::atomic<int> reqFrameCount = 0;
 
 	DWORD64 headerSize = sizeof(HEADER);
 
@@ -119,7 +127,7 @@ public:
 	bool RecvMSG();
 	bool SendMSG();
 
-	void PushPacketWQueue(Packet* packet);
+	void PushPacketWQueue(std::unique_ptr<Packet>&& packet);
 	void PopPacketRQueue();
 
 	int SizeRQueue() { return rQueue.Size(); }
@@ -129,9 +137,9 @@ public:
 	void ReleaseBuffer();
 
 private:
-	bool RecvHeader(Packet& packet);
-	bool RecvData(Packet& packet);
+	bool RecvHeader(Packet* packet);
+	bool RecvData(Packet* packet);
 
-	bool SendHeader(Packet& packet);
-	bool SendData(Packet& packet);
+	bool SendHeader(Packet* packet);
+	bool SendData(Packet* packet);
 };
