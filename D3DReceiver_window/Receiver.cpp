@@ -68,7 +68,6 @@ bool Client::RecvHeader(Packet* packet) {
 
 	//헤더 수신
 	while (true) {
-		DWORD64 flag = 0;
 
 		nowSize = recv(serverSock, (char*)packet->mHeader.buf + totSize, headerSize - totSize, 0);
 		if (nowSize > 0) {
@@ -124,6 +123,7 @@ bool Client::RecvData(Packet* packet) {
 }
 
 bool Client::SendMSG() {
+
 	while (inputWQueue.Size() > 0 && isUsingInputWQueue == false) {
 		isUsingInputWQueue = true;
 		unique_ptr<Packet> packet = std::move(inputWQueue.FrontItem());

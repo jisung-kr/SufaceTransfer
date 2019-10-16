@@ -126,6 +126,7 @@ public:
 
 	bool RecvMSG();
 	bool SendMSG();
+	bool SendInputMSG();
 
 	void PushPacketWQueue(std::unique_ptr<Packet>&& packet);
 	void PopPacketRQueue();

@@ -11,7 +11,6 @@ public:
 
 private:
 	std::queue<T> mQueue;
-	std::atomic<bool> mIsUsingQueue = false;
 	std::mutex mMutex;
 	std::condition_variable mCond;
 

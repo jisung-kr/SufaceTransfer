@@ -12,7 +12,7 @@ HWND mhMainWnd;	//메인 윈도우 핸들
 
 LPCWSTR clsName = TEXT("D3DReceiver");	//윈도우 쿨래스 네임
 
-Client* client = nullptr;	//클라이언트
+std::unique_ptr<Client> client = nullptr;	//클라이언트
 
 //UINT mClientWidth = 1280;
 //UINT mClientHeight = 720;
@@ -66,7 +66,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 	ShowWindow(mhMainWnd, SW_SHOW);
 
 	//클라이언트 초기화
-	client = new Client();
+	client = std::make_unique<Client>();
 	if (!client->Init()) {
 		::MessageBoxA(mhMainWnd, "네트워크 초기화 오류", "오류", MB_OK);
 		return 1;
@@ -94,7 +94,6 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 		else
 		{
 
-			/*				*/				
 			if (mNetworkReadThread == nullptr) {
 				mNetworkReadThread = new std::thread([&]() -> void {
 					while (true) {
@@ -130,27 +129,6 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 				});
 			}
 	
-
-			/*
-			if (client->SizeWQueue() < 3)
-				client->PushPacketWQueue(std::make_unique<Packet>(new CHEADER(COMMAND::COMMAND_REQ_FRAME)));
-
-			Input(mTimer);
-
-			if (!client->SendMSG()) {
-				delete client;
-				client = nullptr;
-				OutputDebugStringA("SendMSG Error\n");
-				break;
-			}
-
-			if (!client->RecvMSG()) {
-				delete client;
-				client = nullptr;
-				OutputDebugStringA("RecvMSG Error\n");
-				break;
-			}
-			*/
 	
 			if (mRenderingThread == nullptr) {
 				mRenderingThread = new std::thread([&]() -> void {
