@@ -37,6 +37,12 @@
     <Filter Include="헤더 파일\Graphics\Animation">
       <UniqueIdentifier>{233e3c94-7bc1-47ed-90e2-2356c0d7b034}</UniqueIdentifier>
     </Filter>
+    <Filter Include="소스 파일\Graphics\FBX">
+      <UniqueIdentifier>{16838544-1479-4a44-9b38-529055018912}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\Graphics\FBX">
+      <UniqueIdentifier>{3bbf501a-56ed-461c-bf32-3045ce4be60f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Camera.cpp">
@@ -83,6 +89,12 @@
     </ClCompile>
     <ClCompile Include="LoadM3d.cpp">
       <Filter>소스 파일\Graphics\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="FBXReader.cpp">
+      <Filter>소스 파일\Graphics\FBX</Filter>
+    </ClCompile>
+    <ClCompile Include="WICTextureLoader12.cpp">
+      <Filter>소스 파일\Graphics</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -133,6 +145,12 @@
     </ClInclude>
     <ClInclude Include="LoadM3d.h">
       <Filter>헤더 파일\Graphics\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="WICTextureLoader12.h">
+      <Filter>헤더 파일\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="FBXReader.h">
+      <Filter>헤더 파일\Graphics\FBX</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

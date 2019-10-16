@@ -24,6 +24,7 @@
 #include <sstream>
 #include <cassert>
 #include <comdef.h>
+#include <codecvt>
 
 #ifndef ThrowIfFailed
 #define ThrowIfFailed(x)                                              \
@@ -41,6 +42,9 @@
 extern const int gNumFrameResources;
 
 inline std::wstring AnsiToWString(const std::string& str);
+
+std::wstring s2ws(const std::string& str);
+std::string ws2s(const std::wstring& wstr);
 
 class D3DUtil
 {
@@ -101,6 +105,8 @@ public:
 
 struct SubmeshGeometry
 {
+	std::string name;
+	UINT MatIndex = 0;
 	UINT IndexCount = 0;
 	UINT StartIndexLocation = 0;
 	INT BaseVertexLocation = 0;

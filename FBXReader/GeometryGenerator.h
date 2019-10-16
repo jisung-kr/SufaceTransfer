@@ -38,7 +38,15 @@ public:
 		DirectX::XMFLOAT3 TangentU;
 		DirectX::XMFLOAT2 TexC;
 
+		bool operator==(const GeometryGenerator::Vertex& other) const {
+			bool posB = DirectX::XMVector3Equal(XMLoadFloat3(&Position), XMLoadFloat3(&other.Position));
+			bool norB = DirectX::XMVector3Equal(XMLoadFloat3(&Normal), XMLoadFloat3(&other.Normal));
+			bool binorB = DirectX::XMVector3Equal(XMLoadFloat3(&BiNormal), XMLoadFloat3(&other.BiNormal));
+			bool tanB = DirectX::XMVector3Equal(XMLoadFloat3(&TangentU), XMLoadFloat3(&other.TangentU));
+			bool texB = DirectX::XMVector2Equal(XMLoadFloat2(&TexC), XMLoadFloat2(&other.TexC));
 
+			return posB && norB && binorB && tanB && texB;
+		}
 	};
 
 	struct MeshData
@@ -107,3 +115,16 @@ private:
 
 	friend struct std::hash<GeometryGenerator::Vertex>;
 };
+
+
+namespace std {
+	template <>
+	struct hash<GeometryGenerator::Vertex> {
+		size_t operator()(const GeometryGenerator::Vertex& t) const {
+			hash<float> hash_func;
+
+
+			return hash_func(t.Position.x) + hash_func(t.Position.y) + hash_func(t.Position.z);
+		}
+	};
+}

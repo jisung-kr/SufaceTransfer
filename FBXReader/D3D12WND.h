@@ -10,6 +10,8 @@
 #include "AnimationHelper.h"
 #include "FrameResource.h"
 #include "LoadM3d.h"
+#include "FBXReader.h"
+#include "WICTextureLoader12.h"
 
 #include <memory>
 
@@ -60,7 +62,7 @@ struct RenderItem
 
 	DirectX::BoundingBox Bounds;
 	std::vector<InstanceData> Instances;
-
+	UINT InstanceSrvIndex = 0;
 	UINT InstanceNum = 0;
 	UINT VisibleInstanceNum = 0;
 
@@ -167,10 +169,10 @@ private:
 
 	std::unordered_map<std::string, std::unique_ptr<MeshGeometry>> mGeometries;
 	std::unordered_map<std::string, std::unique_ptr<Material>> mMaterials;
-	std::unordered_map<std::string, std::unique_ptr<Texture>> mTextures;
+	std::vector<std::pair<std::string, std::unique_ptr<Texture>>> mTextures;
 	std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3DBlob>> mShaders;
 	std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D12PipelineState>> mPSOs;
-	
+
 	/*------------------------------------------------------------------------------------------------------*/
 
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> mRootSignature = nullptr;
@@ -196,7 +198,7 @@ private:
 
 	Camera mCamera;	//서버의 카메라
 	DirectX::BoundingFrustum mCamFrustum;
-	bool mFrustumCullingEnabled = true;
+	bool mFrustumCullingEnabled = false;
 
 	bool isWire_frame = false;
 
@@ -211,14 +213,8 @@ private:
 	void DefineBoxAnimation();
 
 	std::vector<D3D12_INPUT_ELEMENT_DESC> mSkinnedInputLayout;
-	UINT mSkinnedSrvHeapStart = 0;
-	std::string mSkinnedModelFilename = "Models\\soldier.m3d";
 	std::unique_ptr<SkinnedModelInstance> mSkinnedModelInst;
-	SkinnedData mSkinnedInfo;
-	std::vector<M3DLoader::Subset> mSkinnedSubsets;
-	std::vector<M3DLoader::M3dMaterial> mSkinnedMats;
-	std::vector<std::string> mSkinnedTextureNames;
-	void LoadSkinnedModel();
+	
 
 public:
 	Microsoft::WRL::ComPtr<ID3D12Device> GetD3DDevice();
@@ -240,16 +236,24 @@ public:
 	void LogAdapterOutputs(IDXGIAdapter* adapter);
 	void LogOutputDisplayModes(IDXGIOutput* output, DXGI_FORMAT format);
 	/*------------------------------------------------------------------------------------------------------*/
+	void LoadTexture(const std::string key, const std::wstring fileName);
 	void LoadTextures();
+
+	void BuildMaterial(std::string materialName,int matIndexm, int DiffuseSrvHeapIndex, DirectX::XMFLOAT4 DiffuseAlbedo = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),
+		DirectX::XMFLOAT3 FresnelR0 = DirectX::XMFLOAT3(1.0f, 1.0f, 1.0f), float Roughness = 1.0f);
+	void BuildMaterials();
+
+	void BuildShapeGeometry();
+	void BuildFbxMesh();
+	void BuildWorldRenderItem();
+	void BuildCharacterRenderItem();
+
 	void BuildRootSignature();
 	void BuildDescriptorHeaps();
 	void BuildShadersAndInputLayout();
 	void BuildPSOs();
 	void BuildFrameResources();
-	void BuildMaterials();
 
-	void BuildShapeGeometry();
-	void BuildWorldRenderItem();
 
 	void CreateReadBackTex();
 

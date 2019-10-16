@@ -35,8 +35,10 @@ struct AnimationClip {
 class SkinnedData {
 
 private:
-	std::vector<int> mBoneHierarchy;
-	std::vector<DirectX::XMFLOAT4X4> mBoneOffsets;
+	//Skeleton mSkeletonHieratchy;	//JointÀÇ °èÃþ±¸Á¶
+
+	std::vector<int> mBoneHierarchy;	//°èÃþ±¸Á¶
+	std::vector<DirectX::XMFLOAT4X4> mBoneOffsets;	//»À ¿ÀÇÁ¼Â(SRT)
 	std::unordered_map<std::string, AnimationClip> mAnimations;
 
 
@@ -49,6 +51,5 @@ public:
 	void Set(std::vector<int>& boneHierarchy, std::vector<DirectX::XMFLOAT4X4> & boneOffsets, std::unordered_map<std::string, AnimationClip>& animations);
 
 	void GetFinalTransforms(const std::string& clipName, float timePos, std::vector<DirectX::XMFLOAT4X4>& finalTransforms) const;
-
 
 };

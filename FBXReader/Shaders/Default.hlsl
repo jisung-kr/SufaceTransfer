@@ -41,10 +41,8 @@ struct InstanceData
 	float4x4 World;
 	float4x4 TexTransform;
 	uint    MaterialIndex;
-	uint    InstPad0;
 	uint    InstPad1;
 	uint    InstPad2;
-	uint	NumFramesDirty;
 };
 
 struct MaterialData
@@ -67,6 +65,7 @@ Texture2D gTextureMap[16] : register(t0);
 // The texture array will occupy registers t0, t1, ..., t6 in space0. 
 StructuredBuffer<InstanceData> gInstanceData : register(t0, space1);
 StructuredBuffer<MaterialData> gMaterialData : register(t1, space1);
+
 
 SamplerState gsamPointWrap        : register(s0);
 SamplerState gsamPointClamp       : register(s1);
@@ -108,12 +107,12 @@ cbuffer cbSkinned :  register(b1) {
 struct VertexIn
 {
 	float3 PosL    : POSITION;
-    float3 NormalL : NORMAL;
+	float3 NormalL : NORMAL;
 	float2 TexC    : TEXCOORD;
-	float4 TangentL	: TANGENT;
+	float3 TangentL : TANGENT;
 #ifdef SKINNED
-	float3 BoneWeights	: WEIGHTS;
-	uint4 BoneIndices	: BONEINDICES;
+	float3 BoneWeights : WEIGHTS;
+	uint4 BoneIndices  : BONEINDICES;
 #endif
 };
 
@@ -194,7 +193,7 @@ float4 PS(VertexOut pin) : SV_Target
     float3 fresnelR0 = matData.FresnelR0;
     float  roughness = matData.Roughness;
 	uint diffuseTexIndex = matData.DiffuseMapIndex;
-	uint normalMapIndex = matData.NormalMapIndex;
+	//uint normalMapIndex = matData.NormalMapIndex;
 
 	// Dynamically look up the texture in the array.
     diffuseAlbedo *= gTextureMap[diffuseTexIndex].Sample(gsamAnisotropicWrap, pin.TexC);
@@ -209,8 +208,8 @@ float4 PS(VertexOut pin) : SV_Target
     // Interpolating normal can unnormalize it, so renormalize it.
     pin.NormalW = normalize(pin.NormalW);
 
-	float4 normalMapSample = gTextureMap[normalMapIndex].Sample(gsamAnisotropicWrap, pin.TexC);
-	float3 bumpedNormalW = NormalSampleToWorldSpace(normalMapSample.rgb, pin.NormalW, pin.TangentW);
+	//float4 normalMapSample = gTextureMap[normalMapIndex].Sample(gsamAnisotropicWrap, pin.TexC);
+	//float3 bumpedNormalW = NormalSampleToWorldSpace(normalMapSample.rgb, pin.NormalW, pin.TangentW);
 
     // Vector from point being lit to eye. 
     float3 toEyeW = normalize(gEyePosW - pin.PosW);
@@ -221,13 +220,13 @@ float4 PS(VertexOut pin) : SV_Target
     const float shininess = 1.0f - roughness;
     Material mat = { diffuseAlbedo, fresnelR0, shininess };
     float3 shadowFactor = 1.0f;
-	float4 directLight = ComputeLighting(gLights, mat, pin.PosW, bumpedNormalW, toEyeW, shadowFactor);
+	float4 directLight = ComputeLighting(gLights, mat, pin.PosW, pin.NormalW, toEyeW, shadowFactor);
 
     float4 litColor = ambient + directLight;
 
-	float3 r = reflect(-toEyeW, bumpedNormalW);
-	float3 fresnelFactor = SchlickFresnel(fresnelR0, bumpedNormalW, r);
-	litColor.rgb += shininess * fresnelFactor * 0.4f;
+	//float3 r = reflect(-toEyeW, bumpedNormalW);
+	//float3 fresnelFactor = SchlickFresnel(fresnelR0, bumpedNormalW, r);
+	//litColor.rgb += shininess * fresnelFactor;
 
     // Common convention to take alpha from diffuse albedo.
     litColor.a = diffuseAlbedo.a;
