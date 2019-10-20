@@ -1,6 +1,6 @@
 #include "Receiver.h"
-
 #include "GameTimer.h"
+#include "lz4.h"
 
 #include <WindowsX.h>
 #include <thread>
@@ -67,14 +67,18 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 
 	RegisterClass(&wndCls);
 
+	RECT Rect;
+	AdjustWindowRect(&Rect, WS_OVERLAPPEDWINDOW, false);
+	int additionalWidth = Rect.left - Rect.right;
+	int additionalHeight = Rect.bottom - Rect.top;
 
 	mhMainWnd = CreateWindow(clsName,
 		clsName,
 		WS_OVERLAPPEDWINDOW,
 		CW_USEDEFAULT,	//xPos
 		CW_USEDEFAULT,	//yPos
-		mClientWidth,	//Width
-		mClientHeight,	//Height
+		mClientWidth + additionalWidth,	//Width
+		mClientHeight + additionalHeight,	//Height
 		NULL,
 		NULL,
 		mhInst,
@@ -232,7 +236,13 @@ void Render() {
 		//hdc = BeginPaint(mhMainWnd, &ps);
 
 		hMemDC = CreateCompatibleDC(hdc);
-		hBitmap = CreateBitmap(640, 441, 1, 32, client->GetData());	//비트맵 사이즈 중요!!!
+		//압축해제
+		int srcDataSize = mClientHeight * mClientWidth * 4;
+		char* srcData = new char[srcDataSize];
+		//int size = LZ4_decompress_safe(client->GetData(), srcData, client->GetDataSize(), srcDataSize);
+		int size = LZ4_decompress_fast(client->GetData(), srcData, srcDataSize);
+
+		hBitmap = CreateBitmap(mClientWidth, mClientHeight, 1, 32, srcData);	//비트맵 사이즈 중요!!!
 		//hBitmap = CreateCompatibleBitmap(hdc, 640, 441);	//비트맵 사이즈 중요!!!
 		hOldBitmap = (HBITMAP)SelectObject(hMemDC, hBitmap);
 		BitBlt(hdc, 0, 0, mClientWidth, mClientHeight, hMemDC, 0, 0, SRCCOPY);

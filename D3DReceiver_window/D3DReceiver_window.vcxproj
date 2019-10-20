@@ -141,12 +141,14 @@
   <ItemGroup>
     <ClCompile Include="BitmapQueue.cpp" />
     <ClCompile Include="GameTImer.cpp" />
+    <ClCompile Include="lz4.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Receiver.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BitmapQueue.h" />
     <ClInclude Include="GameTimer.h" />
+    <ClInclude Include="lz4.h" />
     <ClInclude Include="Receiver.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

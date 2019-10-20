@@ -213,13 +213,13 @@ bool Client::SendData(Packet* packet) {
 }
 
 void Client::PushPacketWQueue(unique_ptr<Packet>&& packet) {
-
+	
 	HEADER* header = (HEADER*)packet->mHeader.buf;
 
 	if (ntohl(header->mCommand) == COMMAND::COMMAND_INPUT) {
 		inputWQueue.PushItem(std::move(packet));
 	}
-	else if(reqFrameCount < 3){
+	else if(reqFrameCount < 2){
 		++reqFrameCount;
 		wQueue.PushItem(std::move(packet));
 	}
@@ -229,6 +229,12 @@ void Client::PopPacketRQueue() {
 	--reqFrameCount;
 	rQueue.FrontItem().release();
 	rQueue.PopItem();
+}
+
+int Client::GetDataSize() {
+	Packet* packet = rQueue.FrontItem().get();
+
+	return (int)packet->mData.len;
 }
 
 char* Client::GetData() {

@@ -138,6 +138,7 @@ public:
 	int SizeWQueue() { return wQueue.Size(); }
 
 	char* GetData();
+	int GetDataSize();
 	void ReleaseBuffer();
 
 private:
