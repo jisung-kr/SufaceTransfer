@@ -35,6 +35,23 @@ void OnMouseUp(WPARAM btnState, int x, int y);
 void OnMouseMove(WPARAM btnState, int x, int y);
 
 int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmdShow) {
+
+
+	//FIle을 읽어서 아이피와 포트번호 받아오기
+	FILE* config = fopen("config.txt", "rt");
+	if (config == nullptr) {
+		MessageBoxA(NULL, "Can't Open File", "Error", MB_OK);
+		return -1;
+	}
+
+	char serverIP[30];
+	char serverPort[20];
+	unsigned short serverPort_short;
+	fscanf_s(config, "%*[Server_IP=]%s\n", serverIP, sizeof(serverIP));
+	fscanf_s(config, "%*[Server_Port=]%s\n", serverPort, sizeof(serverPort));
+	serverPort_short = atoi(serverPort);
+	fclose(config);
+
 	WNDCLASS wndCls;
 	ZeroMemory(&wndCls, sizeof(wndCls));
 
@@ -66,7 +83,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 	ShowWindow(mhMainWnd, SW_SHOW);
 
 	//클라이언트 초기화
-	client = std::make_unique<Client>();
+	client = std::make_unique<Client>(serverIP, serverPort_short);
 	if (!client->Init()) {
 		::MessageBoxA(mhMainWnd, "네트워크 초기화 오류", "오류", MB_OK);
 		return 1;

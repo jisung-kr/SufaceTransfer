@@ -11,7 +11,7 @@
 
 //#define SERVER_IP "127.0.0.1"
 //#define SERVER_IP "61.73.65.218"
-#define SERVER_IP "121.131.167.123"
+#define SERVER_IP "59.10.192.67"
 
 enum COMMAND {
 	COMMAND_REQ_FRAME = 0,
@@ -101,13 +101,16 @@ struct Packet {
 
 class Client {
 public:
-	Client() = default;
+	Client(char* ip, short port);
 	virtual ~Client();
 
 private:
 	WSADATA wsaData;
 	SOCKET serverSock;
 	sockaddr_in serverAddr;
+
+	char serverIP[30];
+	short serverPort;
 
 	QueueEX<std::unique_ptr<Packet>> rQueue;
 	QueueEX<std::unique_ptr<Packet>> wQueue;

@@ -2,6 +2,11 @@
 
 using namespace std;
 
+Client::Client(char* ip, short port) {
+	strcpy_s(serverIP, sizeof(serverIP), ip);
+	serverPort = port;
+}
+
 Client::~Client() {
 	
 	closesocket(serverSock);
@@ -23,9 +28,9 @@ bool Client::Init() {
 	//소켓 설정
 	memset(&serverAddr, 0x00, sizeof(serverAddr));
 	serverAddr.sin_family = AF_INET;
-	serverAddr.sin_port = htons(PORT);
+	serverAddr.sin_port = htons(serverPort);
 	ULONG ulongAddr;
-	InetPtonA(AF_INET, SERVER_IP, &ulongAddr);
+	InetPtonA(AF_INET, serverIP, &ulongAddr);
 	serverAddr.sin_addr.S_un.S_addr = ulongAddr;
 
 	return true;
@@ -214,7 +219,7 @@ void Client::PushPacketWQueue(unique_ptr<Packet>&& packet) {
 	if (ntohl(header->mCommand) == COMMAND::COMMAND_INPUT) {
 		inputWQueue.PushItem(std::move(packet));
 	}
-	else if(reqFrameCount < 2){
+	else if(reqFrameCount < 3){
 		++reqFrameCount;
 		wQueue.PushItem(std::move(packet));
 	}
