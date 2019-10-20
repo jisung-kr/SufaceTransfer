@@ -26,13 +26,19 @@ bool MainWindow::Initialize() {
 
 	RegisterClass(&wndCls);
 
+	//윈도우 작업영역을 지정한 값만큼 만들기 위해 비작업영억의 크기 구하기
+	RECT Rect;
+	AdjustWindowRect(&Rect, WS_OVERLAPPEDWINDOW, false);
+	unsigned int additionalWidth = Rect.right - Rect.left;
+	unsigned int additionalHeight = Rect.bottom - Rect.top;
+
 	mhMainWnd = CreateWindow(clsName,
 		mMainWndCaption.c_str(),
 		WS_OVERLAPPEDWINDOW,
 		CW_USEDEFAULT,	//xPos
 		CW_USEDEFAULT,	//yPos
-		mClientWidth,	//Width
-		mClientHeight ,	//Height
+		mClientWidth + additionalWidth,	//Width
+		mClientHeight + additionalHeight,	//Height
 		NULL,
 		NULL,
 		mhInst,

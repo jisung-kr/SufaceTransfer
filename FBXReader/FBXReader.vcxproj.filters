@@ -46,6 +46,9 @@
     <Filter Include="헤더 파일\Codec">
       <UniqueIdentifier>{3654f0de-02e6-4249-a433-f21d70bb1f1f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="소스 파일\Codec">
+      <UniqueIdentifier>{3313a36e-6d81-435a-aeb3-e36812eea71a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Camera.cpp">
@@ -98,6 +101,9 @@
     </ClCompile>
     <ClCompile Include="WICTextureLoader12.cpp">
       <Filter>소스 파일\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="lz4.cpp">
+      <Filter>소스 파일\Codec</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -155,7 +161,7 @@
     <ClInclude Include="FBXReader.h">
       <Filter>헤더 파일\Graphics\FBX</Filter>
     </ClInclude>
-    <ClInclude Include="Codec.h">
+    <ClInclude Include="lz4.h">
       <Filter>헤더 파일\Codec</Filter>
     </ClInclude>
   </ItemGroup>

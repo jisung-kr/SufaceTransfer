@@ -165,6 +165,7 @@
     <ClCompile Include="GeometryGenerator.cpp" />
     <ClCompile Include="IOCP.cpp" />
     <ClCompile Include="LoadM3d.cpp" />
+    <ClCompile Include="lz4.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="MainWindow.cpp" />
     <ClCompile Include="MathHelper.cpp" />
@@ -175,7 +176,6 @@
     <ClInclude Include="AnimationHelper.h" />
     <ClInclude Include="BitmapQueue.h" />
     <ClInclude Include="Camera.h" />
-    <ClInclude Include="Codec.h" />
     <ClInclude Include="D3D12WND.h" />
     <ClInclude Include="D3DUtil.h" />
     <ClInclude Include="d3dx12.h" />
@@ -186,6 +186,7 @@
     <ClInclude Include="GeometryGenerator.h" />
     <ClInclude Include="IOCP.h" />
     <ClInclude Include="LoadM3d.h" />
+    <ClInclude Include="lz4.h" />
     <ClInclude Include="MainWindow.h" />
     <ClInclude Include="MathHelper.h" />
     <ClInclude Include="Network.h" />

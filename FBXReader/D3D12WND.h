@@ -12,7 +12,7 @@
 #include "LoadM3d.h"
 #include "FBXReader.h"
 #include "WICTextureLoader12.h"
-#include "Codec.h"
+#include "lz4.h"
 
 #include <memory>
 
@@ -115,11 +115,8 @@ private:
 
 	std::wstring mMainWndCaption;
 
-	//int mClientWidth = 1280; //App Width
-	//int mClientHeight = 720; //App Height
-
-	int mClientWidth = 640; //App Width
-	int mClientHeight = 480; //App Height
+	int mClientWidth = 0; //App Width
+	int mClientHeight = 0; //App Height
 
 	/*------------------------------------------------------------------------------------------------------*/
 	D3D_DRIVER_TYPE md3dDriverType = D3D_DRIVER_TYPE_HARDWARE;
@@ -263,8 +260,8 @@ public:
 	void UpdateClientPassCB(const GameTimer& gt);
 
 	FLOAT* GetReadBackBuffer();
-	SIZE_T GetSurfaceSize() { return D3DUtil::CalcConstantBufferByteSize(mClientWidth * sizeof(FLOAT)) * mClientHeight; }
-	//SIZE_T GetSurfaceSize() { return mClientWidth * sizeof(FLOAT) * mClientHeight; }
+	//SIZE_T GetSurfaceSize() { return D3DUtil::CalcConstantBufferByteSize(mClientWidth * sizeof(FLOAT)) * mClientHeight; }
+	SIZE_T GetSurfaceSize() { return mClientWidth * sizeof(FLOAT) * mClientHeight; }
 
 	void SendFrame();
 	void RecvRequest();

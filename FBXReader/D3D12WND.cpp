@@ -111,7 +111,7 @@ bool D3D12WND::InitDirect3D() {
 	ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
 
 	//서버측 카메라 위치 설정
-	mCamera.SetPosition(0.0f, 2.0f, -20.0f);
+	mCamera.SetPosition(0.0f, 2.0f, -30.0f);
 
 	/* 서버 소켓 생성및 초기화 */
 	//server = new Server();
@@ -485,6 +485,11 @@ void D3D12WND::OnResize() {
 	mScissorRect = { 0, 0, mClientWidth, mClientHeight };
 
 	mCamera.SetLens(0.25f*MathHelper::Pi, AspectRatio(), 1.0f, 1000.0f);
+
+	for (int i = 0; i < server->GetClientNum(); ++i) {
+		server->GetClient(i)->mCamera.SetLens(0.25f * MathHelper::Pi, AspectRatio(), 1.0f, 1000.0f);
+	}
+
 	BoundingFrustum::CreateFromMatrix(mCamFrustum, mCamera.GetProj());
 }
 
@@ -586,7 +591,7 @@ void D3D12WND::Draw(const GameTimer& gt) {
 			dstLoc.PlacedFootprint.Footprint.Height = mClientHeight;
 			dstLoc.PlacedFootprint.Footprint.Width = mClientWidth;
 			dstLoc.PlacedFootprint.Footprint.Depth = 1;
-			dstLoc.PlacedFootprint.Footprint.RowPitch = D3DUtil::CalcConstantBufferByteSize(mClientWidth * sizeof(FLOAT));
+			dstLoc.PlacedFootprint.Footprint.RowPitch = mClientWidth * sizeof(FLOAT);
 			dstLoc.SubresourceIndex = 0;
 
 			//복사소스 설정
@@ -1720,23 +1725,30 @@ void D3D12WND::CopyBuffer() {
 		if (curClient->rQueue.Size() > 0) {
 			HEADER* header = (HEADER*)curClient->rQueue.FrontItem()->mHeader.buf;
 			if (ntohl(header->mCommand) == COMMAND::COMMAND_REQ_FRAME) {
-				/*
+				/*	*/
 				//데이터 압축
 				void** tempBuf;
 				mCurrFrameResource->mSurfaces[i]->Map(0, &range, (void**)& tempBuf);
 				mCurrFrameResource->mSurfaces[i]->Unmap(0, 0);
 
-				LZSS<uint32_t> comp;
-				WSABUF* buf = comp.Encode((char*)tempBuf, size);
+				char* compressed_msg = new char[size];
+				size_t compressed_size = 0;
 
-				*/
+				compressed_size = LZ4_compress_default((char*)tempBuf, compressed_msg, size, size);
+				//compressed_size = LZ4_compress_fast((char*)tempBuf, compressed_msg, size, size, 4);
+				
+				std::unique_ptr<Packet> packet = std::make_unique<Packet>(new CHEADER(COMMAND::COMMAND_RES_FRAME, compressed_size));
+				packet->mData.len = compressed_size;
+				packet->mData.buf = compressed_msg;
+
+			/*
 				//패킷 생성
 				std::unique_ptr<Packet> packet = std::make_unique<Packet>(new CHEADER(COMMAND::COMMAND_RES_FRAME, size));
 				packet->mData.len = size;
 
 				mCurrFrameResource->mSurfaces[i]->Map(0, &range, (void**)& packet->mData.buf);
 				mCurrFrameResource->mSurfaces[i]->Unmap(0, 0);
-
+				*/
 
 				curClient->wQueue.PushItem(std::move(packet));
 
@@ -1768,7 +1780,7 @@ void D3D12WND::InputPump(const GameTimer& gt) {
 			std::unique_ptr<Packet> packet = std::move(curClient->inputRQueue.FrontItem());
 			INPUT_DATA* inputData = (INPUT_DATA*)packet->mData.buf;
 			const float dtC = inputData->deltaTime;
-			const float dt = gt.DeltaTime();
+			const float dt = gt.DeltaTime() - dtC*2;
 
 			if (inputData->mInputType == INPUT_TYPE::INPUT_KEY_W) {
 				curClient->mCamera.Walk(20.0f * dt);
@@ -1837,7 +1849,7 @@ void D3D12WND::CreateRTVDSV_Server() {
 	renderTexDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	renderTexDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 	renderTexDesc.Format = mBackBufferFormat;
-	renderTexDesc.Width = mClientWidth;
+	renderTexDesc.Width = mClientWidth;	//후에 클라이언트 해상도를 받아서 처리하게 변경 + 클라마다 렌더타겟을 동적으로 생성으로 변경
 	renderTexDesc.Height = mClientHeight;
 	renderTexDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 	renderTexDesc.MipLevels = 1;

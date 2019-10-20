@@ -2,6 +2,62 @@
 #include <WinSock2.h>
 #include <iostream>
 
+template <typename T>
+class RLE {
+private:
+	const int maxOverlappedCount = 255;
+
+public:
+	WSABUF* Encode(char* srcData, int srcDataSize);
+	WSABUF* Decode(char* dstData, int dstSize);
+};
+
+template <typename T>
+WSABUF* RLE<T>::Encode(char* srcData, int srcDataSize) {
+	std::queue<char> tempDstBuf;
+
+	for (int i = 0; i < srcDataSize; ) {
+		T data;
+		memcpy(&data, srcData + i, sizeof(T));
+
+		unsigned char overlappedCount = 0;
+		i += sizeof(T);
+
+		for (int j = i; j < maxOverlappedCount; ) {
+			T cmpData;
+			memcpy(&cmpData, srcData + j, sizeof(T));
+
+			if (data != cmpData) 
+				break;
+			
+			++overlappedCount;
+		}
+
+		for (int j = 0; j < sizeof(T); ++j) {
+			char byteInputData = data >> (8 * (sizeof(T) - 1 - j));
+			tempDstBuf.push(byteInputData);
+		}
+
+		tempDstBuf.push(overlappedCount);
+	}
+
+	WSABUF* dstBuf = new WSABUF();
+	char* buf = new char[tempDstBuf.size()];
+
+	dstBuf->buf = buf;
+	dstBuf->len = tempDstBuf.size();
+
+	return dstBuf;
+}
+template <typename T>
+WSABUF* RLE<T>::Decode(char* dstData, int dstSize) {
+
+}
+
+
+
+
+
 template <typename T = int32_t>
 class LZSS {
 
