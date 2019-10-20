@@ -1734,8 +1734,8 @@ void D3D12WND::CopyBuffer() {
 				char* compressed_msg = new char[size];
 				size_t compressed_size = 0;
 
-				compressed_size = LZ4_compress_default((char*)tempBuf, compressed_msg, size, size);
-				//compressed_size = LZ4_compress_fast((char*)tempBuf, compressed_msg, size, size, 4);
+				//compressed_size = LZ4_compress_default((char*)tempBuf, compressed_msg, size, size);
+				compressed_size = LZ4_compress_fast((char*)tempBuf, compressed_msg, size, size, 20);
 				
 				std::unique_ptr<Packet> packet = std::make_unique<Packet>(new CHEADER(COMMAND::COMMAND_RES_FRAME, compressed_size));
 				packet->mData.len = compressed_size;
