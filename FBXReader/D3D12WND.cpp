@@ -1381,7 +1381,7 @@ void D3D12WND::BuildShapeGeometry() {
 
 void D3D12WND::BuildFbxMesh() {
 	//이곳에서 Fbx로 부터 각 정점 받아오기 수행
-	FBXReader read("Samba Dancing.fbx");
+	FBXReader read("Bee.fbx");
 
 	read.LoadFBXData(read.GetRootNode(), false);
 
@@ -1582,7 +1582,7 @@ void D3D12WND::BuildCharacterRenderItem() {
 		curSubRItem->Instances[0].MaterialIndex = 4 + i;
 
 		mAllRitems.push_back(std::move(curSubRItem));
-		mRitemLayer[(int)RenderLayer::SkinnedOpaque].push_back(mAllRitems[mAllRitems.size() - 1].get());
+		mRitemLayer[(int)RenderLayer::Opaque].push_back(mAllRitems[mAllRitems.size() - 1].get());
 	}
 	
 	
@@ -1720,6 +1720,16 @@ void D3D12WND::CopyBuffer() {
 		if (curClient->rQueue.Size() > 0) {
 			HEADER* header = (HEADER*)curClient->rQueue.FrontItem()->mHeader.buf;
 			if (ntohl(header->mCommand) == COMMAND::COMMAND_REQ_FRAME) {
+				/*
+				//데이터 압축
+				void** tempBuf;
+				mCurrFrameResource->mSurfaces[i]->Map(0, &range, (void**)& tempBuf);
+				mCurrFrameResource->mSurfaces[i]->Unmap(0, 0);
+
+				LZSS<uint32_t> comp;
+				WSABUF* buf = comp.Encode((char*)tempBuf, size);
+
+				*/
 				//패킷 생성
 				std::unique_ptr<Packet> packet = std::make_unique<Packet>(new CHEADER(COMMAND::COMMAND_RES_FRAME, size));
 				packet->mData.len = size;
@@ -1727,7 +1737,9 @@ void D3D12WND::CopyBuffer() {
 				mCurrFrameResource->mSurfaces[i]->Map(0, &range, (void**)& packet->mData.buf);
 				mCurrFrameResource->mSurfaces[i]->Unmap(0, 0);
 
+
 				curClient->wQueue.PushItem(std::move(packet));
+
 
 				curClient->rQueue.FrontItem().release();
 				curClient->rQueue.PopItem();

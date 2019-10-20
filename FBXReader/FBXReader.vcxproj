@@ -175,6 +175,7 @@
     <ClInclude Include="AnimationHelper.h" />
     <ClInclude Include="BitmapQueue.h" />
     <ClInclude Include="Camera.h" />
+    <ClInclude Include="Codec.h" />
     <ClInclude Include="D3D12WND.h" />
     <ClInclude Include="D3DUtil.h" />
     <ClInclude Include="d3dx12.h" />

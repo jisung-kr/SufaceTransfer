@@ -12,7 +12,7 @@
 
 #define PORT 45000
 
-#define MAXCLIENT 0
+#define MAXCLIENT 1
 
 
 //IOCP 가상클래스

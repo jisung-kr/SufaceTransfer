@@ -12,6 +12,7 @@
 #include "LoadM3d.h"
 #include "FBXReader.h"
 #include "WICTextureLoader12.h"
+#include "Codec.h"
 
 #include <memory>
 

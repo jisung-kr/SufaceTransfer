@@ -43,6 +43,9 @@
     <Filter Include="헤더 파일\Graphics\FBX">
       <UniqueIdentifier>{3bbf501a-56ed-461c-bf32-3045ce4be60f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="헤더 파일\Codec">
+      <UniqueIdentifier>{3654f0de-02e6-4249-a433-f21d70bb1f1f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Camera.cpp">
@@ -151,6 +154,9 @@
     </ClInclude>
     <ClInclude Include="FBXReader.h">
       <Filter>헤더 파일\Graphics\FBX</Filter>
+    </ClInclude>
+    <ClInclude Include="Codec.h">
+      <Filter>헤더 파일\Codec</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
