@@ -1850,14 +1850,30 @@ void D3D12WND::CopyBuffer() {
 				char* compressed_msg = new char[size];
 				size_t compressed_size = 0;
 
+				//멀티스레드 고려
+				/*
+				const int count = 4;
+				char** compressed_msg1 = new char* [count];
+				size_t compressed_size1[count];
+
+				for (int j = 0; j < count; ++j) {
+					compressed_msg1[j] = new char[size / count];
+				}
+
+				for (int j = 0; j < count; ++j) {
+					compressed_size1[j] = LZ4_compress_default((char*)tempBuf + j * (size / count), compressed_msg1[j], size / count, size / count);
+					//compressed_size1[j] = LZ4_compress_fast((char*)tempBuf + j*(size/ count), compressed_msg1[j], size / count, size / count, 6);
+				}
 				//compressed_size = LZ4_compress_default((char*)tempBuf, compressed_msg, size, size);
-				compressed_size = LZ4_compress_fast((char*)tempBuf, compressed_msg, size, size, 20);
+
+				*/
+				compressed_size = LZ4_compress_fast((char*)tempBuf, compressed_msg, size, size, 6);
 				
 				std::unique_ptr<Packet> packet = std::make_unique<Packet>(new CHEADER(COMMAND::COMMAND_RES_FRAME, compressed_size));
 				packet->mData.len = compressed_size;
 				packet->mData.buf = compressed_msg;
 
-			/*
+				/*
 				//패킷 생성
 				std::unique_ptr<Packet> packet = std::make_unique<Packet>(new CHEADER(COMMAND::COMMAND_RES_FRAME, size));
 				packet->mData.len = size;
