@@ -15,6 +15,7 @@ private:
 	HINSTANCE mhInst;
 	HWND mhMainWnd;	// D3D 표시메인 윈도우
 
+	
 	UINT mClientWidth = 1024;
 	UINT mClientHeight = 576;
 
