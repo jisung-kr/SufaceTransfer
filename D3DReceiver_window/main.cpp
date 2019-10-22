@@ -14,11 +14,17 @@ LPCWSTR clsName = TEXT("D3DReceiver");	//윈도우 쿨래스 네임
 
 std::unique_ptr<Client> client = nullptr;	//클라이언트
 
+UINT mClientWidth = 1024;
+UINT mClientHeight = 576;
+
+//UINT mClientWidth = 854;
+//UINT mClientHeight = 480;
+
 //UINT mClientWidth = 1280;
 //UINT mClientHeight = 720;
 
-UINT mClientWidth = 640;
-UINT mClientHeight = 480;
+//UINT mClientWidth = 640;
+//UINT mClientHeight = 480;
 
 std::thread* mNetworkReadThread = nullptr;
 std::thread* mNetworkWriteThread = nullptr;
@@ -250,7 +256,7 @@ void Render() {
 		DeleteDC(hMemDC);
 		DeleteObject(hBitmap);
 
-
+		delete[] srcData;
 		ReleaseDC(mhMainWnd, hdc);
 		//EndPaint(mhMainWnd, &ps);
 	}
