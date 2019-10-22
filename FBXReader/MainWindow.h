@@ -15,11 +15,14 @@ private:
 	HINSTANCE mhInst;
 	HWND mhMainWnd;	// D3D 표시메인 윈도우
 
+	UINT mClientWidth = 1024;
+	UINT mClientHeight = 576;
+
 	//UINT mClientWidth = 1280;
 	//UINT mClientHeight = 720;
 
-	UINT mClientWidth = 640;
-	UINT mClientHeight = 480;
+	//UINT mClientWidth = 640;
+	//UINT mClientHeight = 480;
 
 	LPCWSTR clsName = TEXT("D3D App");	//Window Class Name
 	std::wstring mMainWndCaption = TEXT("D3D App");	//Window Name

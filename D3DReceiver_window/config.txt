@@ -1,2 +1,2 @@
-Server_IP=59.10.192.67
+Server_IP=127.0.0.1
 Server_Port=45000

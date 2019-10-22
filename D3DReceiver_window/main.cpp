@@ -22,6 +22,8 @@ UINT mClientHeight = 576;
 
 //UINT mClientWidth = 1280;
 //UINT mClientHeight = 720;
+UINT mClientWidth = 1024;
+UINT mClientHeight = 576;
 
 //UINT mClientWidth = 640;
 //UINT mClientHeight = 480;
