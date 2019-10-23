@@ -75,6 +75,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 	RegisterClass(&wndCls);
 
 	RECT Rect;
+	ZeroMemory(&Rect, sizeof(RECT));
 	AdjustWindowRect(&Rect, WS_OVERLAPPEDWINDOW, false);
 	int additionalWidth = Rect.left - Rect.right;
 	int additionalHeight = Rect.bottom - Rect.top;
