@@ -14,19 +14,9 @@ LPCWSTR clsName = TEXT("D3DReceiver");	//윈도우 쿨래스 네임
 
 std::unique_ptr<Client> client = nullptr;	//클라이언트
 
-UINT mClientWidth = 1024;
-UINT mClientHeight = 576;
+UINT mClientWidth;
+UINT mClientHeight;
 
-//UINT mClientWidth = 854;
-//UINT mClientHeight = 480;
-
-//UINT mClientWidth = 1280;
-//UINT mClientHeight = 720;
-UINT mClientWidth = 1024;
-UINT mClientHeight = 576;
-
-//UINT mClientWidth = 640;
-//UINT mClientHeight = 480;
 
 std::thread* mNetworkReadThread = nullptr;
 std::thread* mNetworkWriteThread = nullptr;
@@ -54,10 +44,19 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 
 	char serverIP[30];
 	char serverPort[20];
+	char windowWidth[20];
+	char windowHeight[20];
 	unsigned short serverPort_short;
+
 	fscanf_s(config, "%*[Server_IP=]%s\n", serverIP, sizeof(serverIP));
 	fscanf_s(config, "%*[Server_Port=]%s\n", serverPort, sizeof(serverPort));
+	fscanf_s(config, "%*[WindowWidth=]%s\n", windowWidth, sizeof(windowWidth));
+	fscanf_s(config, "%*[WindowHeight=]%s\n", windowHeight, sizeof(windowHeight));
+
 	serverPort_short = atoi(serverPort);
+	mClientWidth = atoi(windowWidth);
+	mClientHeight = atoi(windowHeight);
+
 	fclose(config);
 
 	WNDCLASS wndCls;

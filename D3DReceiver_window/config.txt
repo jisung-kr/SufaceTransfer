@@ -1,2 +1,4 @@
-Server_IP=127.0.0.1
+Server_IP=121.162.36.126
 Server_Port=45000
+WindowWidth=1024
+WindowHeight=576
