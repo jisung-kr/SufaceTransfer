@@ -8,7 +8,7 @@ IOCPServer::~IOCPServer() {
 	WSACleanup();
 }
 
-bool IOCPServer::Init() {
+bool IOCPServer::Init(USHORT port) {
 	//WSADATA 초기화
 	if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
 		OutputDebugStringA("WSADATA 초기화 오류\n");
@@ -23,7 +23,7 @@ bool IOCPServer::Init() {
 	}
 	//바인딩
 	serverAddr.sin_family = AF_INET;
-	serverAddr.sin_port = htons(PORT);
+	serverAddr.sin_port = htons(port);
 	serverAddr.sin_addr.S_un.S_addr = htonl(INADDR_ANY);
 	if ((::bind(listenSock, (sockaddr*)& serverAddr, sizeof(serverAddr))) == SOCKET_ERROR) {
 		OutputDebugStringA("Binding 오류\n");
@@ -56,7 +56,7 @@ bool IOCPServer::Init() {
 }
 
 void IOCPServer::AcceptClient() {
-	for (int i = 0; i < MAXCLIENT; ++i) {
+	for (int i = 0; i < maxClientCount; ++i) {
 		SOCKET tempClientSock;
 		sockaddr_in tempClientAddr;
 		INT addrLen = sizeof(tempClientAddr);

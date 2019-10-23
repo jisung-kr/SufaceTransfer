@@ -217,7 +217,7 @@ private:
 public:
 	Microsoft::WRL::ComPtr<ID3D12Device> GetD3DDevice();
 	D3D12WND* GetD3D12WND();
-	bool InitDirect3D();
+	bool InitDirect3D(UINT clientNum, USHORT port);
 	void CalculateFrameStatus();
 	/*------------------------------------------------------------------------------------------------------*/
 	void CreateCommandObjects();
