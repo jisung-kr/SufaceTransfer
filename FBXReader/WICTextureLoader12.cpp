@@ -525,8 +525,7 @@ namespace
 			&desc,
 			D3D12_RESOURCE_STATE_COPY_DEST,
 			nullptr,
-			IID_ID3D12Resource,
-			reinterpret_cast<void**>(&tex));
+			IID_PPV_ARGS(&tex));
 
 		if (FAILED(hr))
 		{

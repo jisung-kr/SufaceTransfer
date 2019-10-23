@@ -28,6 +28,7 @@ bool MainWindow::Initialize(UINT clientNum, USHORT port) {
 
 	//윈도우 작업영역을 지정한 값만큼 만들기 위해 비작업영억의 크기 구하기
 	RECT Rect;
+	ZeroMemory(&Rect, sizeof(RECT));
 	AdjustWindowRect(&Rect, WS_OVERLAPPEDWINDOW, false);
 	unsigned int additionalWidth = Rect.right - Rect.left;
 	unsigned int additionalHeight = Rect.bottom - Rect.top;
