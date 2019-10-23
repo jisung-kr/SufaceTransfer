@@ -22,7 +22,7 @@ D3D12WND* D3D12WND::GetD3D12WND() {
 	return instance;
 }
 
-bool D3D12WND::InitDirect3D() {
+bool D3D12WND::InitDirect3D(UINT clientNum, USHORT port) {
 #if defined(DEBUG) || defined(_DEBUG) 
 	// Enable the D3D12 debug layer.
 	{
@@ -115,8 +115,8 @@ bool D3D12WND::InitDirect3D() {
 
 	/* 서버 소켓 생성및 초기화 */
 	//server = new Server();
-	server = new IOCPServer();
-	if (!server->Init())
+	server = new IOCPServer(clientNum);
+	if (!server->Init(port))
 		return false;
 
 
@@ -1866,14 +1866,14 @@ void D3D12WND::CopyBuffer() {
 				}
 				//compressed_size = LZ4_compress_default((char*)tempBuf, compressed_msg, size, size);
 
-				*/
+			*/
 				compressed_size = LZ4_compress_fast((char*)tempBuf, compressed_msg, size, size, 6);
 				
 				std::unique_ptr<Packet> packet = std::make_unique<Packet>(new CHEADER(COMMAND::COMMAND_RES_FRAME, compressed_size));
 				packet->mData.len = compressed_size;
 				packet->mData.buf = compressed_msg;
-
-				/*
+					
+				/*			
 				//패킷 생성
 				std::unique_ptr<Packet> packet = std::make_unique<Packet>(new CHEADER(COMMAND::COMMAND_RES_FRAME, size));
 				packet->mData.len = size;

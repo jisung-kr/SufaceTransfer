@@ -10,9 +10,7 @@
 #include "Camera.h"
 #include "BitmapQueue.h"
 
-#define PORT 45000
 
-#define MAXCLIENT 0
 
 
 //IOCP 가상클래스
@@ -22,7 +20,7 @@ protected:
 	HANDLE mhIOCP;
 
 public:
-	virtual bool Init() = 0;
+	virtual bool Init(USHORT port) = 0;
 	virtual void RunNetwork(void* cp) = 0;
 protected:
 
@@ -184,7 +182,7 @@ struct SocketInfo {
 //Server클래스
 class IOCPServer : public IOCP {
 public:
-	IOCPServer() = default;
+	IOCPServer(UINT maxClient) : maxClientCount(maxClient) { }
 	virtual ~IOCPServer();
 
 private:
@@ -194,9 +192,9 @@ private:
 
 	const DWORD64 headerSize = sizeof(HEADER);
 
-	int count = 0;
+	UINT maxClientCount = 0;
 public:
-	bool Init() override;	//초기화
+	bool Init(USHORT port) override;	//초기화
 	void AcceptClient();	//Client 접속
 
 	void RequestRecv(int sockIdx, bool overlapped = true);	//중첩소켓에 수신요청

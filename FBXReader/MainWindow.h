@@ -4,7 +4,7 @@
 
 class MainWindow {
 public:
-	MainWindow(HINSTANCE hInst) : mhInst(hInst) { instance = this; }
+	MainWindow(HINSTANCE hInst, UINT width, UINT height) : mhInst(hInst), mClientWidth(width), mClientHeight(height) { instance = this; }
 	virtual ~MainWindow() = default;
 	MainWindow& operator=(MainWindow& rhs) = delete;
 	MainWindow(const MainWindow& rhs) = delete;
@@ -16,14 +16,8 @@ private:
 	HWND mhMainWnd;	// D3D 표시메인 윈도우
 
 	
-	UINT mClientWidth = 1024;
-	UINT mClientHeight = 576;
-
-	//UINT mClientWidth = 1280;
-	//UINT mClientHeight = 720;
-
-	//UINT mClientWidth = 640;
-	//UINT mClientHeight = 480;
+	UINT mClientWidth;
+	UINT mClientHeight;
 
 	LPCWSTR clsName = TEXT("D3D App");	//Window Class Name
 	std::wstring mMainWndCaption = TEXT("D3D App");	//Window Name
@@ -37,7 +31,7 @@ private:
 public:
 	static MainWindow* GetInstance();
 
-	bool Initialize();
+	bool Initialize(UINT clientNum, USHORT port);
 	int Run();
 
 	LRESULT WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam);
