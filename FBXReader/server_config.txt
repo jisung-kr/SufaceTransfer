@@ -1,4 +1,4 @@
 ServerPort=45000
-MaxClientNum=1
+MaxClientNum=0
 WindowWidth=1024
 WindowHeight=576

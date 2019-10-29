@@ -47,6 +47,7 @@ public:
 
 			return posB && norB && binorB && tanB && texB;
 		}
+
 	};
 
 	struct MeshData

@@ -7,6 +7,7 @@ using namespace DirectX;
 FBXReader::FBXReader(const char* fileName) {
 	char ext[20];
 
+	//나중에 문자열 뒤에서부터 확장자 까지 받아오기로 수정
 	sscanf(fileName, "%[^.].%s", mFileName, ext);
 
 	if (strcmp(ext, "fbx") != 0) {
@@ -29,7 +30,14 @@ FBXReader::FBXReader(const char* fileName) {
 	}
 
 	mScene = FbxScene::Create(mManager, "scene");
+
+	FbxAxisSystem sceneAxisSystem = mScene->GetGlobalSettings().GetAxisSystem();
+
 	mImporter->Import(mScene);
+
+
+
+
 }
 
 FBXReader::~FBXReader() {
@@ -40,13 +48,313 @@ FBXReader::~FBXReader() {
 void FBXReader::LoadFBXData(FbxNode* node, bool isDirectX, int inDepth, int myIndex, int inParentIndex) {
 	/*	*/
 
+	//(BoneOffset도 생성하기!)
 	//SkeletonHierarchy 로드
 	LoadSkeletonHierarchy(node);
 
 	//노드 순회하면서 eMesh데이터 받아오기(정점, 메테리얼 등)
 	LoadMeshData(node,isDirectX);
 
+	//(키값 받아오기)
+	//애니메이션 데이터
+	//LoadAnimationData();
+
 	OutputDebugStringA("안녕하세요\n");
+}
+
+void FBXReader::LoadAnimationData() {
+	int i;
+
+	mBoneAniamtions.resize(mSkeleton.mJoints.size());
+
+	//디버그용으로 1부터 시작!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	for (i = 1; i < mScene->GetSrcObjectCount<FbxAnimStack>(); i++)
+	{
+		FbxAnimStack* lAnimStack = mScene->GetSrcObject<FbxAnimStack>(i);
+
+		FbxString lOutputString = "Animation Stack Name: ";
+		lOutputString += lAnimStack->GetName();
+
+		lOutputString += "\n";
+		FBXSDK_printf(lOutputString);
+
+		//애니메이션 이름 저장
+		mAnimationName = lAnimStack->GetName();
+
+		DisplayAnimation(lAnimStack, mScene->GetRootNode());
+	}
+}
+
+void FBXReader::DisplayAnimation(FbxAnimStack* pAnimStack, FbxNode* pNode, bool isSwitcher) {
+	int l;
+	int nbAnimLayers = pAnimStack->GetMemberCount<FbxAnimLayer>();
+	FbxString lOutputString;
+
+	lOutputString = "   contains ";
+	if (nbAnimLayers == 0)
+		lOutputString += "no layers";
+
+	if (nbAnimLayers)
+	{
+		lOutputString += nbAnimLayers;
+		lOutputString += " Animation Layer";
+		if (nbAnimLayers > 1)
+			lOutputString += "s";
+	}
+
+	lOutputString += "\n\n";
+	FBXSDK_printf(lOutputString);
+
+	for (l = 0; l < nbAnimLayers; l++)
+	{
+		FbxAnimLayer* lAnimLayer = pAnimStack->GetMember<FbxAnimLayer>(l);
+
+		lOutputString = "AnimLayer ";
+		lOutputString += l;
+		lOutputString += "\n";
+		FBXSDK_printf(lOutputString);
+
+		DisplayAnimation(lAnimLayer, pNode, isSwitcher);
+	}
+}
+
+void FBXReader::DisplayAnimation(FbxAnimLayer* pAnimLayer, FbxNode* pNode, bool isSwitcher)
+{
+	int lModelCount;
+	FbxString lOutputString;
+	
+
+	lOutputString = "     Node Name: ";
+	lOutputString += pNode->GetName();
+	lOutputString += "\n\n";
+	FBXSDK_printf(lOutputString);
+
+	//조인트 인덱스 검색
+	int idx = FindJointIndexUsingName(pNode->GetName());
+	DisplayChannels(pNode, pAnimLayer, idx, isSwitcher);
+
+	FBXSDK_printf("\n");
+
+	for (lModelCount = 0; lModelCount < pNode->GetChildCount(); lModelCount++)
+	{
+		DisplayAnimation(pAnimLayer, pNode->GetChild(lModelCount), isSwitcher);
+	}
+}
+
+void FBXReader::DisplayChannels(FbxNode* pNode, FbxAnimLayer* pAnimLayer, int jointIdx, bool isSwitcher)
+{
+	FbxAnimCurve* lAnimCurve = NULL;
+
+	// Display general curves.
+	if (!isSwitcher)
+	{
+		//위치값
+		lAnimCurve = pNode->LclTranslation.GetCurve(pAnimLayer);
+		if (lAnimCurve)
+		{
+			int lKeyCount = lAnimCurve->KeyGetCount();
+
+			for (int lCount = 0; lCount < lKeyCount; lCount++)
+			{
+				FbxTime lKeyTime = lAnimCurve->KeyGetTime(lCount);
+				auto translation = pNode->EvaluateLocalRotation(lKeyTime);
+
+				if (mBoneAniamtions[jointIdx].Keyframes.size() == lKeyCount) {
+					Keyframe keyFrame = mBoneAniamtions[jointIdx].Keyframes[lCount];
+					keyFrame.Translation = XMFLOAT3(translation.mData[0], translation.mData[1], translation.mData[2]);
+				}
+				else {
+					Keyframe* keyFrame = new Keyframe();
+					keyFrame->TimePos = lKeyTime.Get();
+					keyFrame->Translation = XMFLOAT3(translation.mData[0], translation.mData[1], translation.mData[2]);
+
+					mBoneAniamtions[jointIdx].Keyframes.push_back(*keyFrame);
+				}
+			}
+		}
+
+		//회전값
+		lAnimCurve = pNode->LclRotation.GetCurve(pAnimLayer);
+		if (lAnimCurve)
+		{
+			int lKeyCount = lAnimCurve->KeyGetCount();
+
+			for (int lCount = 0; lCount < lKeyCount; lCount++)
+			{
+				FbxTime lKeyTime = lAnimCurve->KeyGetTime(lCount);
+				auto rotation = pNode->EvaluateLocalRotation(lKeyTime);
+
+				if (mBoneAniamtions[jointIdx].Keyframes.size() == lKeyCount) {
+					Keyframe keyFrame = mBoneAniamtions[jointIdx].Keyframes[lCount];
+					keyFrame.RotationQuat = XMFLOAT4(rotation.mData[0], rotation.mData[1], rotation.mData[2], rotation.mData[3]);
+				}
+				else {
+					Keyframe* keyFrame = new Keyframe();
+					keyFrame->TimePos = lKeyTime.Get();
+					keyFrame->RotationQuat = XMFLOAT4(rotation.mData[0], rotation.mData[1], rotation.mData[2], rotation.mData[3]);
+
+					mBoneAniamtions[jointIdx].Keyframes.push_back(*keyFrame);
+				}
+			}
+		}
+
+		//스케일값
+		lAnimCurve = pNode->LclScaling.GetCurve(pAnimLayer);
+		if (lAnimCurve)
+		{
+			int lKeyCount = lAnimCurve->KeyGetCount();
+
+			for (int lCount = 0; lCount < lKeyCount; lCount++)
+			{
+				FbxTime lKeyTime = lAnimCurve->KeyGetTime(lCount);
+				auto scale = pNode->EvaluateLocalScaling(lKeyTime);
+
+				if (mBoneAniamtions[jointIdx].Keyframes.size() == lKeyCount) {
+					Keyframe keyFrame = mBoneAniamtions[jointIdx].Keyframes[lCount];
+					keyFrame.Scale = XMFLOAT3(scale.mData[0], scale.mData[1], scale.mData[2]);
+				}
+				else {
+					Keyframe* keyFrame = new Keyframe();
+					keyFrame->TimePos = lKeyTime.Get();
+					keyFrame->Scale = XMFLOAT3(scale.mData[0], scale.mData[1], scale.mData[2]);
+
+					mBoneAniamtions[jointIdx].Keyframes.push_back(*keyFrame);
+				}
+			}
+		}
+
+	}
+
+
+
+	/*
+	// Display curves specific to a light or marker.
+	FbxNodeAttribute* lNodeAttribute = pNode->GetNodeAttribute();
+
+	if (lNodeAttribute)
+	{
+		lAnimCurve = lNodeAttribute->Color.GetCurve(pAnimLayer, FBXSDK_CURVENODE_COLOR_RED);
+		if (lAnimCurve)
+		{
+			FBXSDK_printf("        Red\n");
+			//DisplayCurve(lAnimCurve);
+		}
+		lAnimCurve = lNodeAttribute->Color.GetCurve(pAnimLayer, FBXSDK_CURVENODE_COLOR_GREEN);
+		if (lAnimCurve)
+		{
+			FBXSDK_printf("        Green\n");
+			//DisplayCurve(lAnimCurve);
+		}
+		lAnimCurve = lNodeAttribute->Color.GetCurve(pAnimLayer, FBXSDK_CURVENODE_COLOR_BLUE);
+		if (lAnimCurve)
+		{
+			FBXSDK_printf("        Blue\n");
+			//DisplayCurve(lAnimCurve);
+		}
+
+		// Display curves specific to a light.
+		FbxLight* light = pNode->GetLight();
+		if (light)
+		{
+			lAnimCurve = light->Intensity.GetCurve(pAnimLayer);
+			if (lAnimCurve)
+			{
+				FBXSDK_printf("        Intensity\n");
+				//DisplayCurve(lAnimCurve);
+			}
+
+			lAnimCurve = light->OuterAngle.GetCurve(pAnimLayer);
+			if (lAnimCurve)
+			{
+				FBXSDK_printf("        Outer Angle\n");
+				//DisplayCurve(lAnimCurve);
+			}
+
+			lAnimCurve = light->Fog.GetCurve(pAnimLayer);
+			if (lAnimCurve)
+			{
+				FBXSDK_printf("        Fog\n");
+				//DisplayCurve(lAnimCurve);
+			}
+		}
+
+		// Display curves specific to a camera.
+		FbxCamera* camera = pNode->GetCamera();
+		if (camera)
+		{
+			lAnimCurve = camera->FieldOfView.GetCurve(pAnimLayer);
+			if (lAnimCurve)
+			{
+				FBXSDK_printf("        Field of View\n");
+				//DisplayCurve(lAnimCurve);
+			}
+
+			lAnimCurve = camera->FieldOfViewX.GetCurve(pAnimLayer);
+			if (lAnimCurve)
+			{
+				FBXSDK_printf("        Field of View X\n");
+				//DisplayCurve(lAnimCurve);
+			}
+
+			lAnimCurve = camera->FieldOfViewY.GetCurve(pAnimLayer);
+			if (lAnimCurve)
+			{
+				FBXSDK_printf("        Field of View Y\n");
+				//DisplayCurve(lAnimCurve);
+			}
+
+			lAnimCurve = camera->OpticalCenterX.GetCurve(pAnimLayer);
+			if (lAnimCurve)
+			{
+				FBXSDK_printf("        Optical Center X\n");
+				//DisplayCurve(lAnimCurve);
+			}
+
+			lAnimCurve = camera->OpticalCenterY.GetCurve(pAnimLayer);
+			if (lAnimCurve)
+			{
+				FBXSDK_printf("        Optical Center Y\n");
+				//DisplayCurve(lAnimCurve);
+			}
+
+			lAnimCurve = camera->Roll.GetCurve(pAnimLayer);
+			if (lAnimCurve)
+			{
+				FBXSDK_printf("        Roll\n");
+				//DisplayCurve(lAnimCurve);
+			}
+		}
+
+		// Display curves specific to a geometry.
+		if (lNodeAttribute->GetAttributeType() == FbxNodeAttribute::eMesh ||
+			lNodeAttribute->GetAttributeType() == FbxNodeAttribute::eNurbs ||
+			lNodeAttribute->GetAttributeType() == FbxNodeAttribute::ePatch)
+		{
+			FbxGeometry* lGeometry = (FbxGeometry*)lNodeAttribute;
+
+			int lBlendShapeDeformerCount = lGeometry->GetDeformerCount(FbxDeformer::eBlendShape);
+			for (int lBlendShapeIndex = 0; lBlendShapeIndex < lBlendShapeDeformerCount; ++lBlendShapeIndex)
+			{
+				FbxBlendShape* lBlendShape = (FbxBlendShape*)lGeometry->GetDeformer(lBlendShapeIndex, FbxDeformer::eBlendShape);
+
+				int lBlendShapeChannelCount = lBlendShape->GetBlendShapeChannelCount();
+				for (int lChannelIndex = 0; lChannelIndex < lBlendShapeChannelCount; ++lChannelIndex)
+				{
+					FbxBlendShapeChannel* lChannel = lBlendShape->GetBlendShapeChannel(lChannelIndex);
+					const char* lChannelName = lChannel->GetName();
+
+					lAnimCurve = lGeometry->GetShapeChannel(lBlendShapeIndex, lChannelIndex, pAnimLayer, true);
+					if (lAnimCurve)
+					{
+						FBXSDK_printf("        Shape %s\n", lChannelName);
+						//DisplayCurve(lAnimCurve);
+					}
+				}
+			}
+		}
+	}
+
+	*/
 }
 
 void FBXReader::LoadMeshData(FbxNode* node, bool isDirectX) {
@@ -189,9 +497,11 @@ void FBXReader::LoadMesh(FbxNode* node, bool isDirectX) {
 	//메쉬 데이터를 받아옴
 	GeometryGenerator::MeshData data;
 	SubmeshGeometry subData;
-
+	
 	FbxMesh* mesh = node->GetMesh();
 	int count = mesh->GetControlPointsCount();
+
+	mBoneAniamtions.resize(mSkeleton.mJoints.size());
 	
 	ControlPoint* positions = new ControlPoint[count];
 	/*제어점 정보 받아오기 (제어점의 위치)*/
@@ -223,23 +533,6 @@ void FBXReader::LoadMesh(FbxNode* node, bool isDirectX) {
 			std::string currJointName = currCluster->GetLink()->GetName();
 			unsigned int currJointIndex = FindJointIndexUsingName(currJointName);
 
-			FbxAMatrix transformMatrix;
-			FbxAMatrix transformLinkMatrix;
-			FbxAMatrix globalBindposeInverseMatrix;
-
-			currCluster->GetTransformMatrix(transformMatrix);	// The transformation of the mesh at binding time
-			currCluster->GetTransformLinkMatrix(transformLinkMatrix);	// The transformation of the cluster(joint) at binding time from joint space to world space
-			globalBindposeInverseMatrix = transformLinkMatrix.Inverse() * transformMatrix * geometryTransform;
-			
-			FbxAMatrix temp = currCluster->GetLink()->EvaluateGlobalTransform();
-
-			FbxVector4 scale = temp.GetS();
-			FbxVector4 rotation = temp.GetR();
-			FbxVector4 translation = temp.GetT();
-
-			//mSkeleton.mJoints[currJointIndex].mGlobalBindposeInverse = LoadFBXMatrix(temp);
-
-
 			//가중치와 인덱스 받아오기
 			unsigned int numOfIndices = currCluster->GetControlPointIndicesCount();
 			if (numOfIndices > 0) {
@@ -255,74 +548,113 @@ void FBXReader::LoadMesh(FbxNode* node, bool isDirectX) {
 						curCntPt.skinnedData.BoneWeights.y = weight[1];
 						curCntPt.skinnedData.BoneWeights.z = weight[2];
 					}
-
-				}
-
-				//뼈대 갯수만큼 BoneAnimation을 만들고 Clip안에 인덱스에 맞게 넣기
-				//현재 currJointIndex가 뼈대의 인덱스
-
-				//키프레임 생성 후 
-
-
-				//애니메이션 키프레임 값 받아오기
-				// Get animation information
-				// Now only supports one take
-
-				int numStacks = mScene->GetSrcObjectCount<FbxAnimStack>();
-
-				if (numStacks > 0) {
-
-					FbxAnimStack* currAnimStack = (FbxAnimStack*)mScene->GetSrcObject<FbxAnimStack>();
-
-					FbxString animStackName = currAnimStack->GetName();
-					mAnimationName = animStackName.Buffer();
-
-					FbxTakeInfo* takeInfo = mScene->GetTakeInfo(animStackName);
-
-					fbxsdk::FbxTime Time = takeInfo->mLocalTimeSpan.GetDuration().GetFrameCount();
-					fbxsdk::FbxTime start = takeInfo->mLocalTimeSpan.GetStart();
-					fbxsdk::FbxTime end = takeInfo->mLocalTimeSpan.GetStop();
-
-					int mAnimationLength = end.GetFrameCount(fbxsdk::FbxTime::eFrames30) - start.GetFrameCount(fbxsdk::FbxTime::eFrames30) + 1;
-					FbxAMatrix matNowMatrix;
-					FbxAMatrix matBeforeMatrix;
-					BoneAnimation boneAnimation;
-					for (FbxLongLong i = start.GetFrameCount(fbxsdk::FbxTime::eFrames30); i <= end.GetFrameCount(fbxsdk::FbxTime::eFrames30); ++i)
-					{
-						Keyframe keyFrame;
-						//KeyFrame에서 변화값과 시간 값을 받아오기
-						fbxsdk::FbxTime currTime;
-						currTime.SetFrame(i, fbxsdk::FbxTime::eFrames30);
-
-						FbxAMatrix currentTransformOffset = node->EvaluateGlobalTransform(currTime) * geometryTransform;
-						FbxAMatrix currentGlobalTransform = currentTransformOffset.Inverse() * currCluster->GetLink()->EvaluateGlobalTransform(currTime);
-						
-						matNowMatrix = currCluster->GetLink()->EvaluateLocalTransform(currTime);
-						FbxAMatrix a = currCluster->GetLink()->EvaluateGlobalTransform(currTime);
-						if (matNowMatrix == matBeforeMatrix) {
-							continue;
-						}
-
-						FbxVector4 scale = currentTransformOffset.GetS();
-						FbxVector4 rotation = currentTransformOffset.GetR();
-						FbxVector4 translation = currentTransformOffset.GetT();
-
-						//translation.Set(translation.mData[0], translation.mData[1], -translation.mData[2]); // This negate Z of Translation Component of the matrix
-						//rotation.Set(-rotation.mData[0], -rotation.mData[1], rotation.mData[2]);
-
-						keyFrame.TimePos = currTime.GetFramedTime().GetMilliSeconds();
-						keyFrame.Scale.x = scale.mData[0];	keyFrame.Scale.y = scale.mData[1];	keyFrame.Scale.z = scale.mData[2];
-						keyFrame.RotationQuat.x = rotation.mData[0];	keyFrame.RotationQuat.y = rotation.mData[1];	keyFrame.RotationQuat.z = rotation.mData[2];	keyFrame.RotationQuat.z = rotation.mData[3];
-						keyFrame.Translation.x = translation.mData[0];	keyFrame.Translation.y = translation.mData[1];	keyFrame.Translation.z = translation.mData[2];
-
-						boneAnimation.Keyframes.push_back(keyFrame);
-						matBeforeMatrix = matNowMatrix;
-					}
-
-					mAnimClip.BoneAnimations.push_back(boneAnimation);
 				}
 			}
+
+			//BoneOffset 구하기//
+			FbxAMatrix transformMatrix;
+			FbxAMatrix transformLinkMatrix;
+			FbxAMatrix globalBindposeInverseMatrix;
+
+			currCluster->GetTransformMatrix(transformMatrix);	// The transformation of the mesh at binding time
+			currCluster->GetTransformLinkMatrix(transformLinkMatrix);	// The transformation of the cluster(joint) at binding time from joint space to world space
+			globalBindposeInverseMatrix = transformLinkMatrix.Inverse() * transformMatrix * geometryTransform;
+			//globalBindposeInverseMatrix = transformLinkMatrix * transformMatrix * geometryTransform;
+		
+			auto translation = globalBindposeInverseMatrix.GetT();
+			auto rotation = globalBindposeInverseMatrix.GetR();
+			auto scale = globalBindposeInverseMatrix.GetS();
+
+			mSkeleton.mJoints[currJointIndex].mGlobalBindposeInverse = LoadFBXMatrix(globalBindposeInverseMatrix);
+
+			//키프레임값 구하기//
+
+			//현재 클러스터의 뼈대
+			FbxNode* curBoneNode = currCluster->GetLink();
+
+			// Get animation information
+			// Now only supports one take
+			int animStackCount = mScene->GetSrcObjectCount<FbxAnimStack>();
+
+			if (animStackCount > 0) {
+				//디버그용으로 1로 설정!!!!!!!!!!!!!!!!!!!!!
+				FbxAnimStack* currAnimStack = mScene->GetSrcObject< FbxAnimStack>(1);
+				FbxString animStackName = currAnimStack->GetName();
+				mAnimationName = animStackName.Buffer();
+
+				FbxTakeInfo* takeInfo = mScene->GetTakeInfo(animStackName);
+				FbxTime start = takeInfo->mLocalTimeSpan.GetStart();
+				FbxTime end = takeInfo->mLocalTimeSpan.GetStop();
+				Keyframe* keyFrame;
+
+
+
+				for (FbxLongLong i = start.GetFrameCount(FbxTime::eFrames30); i <= end.GetFrameCount(FbxTime::eFrames30); ++i)
+				{
+					FbxTime currTime;
+					currTime.SetFrame(i, FbxTime::eFrames30);
+
+					//FbxAMatrix currentTransformOffset = curBoneNode->EvaluateGlobalTransform(currTime) * geometryTransform;
+					//FbxAMatrix currentTransformOffset = curBoneNode->EvaluateLocalTransform(currTime) * geometryTransform;
+
+					FbxAMatrix currentTransformOffset = node->EvaluateGlobalTransform(currTime) * geometryTransform;
+					FbxAMatrix curGlobalTransform = currentTransformOffset.Inverse() * curBoneNode->EvaluateGlobalTransform(currTime);
+
+					auto translation = curGlobalTransform.GetT();
+					auto rotation = curGlobalTransform.GetR();
+					auto scale = curGlobalTransform.GetS();
+
+
+					keyFrame = new Keyframe();
+					keyFrame->TimePos = currTime.GetMilliSeconds() / 1000.0f;
+					keyFrame->Translation = XMFLOAT3(translation.mData[0], translation.mData[1], translation.mData[2]);
+					keyFrame->RotationQuat = XMFLOAT4(rotation.mData[0], rotation.mData[1], rotation.mData[2], rotation[3]);
+					keyFrame->Scale = XMFLOAT3(scale.mData[0], scale.mData[1], scale.mData[2]);
+
+					mBoneAniamtions[currJointIndex].Keyframes.push_back(*keyFrame);
+				}
+
+
+				/*
+				//Curve로 키값 받아오기//
+				int nbAnimLayers = currAnimStack->GetMemberCount<FbxAnimLayer>();
+				for (int count = 0; count < nbAnimLayers; ++count) {
+					FbxAnimLayer* lAnimLayer = currAnimStack->GetMember<FbxAnimLayer>(count);
+					FbxAnimCurve* lAnimCurve = NULL;
+
+					lAnimCurve = curBoneNode->LclTranslation.GetCurve(lAnimLayer, FBXSDK_CURVENODE_COMPONENT_X);
+				
+					if (lAnimCurve)
+					{
+						int lKeyCount = lAnimCurve->KeyGetCount();
+						for (int lCount = 0; lCount < lKeyCount; lCount++)
+						{
+						
+							float lKeyValue = static_cast<float>(lAnimCurve->KeyGetValue(lCount));
+							FbxTime lKeyTime = lAnimCurve->KeyGetTime(lCount);
+
+							lKeyTime;
+							lKeyValue;
+						}
+					}
+				}
+				*/
+
+			}
 			
+
+			//루트뼈대 > 월드 행렬
+			//FbxAMatrix BoneInitPoseGlobalTransform = pBoneRootNode->EvaluateGlobalTransform();
+
+			//뼈대 로컬행렬 = 월드 > 루트뼈대 행렬 * 뼈대 로컬행렬
+			//BoneLocalTransform = InvBoneInitPoseGlobalTransform * BoneLocalTransform;
+
+			//뼈대 > 월드행렬 = 뼈대 로컬행렬 * 부모 뼈대의 월드행렬
+			//BoneGlobalTransform = BoneLocalTransform * ParentBoneGlobalTransform;
+
+			//블렌드 매트릭스 = 뼈의 오프셋 * 뼈의 루트행렬
+			//BlendMatrix = Bone.InvBindPoseMatrix * BoneGlobalTransform;
+
 			
 		}
 	}
@@ -365,10 +697,11 @@ void FBXReader::LoadMesh(FbxNode* node, bool isDirectX) {
 			tSkinnedVtx.BoneWeights = positions[controllPointIndex].skinnedData.BoneWeights;
 			memcpy(&tSkinnedVtx.BoneIndices, &positions[controllPointIndex].skinnedData.BoneIndices, sizeof(positions[controllPointIndex].skinnedData.BoneIndices));
 
+			/*		*/	
 			//정점 중복체크
 			auto r = findVertex.find(temp);
 			int index = 0;
-			/*	*/
+	
 			//중복이면 이미 있는 인덱스를 추가
 			if (r != findVertex.end()) {
 				data.Indices32.push_back(r->second);
@@ -386,7 +719,14 @@ void FBXReader::LoadMesh(FbxNode* node, bool isDirectX) {
 				mVertex.push_back(tSkinnedVtx);
 			}
 		
+			/*
+			int index = vertexCount;
+			data.Indices32.push_back(index);
+			data.Vertices.push_back(temp);
 
+			mIndex.push_back(index);
+			mVertex.push_back(tSkinnedVtx);
+			*/
 			++vertexCount;
 		}
 	}
@@ -712,7 +1052,6 @@ void FBXReader::LoadSkeletonHierarchyRecursively(FbxNode* inNode, int inDepth, i
 		Joint currJoint;
 		currJoint.mParentIndex = inParentIndex;
 		currJoint.mName = inNode->GetName();
-		currJoint.mGlobalBindposeInverse = LoadFBXMatrix(inNode->EvaluateLocalTransform());
 		mSkeleton.mJoints.push_back(currJoint);
 	}
 	for (int i = 0; i < inNode->GetChildCount(); i++)
@@ -722,20 +1061,25 @@ void FBXReader::LoadSkeletonHierarchyRecursively(FbxNode* inNode, int inDepth, i
 }
 
 void FBXReader::GetSkinnedData(SkinnedData& data) {
+
 	if (mSkeleton.mJoints.size() > 0) {
 		std::vector<int>* hierachy = new std::vector<int>();
 		std::vector<DirectX::XMFLOAT4X4 >* offset = new std::vector<DirectX::XMFLOAT4X4>();
-		std::unordered_map<std::string, AnimationClip> clip;
+		std::unordered_map<std::string, AnimationClip>* clip = new std::unordered_map<std::string, AnimationClip>();
 
+		//joint의 수만큼 값 복사
 		for (int i = 0; i < mSkeleton.mJoints.size(); ++i) {
 			hierachy->push_back(mSkeleton.mJoints[i].mParentIndex);
-			XMFLOAT4X4 temp;
-			XMStoreFloat4x4(&temp, mSkeleton.mJoints[i].mGlobalBindposeInverse);
-			offset->push_back(temp);
+			XMFLOAT4X4* temp = new XMFLOAT4X4();
+			XMStoreFloat4x4(temp, mSkeleton.mJoints[i].mGlobalBindposeInverse);
+			offset->push_back(*temp);
 		}
-		clip[mAnimationName] = mAnimClip;
 
-		data.Set(*hierachy, *offset, clip);
+		mAnimClip = new AnimationClip();
+		mAnimClip->BoneAnimations.insert(mAnimClip->BoneAnimations.end(), mBoneAniamtions.begin(), mBoneAniamtions.end());
+		(*clip)[mAnimationName] = *mAnimClip;
+
+		data.Set(*hierachy, *offset, *clip);
 	}
 	else {
 

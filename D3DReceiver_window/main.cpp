@@ -234,24 +234,19 @@ void Input(GameTimer& timer) {
 void Render() {
 
 	if (client != nullptr) {
-
 		HDC hdc, hMemDC;
-		//PAINTSTRUCT ps;
 		HBITMAP hBitmap, hOldBitmap;
 
-
 		hdc = GetDC(mhMainWnd);
-		//hdc = BeginPaint(mhMainWnd, &ps);
-
 		hMemDC = CreateCompatibleDC(hdc);
+
 		//압축해제
 		int srcDataSize = mClientHeight * mClientWidth * 4;
 		char* srcData = new char[srcDataSize];
-		//int size = LZ4_decompress_safe(client->GetData(), srcData, client->GetDataSize(), srcDataSize);
 		int size = LZ4_decompress_fast(client->GetData(), srcData, srcDataSize);
 
-		hBitmap = CreateBitmap(mClientWidth, mClientHeight, 1, 32, srcData);	//비트맵 사이즈 중요!!!
-		//hBitmap = CreateCompatibleBitmap(hdc, 640, 441);	//비트맵 사이즈 중요!!!
+		hBitmap = CreateBitmap(mClientWidth, mClientHeight, 1, 32, srcData);	//Bitmap생성
+
 		hOldBitmap = (HBITMAP)SelectObject(hMemDC, hBitmap);
 		BitBlt(hdc, 0, 0, mClientWidth, mClientHeight, hMemDC, 0, 0, SRCCOPY);
 		SelectObject(hMemDC, hOldBitmap);
@@ -260,7 +255,6 @@ void Render() {
 
 		delete[] srcData;
 		ReleaseDC(mhMainWnd, hdc);
-		//EndPaint(mhMainWnd, &ps);
 	}
 
 }

@@ -261,16 +261,13 @@ void IOCPServer::RequestSend(int sockIdx, bool overlapped) {
 
 			}
 		}
-		else {
+		else {	//not overlapped
 			if (!SendHeader(curClient, *overlappedEx, 0))
 				return;
 			if (!SendData(curClient, *overlappedEx))
 				return;
-
-
 		}
 	}
-
 }
 
 bool IOCPServer::SendHeader(SocketInfo* sInfo, OVERLAPPEDEX& overlappedEx, DWORD nowSize) {

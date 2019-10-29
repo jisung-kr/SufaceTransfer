@@ -1064,6 +1064,7 @@ void D3D12WND::LoadTexture(const std::string key, const std::wstring fileName) {
 
 	char ext[50];
 
+	//나중에 문자열 뒤에서부터 확장자 까지 받아오기로 수정
 	sscanf(ws2s(fileName).c_str(), "%*[^.]%*[.]%s", ext);
 	if (strcmp(ext, "dds") == 0) {
 		ThrowIfFailed(DirectX::CreateDDSTextureFromFile12(md3dDevice.Get(),
@@ -1502,7 +1503,7 @@ void D3D12WND::BuildShapeGeometry() {
 
 void D3D12WND::BuildFbxMesh() {
 	//이곳에서 Fbx로 부터 각 정점 받아오기 수행
-	FBXReader read("Bee.fbx");
+	FBXReader read("Boxing.fbx");
 
 	read.LoadFBXData(read.GetRootNode(), false);
 
@@ -1698,12 +1699,16 @@ void D3D12WND::BuildCharacterRenderItem() {
 		XMMATRIX pos = XMMatrixTranslation(0.0f, 0.0f, 10.0f);
 		XMMATRIX scale =  XMMatrixScaling(0.008f, 0.008f, 0.008f);
 		XMMATRIX rotation = XMMatrixRotationY(XMConvertToRadians(180));
+		XMMATRIX texRotation = XMMatrixRotationX(XMConvertToRadians(270));
+
 		XMStoreFloat4x4(&curSubRItem->Instances[0].World, rotation * scale * pos);
+		//XMStoreFloat4x4(&curSubRItem->Instances[0].TexTransform, rotation);
+		//curSubRItem->Instances[0].World = MathHelper::Identity4x4();;
 		curSubRItem->Instances[0].TexTransform = MathHelper::Identity4x4();
 		curSubRItem->Instances[0].MaterialIndex = 4 + i;
 
 		mAllRitems.push_back(std::move(curSubRItem));
-		mRitemLayer[(int)RenderLayer::Opaque].push_back(mAllRitems[mAllRitems.size() - 1].get());
+		mRitemLayer[(int)RenderLayer::SkinnedOpaque].push_back(mAllRitems[mAllRitems.size() - 1].get());
 	}
 	
 	
@@ -1819,7 +1824,6 @@ void D3D12WND::CreateReadBackTex() {
 				IID_PPV_ARGS(mFrameResources[i]->mSurfaces[j].GetAddressOf())
 			));
 		}
-
 	}
 
 	mBuffers.reserve(server->GetClientNum());
@@ -1827,7 +1831,6 @@ void D3D12WND::CreateReadBackTex() {
 	for (int i = 0; i < server->GetClientNum(); ++i) {
 		mBuffers.push_back(new FLOAT());
 	}
-
 
 }
 
@@ -1883,7 +1886,6 @@ void D3D12WND::CopyBuffer() {
 				*/
 
 				curClient->wQueue.PushItem(std::move(packet));
-
 
 				curClient->rQueue.FrontItem().release();
 				curClient->rQueue.PopItem();
