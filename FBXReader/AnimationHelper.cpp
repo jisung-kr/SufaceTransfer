@@ -84,6 +84,8 @@ float AnimationClip::GetClipStartTime()const
 	float t = MathHelper::Infinity;
 	for (UINT i = 0; i < BoneAnimations.size(); ++i)
 	{
+		if (BoneAnimations[i].Keyframes.size() == 0)
+			continue;
 		t = MathHelper::Min(t, BoneAnimations[i].GetStartTime());
 	}
 
@@ -95,6 +97,8 @@ float AnimationClip::GetClipEndTime()const
 	float t = 0.0f;
 	for (UINT i = 0; i < BoneAnimations.size(); ++i)
 	{
+		if (BoneAnimations[i].Keyframes.size() == 0)
+			continue;
 		t = MathHelper::Max(t, BoneAnimations[i].GetEndTime());
 	}
 
@@ -105,20 +109,37 @@ void AnimationClip::Interpolate(float t, std::vector<XMFLOAT4X4>& boneTransforms
 {
 	for (UINT i = 0; i < BoneAnimations.size(); ++i)
 	{
-		BoneAnimations[i].Interpolate(t, boneTransforms[i]);
+		if (BoneAnimations[i].Keyframes.size() == 0) {
+			boneTransforms[i] = MathHelper::Identity4x4();
+		}
+		else {
+			BoneAnimations[i].Interpolate(t, boneTransforms[i]);
+		}
+
 	}
 }
 
 float SkinnedData::GetClipStartTime(const std::string& clipName)const
 {
 	auto clip = mAnimations.find(clipName);
-	return clip->second.GetClipStartTime();
+	float startTime;
+	if (clip->second.BoneAnimations.size() != 0)
+		startTime = clip->second.GetClipStartTime();
+	else
+		startTime = 0.0f;
+	return startTime;
 }
 
 float SkinnedData::GetClipEndTime(const std::string& clipName)const
 {
 	auto clip = mAnimations.find(clipName);
-	return clip->second.GetClipEndTime();
+	float endTime;
+	if (clip->second.BoneAnimations.size() != 0)
+		endTime = clip->second.GetClipEndTime();
+	else
+		endTime = 0.0f;
+
+	return endTime;
 }
 
 UINT SkinnedData::BoneCount()const

@@ -94,10 +94,6 @@ private:
 	void LoadMeshData(FbxNode* node, bool isDirectX = true);
 
 	void LayeredTexture(const FbxProperty& prop);
-	void LoadAnimationData();
-	void DisplayAnimation(FbxAnimStack* pAnimStack, FbxNode* pNode, bool isSwitcher = false);
-	void DisplayAnimation(FbxAnimLayer* pAnimLayer, FbxNode* pNode, bool isSwitcher = false);
-	void DisplayChannels(FbxNode* pNode, FbxAnimLayer* pAnimLayer, int jointIdx, bool isSwitcher = false);
 
 	DirectX::XMFLOAT3& ReadNormal(FbxMesh* mesh, int controllPointIndex, int vertexCounter);
 	DirectX::XMFLOAT3& ReadBinormal(FbxMesh* mesh, int controllPointIndex, int vertexCounter);

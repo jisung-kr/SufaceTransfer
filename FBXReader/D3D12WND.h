@@ -212,6 +212,11 @@ private:
 
 	std::vector<D3D12_INPUT_ELEMENT_DESC> mSkinnedInputLayout;
 	std::unique_ptr<SkinnedModelInstance> mSkinnedModelInst;
+
+	std::string mSkinnedModelFilename = "Models\\soldier.m3d";
+	SkinnedData mSkinnedInfo;
+	std::vector<M3DLoader::Subset> mSkinnedSubsets;
+	std::vector<M3DLoader::M3dMaterial> mSkinnedMats;
 	
 
 public:

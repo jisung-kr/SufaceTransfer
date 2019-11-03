@@ -1502,6 +1502,7 @@ void D3D12WND::BuildShapeGeometry() {
 }
 
 void D3D12WND::BuildFbxMesh() {
+
 	//이곳에서 Fbx로 부터 각 정점 받아오기 수행
 	FBXReader read("Boxing.fbx");
 
@@ -1575,6 +1576,7 @@ void D3D12WND::BuildFbxMesh() {
 	}
 
 	mGeometries[geo->Name] = std::move(geo);
+
 }
 
 void D3D12WND::BuildWorldRenderItem() {
@@ -1697,7 +1699,7 @@ void D3D12WND::BuildCharacterRenderItem() {
 		curSubRItem->Instances.resize(1);
 
 		XMMATRIX pos = XMMatrixTranslation(0.0f, 0.0f, 10.0f);
-		XMMATRIX scale =  XMMatrixScaling(0.008f, 0.008f, 0.008f);
+		XMMATRIX scale = XMMatrixScaling(0.02f, 0.02f, 0.02f);
 		XMMATRIX rotation = XMMatrixRotationY(XMConvertToRadians(180));
 		XMMATRIX texRotation = XMMatrixRotationX(XMConvertToRadians(270));
 
@@ -1870,7 +1872,7 @@ void D3D12WND::CopyBuffer() {
 				//compressed_size = LZ4_compress_default((char*)tempBuf, compressed_msg, size, size);
 
 			*/
-				compressed_size = LZ4_compress_fast((char*)tempBuf, compressed_msg, size, size, 6);
+				compressed_size = LZ4_compress_fast((char*)tempBuf, compressed_msg, size, size, 8);
 				
 				std::unique_ptr<Packet> packet = std::make_unique<Packet>(new CHEADER(COMMAND::COMMAND_RES_FRAME, compressed_size));
 				packet->mData.len = compressed_size;
