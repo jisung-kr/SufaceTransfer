@@ -67,7 +67,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 	wndCls.hCursor = (HCURSOR)LoadCursor(NULL, IDC_ARROW);
 	wndCls.hIcon = (HICON)LoadIcon(NULL, IDI_APPLICATION);
 	wndCls.hInstance = mhInst;
-	wndCls.lpfnWndProc = WndProc;
+	wndCls.lpfnWndProc = (WNDPROC)WndProc;
 	wndCls.lpszClassName = clsName;
 	wndCls.lpszMenuName = NULL;
 	wndCls.style = CS_HREDRAW | CS_VREDRAW;
