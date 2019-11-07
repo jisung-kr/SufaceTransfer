@@ -1504,7 +1504,7 @@ void D3D12WND::BuildShapeGeometry() {
 void D3D12WND::BuildFbxMesh() {
 
 	//이곳에서 Fbx로 부터 각 정점 받아오기 수행
-	FBXReader read("Boxing.fbx");
+	FBXReader read("Nimbasa City.fbx");
 
 	read.LoadFBXData(read.GetRootNode(), false);
 
@@ -1710,7 +1710,7 @@ void D3D12WND::BuildCharacterRenderItem() {
 		curSubRItem->Instances[0].MaterialIndex = 4 + i;
 
 		mAllRitems.push_back(std::move(curSubRItem));
-		mRitemLayer[(int)RenderLayer::SkinnedOpaque].push_back(mAllRitems[mAllRitems.size() - 1].get());
+		mRitemLayer[(int)RenderLayer::Opaque].push_back(mAllRitems[mAllRitems.size() - 1].get());
 	}
 	
 	

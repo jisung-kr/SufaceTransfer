@@ -1,11 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28307.757
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29306.81
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "D3DTransfer", "FBXReader\FBXReader.vcxproj", "{6C6D2974-80D4-4842-AE02-76F985B2B335}"
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "D3DReceiver_console", "D3DReceiver_console\D3DReceiver_console.vcxproj", "{FA3EB9B3-9BBC-4C26-A4CB-B55C29D7392B}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "D3DReceiver_window", "D3DReceiver_window\D3DReceiver_window.vcxproj", "{314A4BE5-5DB4-420D-A96B-F14926014396}"
 EndProject
@@ -25,14 +23,6 @@ Global
 		{6C6D2974-80D4-4842-AE02-76F985B2B335}.Release|x64.Build.0 = Release|x64
 		{6C6D2974-80D4-4842-AE02-76F985B2B335}.Release|x86.ActiveCfg = Release|Win32
 		{6C6D2974-80D4-4842-AE02-76F985B2B335}.Release|x86.Build.0 = Release|Win32
-		{FA3EB9B3-9BBC-4C26-A4CB-B55C29D7392B}.Debug|x64.ActiveCfg = Debug|x64
-		{FA3EB9B3-9BBC-4C26-A4CB-B55C29D7392B}.Debug|x64.Build.0 = Debug|x64
-		{FA3EB9B3-9BBC-4C26-A4CB-B55C29D7392B}.Debug|x86.ActiveCfg = Debug|Win32
-		{FA3EB9B3-9BBC-4C26-A4CB-B55C29D7392B}.Debug|x86.Build.0 = Debug|Win32
-		{FA3EB9B3-9BBC-4C26-A4CB-B55C29D7392B}.Release|x64.ActiveCfg = Release|x64
-		{FA3EB9B3-9BBC-4C26-A4CB-B55C29D7392B}.Release|x64.Build.0 = Release|x64
-		{FA3EB9B3-9BBC-4C26-A4CB-B55C29D7392B}.Release|x86.ActiveCfg = Release|Win32
-		{FA3EB9B3-9BBC-4C26-A4CB-B55C29D7392B}.Release|x86.Build.0 = Release|Win32
 		{314A4BE5-5DB4-420D-A96B-F14926014396}.Debug|x64.ActiveCfg = Debug|x64
 		{314A4BE5-5DB4-420D-A96B-F14926014396}.Debug|x64.Build.0 = Debug|x64
 		{314A4BE5-5DB4-420D-A96B-F14926014396}.Debug|x86.ActiveCfg = Debug|Win32
