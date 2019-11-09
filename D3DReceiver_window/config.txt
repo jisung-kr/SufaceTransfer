@@ -1,4 +1,4 @@
-Server_IP=59.10.192.150
+Server_IP=121.131.125.43
 Server_Port=45000
 WindowWidth=1024
 WindowHeight=576

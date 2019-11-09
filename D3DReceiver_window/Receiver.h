@@ -8,17 +8,18 @@
 
 
 enum COMMAND {
-	COMMAND_REQ_FRAME = 0,
-	COMMAND_RES_FRAME = 1,
-	COMMAND_INPUT = 2,
+	COMMAND_HELLO = 0,
+	COMMAND_REQ_FRAME,
+	COMMAND_RES_FRAME,
+	COMMAND_INPUT,
 	COMMAND_MAX
 };
 
 enum INPUT_TYPE {
-	INPUT_KEY_W = 0,
-	INPUT_KEY_S = 1,
-	INPUT_KEY_A = 2,
-	INPUT_KEY_D = 3,
+	INPUT_KEY_W,
+	INPUT_KEY_S,
+	INPUT_KEY_A,
+	INPUT_KEY_D,
 	INPUT_AXIS_CAMERA_MOVE,
 	INPUT_AXIS_CAMERA_ROT,
 	INPUT_MAX
@@ -81,7 +82,7 @@ struct Packet {
 		if (mHeader.buf != nullptr)
 			delete mHeader.buf;
 		if (mData.buf != nullptr)
-			delete mData.buf;
+			delete[] mData.buf;
 	}
 
 	void AllocDataBuffer(int size) {
@@ -91,6 +92,17 @@ struct Packet {
 		}
 	}
 
+};
+
+struct DeviceInfo {
+	enum PixelOrder {
+		RGBA = 0,
+		BGRA
+	};
+
+	int mClientWidth;
+	int mClientHeight;
+	PixelOrder mClientPixelOreder;
 };
 
 class Client {
@@ -123,9 +135,8 @@ public:
 
 	bool RecvMSG();
 	bool SendMSG();
-	bool SendInputMSG();
 
-	void PushPacketWQueue(std::unique_ptr<Packet>&& packet);
+	void PushPacketWQueue(std::unique_ptr<Packet> packet);
 	void PopPacketRQueue();
 
 	int SizeRQueue() { return rQueue.Size(); }
@@ -133,9 +144,9 @@ public:
 
 	char* GetData();
 	int GetDataSize();
-	void ReleaseBuffer();
+	SOCKET GetSocket();
 
-private:
+public:
 	bool RecvHeader(Packet* packet);
 	bool RecvData(Packet* packet);
 

@@ -96,8 +96,8 @@ bool Client::RecvHeader(Packet* packet) {
 }
 
 bool Client::RecvData(Packet* packet) {
-	HEADER* header = (HEADER*)packet->mHeader.buf;
-	DWORD64 size = ntohl(header->mDataLen);
+	const HEADER& header = *(HEADER*)packet->mHeader.buf;
+	DWORD64 size = ntohl(header.mDataLen);
 	DWORD64 totSize = 0;
 	DWORD64 nowSize = 0;
 
@@ -110,7 +110,8 @@ bool Client::RecvData(Packet* packet) {
 				totSize += nowSize;
 
 				char str[256];
-				wsprintfA(str, "현재 수신된 데이터 %d / %d\n", totSize, size);
+				wsprintfA(str, "현재 수신된 데이터 %I64u / %I64u\n", totSize, size);
+				
 				OutputDebugStringA(str);
 
 				if (totSize >= size)
@@ -212,14 +213,14 @@ bool Client::SendData(Packet* packet) {
 	return true;
 }
 
-void Client::PushPacketWQueue(unique_ptr<Packet>&& packet) {
+void Client::PushPacketWQueue(unique_ptr<Packet> packet) {
 	
 	HEADER* header = (HEADER*)packet->mHeader.buf;
 
 	if (ntohl(header->mCommand) == COMMAND::COMMAND_INPUT) {
 		inputWQueue.PushItem(std::move(packet));
 	}
-	else if(reqFrameCount < 2){
+	else if(reqFrameCount < 3){
 		++reqFrameCount;
 		wQueue.PushItem(std::move(packet));
 	}
@@ -227,7 +228,9 @@ void Client::PushPacketWQueue(unique_ptr<Packet>&& packet) {
 }
 void Client::PopPacketRQueue() {
 	--reqFrameCount;
-	rQueue.FrontItem().release();
+	auto p = rQueue.FrontItem().release();
+	if (p)
+		delete p;
 	rQueue.PopItem();
 }
 
@@ -243,8 +246,8 @@ char* Client::GetData() {
 	return (char*)packet->mData.buf;
 }
 
-void Client::ReleaseBuffer() {
-
+SOCKET Client::GetSocket() {
+	return serverSock;
 }
 
 

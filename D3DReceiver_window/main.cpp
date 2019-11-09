@@ -17,7 +17,6 @@ std::unique_ptr<Client> client = nullptr;	//클라이언트
 UINT mClientWidth;
 UINT mClientHeight;
 
-
 std::thread* mNetworkReadThread = nullptr;
 std::thread* mNetworkWriteThread = nullptr;
 std::thread* mRenderingThread = nullptr;
@@ -74,12 +73,14 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 
 	RegisterClass(&wndCls);
 
+	//실제 작업영역 받아오기
 	RECT Rect;
 	ZeroMemory(&Rect, sizeof(RECT));
 	AdjustWindowRect(&Rect, WS_OVERLAPPEDWINDOW, false);
 	int additionalWidth = Rect.left - Rect.right;
 	int additionalHeight = Rect.bottom - Rect.top;
 
+	//윈도우 생성
 	mhMainWnd = CreateWindow(clsName,
 		clsName,
 		WS_OVERLAPPEDWINDOW,
@@ -92,27 +93,39 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 		mhInst,
 		NULL);
 
+	//윈도우 표시
 	ShowWindow(mhMainWnd, SW_SHOW);
 
-	//클라이언트 초기화
+	//네트워크 초기화
 	client = std::make_unique<Client>(serverIP, serverPort_short);
 	if (!client->Init()) {
 		::MessageBoxA(mhMainWnd, "네트워크 초기화 오류", "오류", MB_OK);
 		return 1;
 	}
 
+	//서버 접속
 	if (!client->Connection()) {
 		::MessageBoxA(mhMainWnd, "네트워크 커넥션 오류", "오류", MB_OK);
 		return 1;
 	}
 
-	client->PushPacketWQueue(std::make_unique<Packet>(new CHEADER(COMMAND::COMMAND_REQ_FRAME)));
-	client->PushPacketWQueue(std::make_unique<Packet>(new CHEADER(COMMAND::COMMAND_REQ_FRAME)));
+	//서버로 디바이스 정보 전달
+	DeviceInfo dInfo;
+	dInfo.mClientWidth = mClientWidth;
+	dInfo.mClientHeight = mClientHeight;
+	dInfo.mClientPixelOreder = DeviceInfo::PixelOrder::BGRA;
+	Packet helloPacket = Packet(new CHEADER(COMMAND::COMMAND_HELLO, sizeof(DeviceInfo)), (void*)&dInfo) ;
 
+	send(client->GetSocket(), (char*)& dInfo, sizeof(DeviceInfo), 0);
+
+
+	//타이머 리셋
 	mTimer.Reset();
 
+	
 	MSG msg = { 0 };
 
+	//메세지 루프
 	while (msg.message != WM_QUIT)
 	{
 		if (PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
@@ -132,8 +145,8 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 						client->PushPacketWQueue(std::make_unique<Packet>(new CHEADER(COMMAND::COMMAND_REQ_FRAME)));
 
 						if (!client->SendMSG()) {
-							//delete client;
-							//client = nullptr;
+							//delete server;
+							//server = nullptr;
 							OutputDebugStringA("SendMSG Error\n");
 							//break;
 						}
@@ -147,8 +160,8 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 				mNetworkWriteThread = new std::thread([&]() -> void {
 					while (true) {
 						if (!client->RecvMSG()) {
-							//delete client;
-							//client = nullptr;
+							//delete server;
+							//server = nullptr;
 							OutputDebugStringA("RecvMSG Error\n");
 							//break;
 						}
@@ -244,7 +257,7 @@ void Render() {
 		int srcDataSize = mClientHeight * mClientWidth * 4;
 		char* srcData = new char[srcDataSize];
 		int size = LZ4_decompress_fast(client->GetData(), srcData, srcDataSize);
-
+		
 		hBitmap = CreateBitmap(mClientWidth, mClientHeight, 1, 32, srcData);	//Bitmap생성
 
 		hOldBitmap = (HBITMAP)SelectObject(hMemDC, hBitmap);
