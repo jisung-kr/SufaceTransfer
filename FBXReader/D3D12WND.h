@@ -89,7 +89,8 @@ struct CustomRenderItem{
 enum class RenderLayer : int{
 	None = 0,
 	Opaque = 1,
-	SkinnedOpaque = 2,
+	Sky,
+	SkinnedOpaque,
 	MAX
 };
 
@@ -131,7 +132,7 @@ private:
 	UINT mCbvSrvUavDescriptorSize = 0;	//Size of ConstantBuffer-ShaderResourceView Descriptor
 	/*------------------------------------------------------------------------------------------------------*/
 	//DXGI_FORMAT mBackBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;	//Format of BackBuffer
-	DXGI_FORMAT mBackBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM;	//Format of BackBuffer - Little Endian
+	DXGI_FORMAT mBackBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;	//Format of BackBuffer - Little Endian
 	
 	DXGI_FORMAT mDepthStencilFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;	//Format of DepthStencil
 
@@ -203,13 +204,6 @@ private:
 	POINT mLastMousePos;
 
 	/*------------------------------------------------------------------------------------------------------*/
-	RenderItem* mBoxRitem = nullptr;
-	DirectX::XMFLOAT4X4 mBoxWorld = MathHelper::Identity4x4();
-	float mAnimTimePos = 0.0f;
-	BoneAnimation mBoxAnimation;
-
-	void DefineBoxAnimation();
-
 	std::vector<D3D12_INPUT_ELEMENT_DESC> mSkinnedInputLayout;
 	std::unique_ptr<SkinnedModelInstance> mSkinnedModelInst;
 
@@ -217,6 +211,11 @@ private:
 	SkinnedData mSkinnedInfo;
 	std::vector<M3DLoader::Subset> mSkinnedSubsets;
 	std::vector<M3DLoader::M3dMaterial> mSkinnedMats;
+
+
+	int skyCubeSrvIdx = 0;
+
+	int skinnedTexSrvIdx = 0;
 	
 
 public:
@@ -242,8 +241,8 @@ public:
 	void LoadTexture(const std::string key, const std::wstring fileName);
 	void LoadTextures();
 
-	void BuildMaterial(std::string materialName,int matIndexm, int DiffuseSrvHeapIndex, DirectX::XMFLOAT4 DiffuseAlbedo = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),
-		DirectX::XMFLOAT3 FresnelR0 = DirectX::XMFLOAT3(1.0f, 1.0f, 1.0f), float Roughness = 1.0f);
+	void BuildMaterial(std::string materialName, int DiffuseSrvHeapIndex, int normalSrvHeapIndex, int specularSrvHeapIndex, DirectX::XMFLOAT4 DiffuseAlbedo = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),
+		DirectX::XMFLOAT3 FresnelR0 = DirectX::XMFLOAT3(0.2f, 0.2f, 0.2f), float Roughness = 0.9f);
 	void BuildMaterials();
 
 	void BuildShapeGeometry();
@@ -259,13 +258,10 @@ public:
 
 
 	void CreateReadBackTex();
-
 	void CopyBuffer();
-
 	void UpdateClientPassCB(const GameTimer& gt);
-
 	FLOAT* GetReadBackBuffer();
-	//SIZE_T GetSurfaceSize() { return D3DUtil::CalcConstantBufferByteSize(mClientWidth * sizeof(FLOAT)) * mClientHeight; }
+
 	SIZE_T GetSurfaceSize() { return mClientWidth * sizeof(FLOAT) * mClientHeight; }
 
 	void SendFrame();

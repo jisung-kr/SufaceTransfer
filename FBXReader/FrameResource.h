@@ -51,7 +51,7 @@ struct MaterialData
 
 	UINT DiffuseMapIndex = 0;
 	UINT NormalMapIndex = 0;
-	UINT MaterialPad1;
+	UINT SpecularMapIndex = 0;
 	UINT MaterialPad2;
 };
 

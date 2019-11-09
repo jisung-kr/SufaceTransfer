@@ -5,10 +5,10 @@ using namespace std;
 using namespace DirectX;
 
 FBXReader::FBXReader(const char* fileName) {
-	char ext[20];
 
-	//나중에 문자열 뒤에서부터 확장자 까지 받아오기로 수정
-	sscanf(fileName, "%[^.].%s", mFileName, ext);
+	//파일명에서 파일명,확장자 받아오기
+	char ext[10] = {0, };
+	sscanf_s(fileName, "%[^.].%s", mFileName, sizeof(mFileName), ext, sizeof(ext));
 
 	if (strcmp(ext, "fbx") != 0) {
 		return;
@@ -17,7 +17,6 @@ FBXReader::FBXReader(const char* fileName) {
 	mManager = FbxManager::Create();
 
 	mIos = FbxIOSettings::Create(mManager, IOSROOT);
-
 	mManager->SetIOSettings(mIos);
 
 	mImporter = FbxImporter::Create(mManager, "");
@@ -31,10 +30,22 @@ FBXReader::FBXReader(const char* fileName) {
 
 	mScene = FbxScene::Create(mManager, "scene");
 
-	FbxAxisSystem sceneAxisSystem = mScene->GetGlobalSettings().GetAxisSystem();
-
 	mImporter->Import(mScene);
 
+	// 임포터 파괴
+	mImporter->Destroy();
+
+	/*
+	FbxAxisSystem sceneAxisSystem = mScene->GetGlobalSettings().GetAxisSystem();
+	FbxAxisSystem outAxisSystem(FbxAxisSystem::eDirectX);
+	if (sceneAxisSystem != outAxisSystem)
+		outAxisSystem.ConvertScene(mScene);
+	
+	FbxAxisSystem::DirectX.ConvertScene(mScene);
+		*/
+	FbxGeometryConverter converter(mManager);
+	converter.Triangulate(mScene, true);
+	
 }
 
 FBXReader::~FBXReader() {
@@ -43,20 +54,14 @@ FBXReader::~FBXReader() {
 }
 
 void FBXReader::LoadFBXData(FbxNode* node, bool isDirectX, int inDepth, int myIndex, int inParentIndex) {
-	/*	*/
-
-	//(BoneOffset도 생성하기!)
-	//SkeletonHierarchy 로드
+	//노드 순회하면서 계층구조 생성
 	LoadSkeletonHierarchy(node);
 
-	//노드 순회하면서 eMesh데이터 받아오기(정점, 메테리얼 등)
+	//노드 순회하면서 eMesh데이터 받아오기(정점, 메테리얼, 애니메이션 데이터 등)
 	LoadMeshData(node,isDirectX);
 
-	//(키값 받아오기)
-	//애니메이션 데이터
-	//LoadAnimationData();
 
-	OutputDebugStringA("안녕하세요\n");
+	OutputDebugStringA("Success Load FBX\n");
 }
 
 void FBXReader::LoadMeshData(FbxNode* node, bool isDirectX) {
@@ -66,8 +71,8 @@ void FBXReader::LoadMeshData(FbxNode* node, bool isDirectX) {
 	if (attr != nullptr) {
 		if (attr->GetAttributeType() == FbxNodeAttribute::eMesh) {
 			//서브메쉬를 생성해서 각 부분에 맞게 메테리얼과 정점 데이터 생성
-			LoadMaterial(node);
 			LoadMesh(node, isDirectX);
+			LoadMaterial(node);
 		}
 	}
 
@@ -89,27 +94,38 @@ void FBXReader::LoadMaterial(FbxNode* node) {
 
 		if (material != NULL)
 		{
-			cout << "\nmaterial: " << material->GetName() << std::endl;
 			OutputDebugStringA(material->GetName());
-			OutputDebugStringA(" :\t");
-			mMaterialNames.push_back(material->GetName());
+			OutputDebugStringA(" :\n");
 
-			// This only gets the material of type sDiffuse, you probably need to traverse all Standard Material Property by its name to get all possible textures.
+			//메테리얼에서 정보 가져오기
 			FbxProperty prop = material->FindProperty(FbxSurfaceMaterial::sDiffuse);
-			//FbxProperty prop2 = material->FindProperty(FbxSurfaceMaterial::sNormalMap);
-			//FbxProperty prop3 = material->FindProperty(FbxSurfaceMaterial::sSpecular);
+			FbxProperty prop2 = material->FindProperty(FbxSurfaceMaterial::sNormalMap);
+			FbxProperty prop3 = material->FindProperty(FbxSurfaceMaterial::sSpecular);
 			//FbxProperty prop4 = material->FindProperty(FbxSurfaceMaterial::sEmissive);
-	
-			// Check if it's layeredtextures
-			LayeredTexture(prop);
-			//LayeredTexture(prop2);
-			//LayeredTexture(prop3);
+
+			//각 정보에서 텍스쳐 받아오기
+			TextureBundle texBundle;
+			std::vector<TextureInfo> texDiffuse;
+			LayeredTexture(prop, texDiffuse);
+			texBundle[TextureType::DIFFUSE] = std::move(texDiffuse);
+
+			std::vector<TextureInfo> texNormal;
+			LayeredTexture(prop2, texNormal);
+			texBundle[TextureType::NORMAL] = std::move(texNormal);
+
+			std::vector<TextureInfo> texSpecular;
+			LayeredTexture(prop3, texSpecular);
+			texBundle[TextureType::SPECULAR] = std::move(texSpecular);
+
 			//LayeredTexture(prop4);
+
+			//메테리얼 추가
+			mMaterials.push_back(std::pair< std::string, TextureBundle>(material->GetName(), std::move(texBundle)));
 		}
 	}
 }
 
-void FBXReader::LayeredTexture(const FbxProperty& prop) {
+void FBXReader::LayeredTexture(const FbxProperty& prop, std::vector<TextureInfo>& texInfo) {
 	int layeredTextureCount = prop.GetSrcObjectCount<FbxLayeredTexture>();
 
 	if (layeredTextureCount > 0)
@@ -122,14 +138,17 @@ void FBXReader::LayeredTexture(const FbxProperty& prop) {
 			for (int k = 0; k < lcount; k++)
 			{
 				FbxTexture* texture = FbxCast<FbxTexture>(layered_texture->GetSrcObject<FbxTexture>(k));
-				// Then, you can get all the properties of the texture, include its name
+
 				const char* textureName = texture->GetName();
 				cout << textureName;
 
-				char tName[1024] = { 0, };
-				sprintf(tName, "%s_%s", mFileName, prop.GetName());
-				mTextureNames.push_back(tName);
-				mTextureFileNames.push_back(AnsiToWString(textureName));
+				char tName[256] = { 0, };
+				sprintf_s(tName, sizeof(tName), "%s_%s", mFileName, prop.GetName().Buffer());
+	
+				TextureInfo* tex = new TextureInfo();
+				tex->first = tName;
+				tex->second = AnsiToWString(textureName);
+				texInfo.push_back(*tex);
 
 				OutputDebugStringA(textureName);
 				OutputDebugStringA("\n");
@@ -138,23 +157,23 @@ void FBXReader::LayeredTexture(const FbxProperty& prop) {
 	}
 	else
 	{
-		// Directly get textures
 		int textureCount = prop.GetSrcObjectCount<FbxTexture>();
 		for (int j = 0; j < textureCount; j++)
 		{
 			FbxFileTexture* texture = FbxCast<FbxFileTexture>(prop.GetSrcObject<FbxTexture>(j));
-			// Then, you can get all the properties of the texture, include its name
-			const char* textureName = texture->GetFileName();//texture->GetName();
+			
+			const char* textureName = texture->GetFileName();
 			cout << textureName;
 			char tName[1024] = { 0, };
-			sprintf(tName, "%s_%s", mFileName, prop.GetName());
-			mTextureNames.push_back(tName);
-			mTextureFileNames.push_back(AnsiToWString(textureName));
+			sprintf_s(tName, sizeof(tName), "%s_%s", mFileName, prop.GetName().Buffer());
+
+			TextureInfo* tex = new TextureInfo();
+			tex->first = tName;
+			tex->second = AnsiToWString(textureName);
+			texInfo.push_back(*tex);
 
 			OutputDebugStringA(textureName);
-			OutputDebugStringA(prop.GetName());
-			OutputDebugStringA("\n");
-				
+			OutputDebugStringA("\n");	
 		}
 	}
 }
@@ -183,6 +202,7 @@ unsigned int FBXReader::FindJointIndexUsingName(std::string name) {
 	return 0;
 }
 
+//FbxMatrix형을 DirectX::XMMATRIX형으로 변환
 DirectX::XMMATRIX LoadFBXMatrix(const FbxAMatrix& matrix) {
 	FbxVector4 tr = matrix.GetT();
 	XMMATRIX matTr = XMMatrixTranslation(tr.mData[0], tr.mData[1], tr.mData[2]);
@@ -198,49 +218,49 @@ DirectX::XMMATRIX LoadFBXMatrix(const FbxAMatrix& matrix) {
 
 
 void FBXReader::LoadMesh(FbxNode* node, bool isDirectX) {
-
 	//메쉬 데이터를 받아옴
 	GeometryGenerator::MeshData data;
 	SubmeshGeometry subData;
 	
-	FbxMesh* mesh = node->GetMesh();
+	FbxMesh* mesh = (FbxMesh*)node->GetNodeAttribute();
 	int count = mesh->GetControlPointsCount();
 
 	mBoneAniamtions.resize(mSkeleton.mJoints.size());
 	
 	ControlPoint* positions = new ControlPoint[count];
-	/*제어점 정보 받아오기 (제어점의 위치)*/
+	//제어점 정보 받아오기 (제어점의 위치)
 	for (int i = 0; i < count; ++i) {
 		memset(&(positions[i].skinnedData), 0x00, sizeof(SkinnedVertex));
 		positions[i].skinnedData.Pos.x = static_cast<float>(mesh->GetControlPointAt(i).mData[0]);
 		positions[i].skinnedData.Pos.y = static_cast<float>(mesh->GetControlPointAt(i).mData[1]);
 		positions[i].skinnedData.Pos.z = static_cast<float>(mesh->GetControlPointAt(i).mData[2]);
-		memset(&positions[i].skinnedData.BoneIndices, 0x00, sizeof(positions[i].skinnedData.BoneIndices));
-		positions[i].skinnedData.BoneWeights = XMFLOAT3(0.0f, 0.0f, 0.0f);
 	}
 
-	//가중치 데이터 넣기
+	//뼈의 가중치 및 애니메이션 데이터 받아오기
+
 	FbxAMatrix geometryTransform = GetGeometryTransformation(node);
 	unsigned int numOfDeformers = mesh->GetDeformerCount();
 	for (unsigned int deformerIndex = 0; deformerIndex < numOfDeformers; ++deformerIndex)
 	{
-		// There are many types of deformers in Maya,
-		// We are using only skins, so we see if this is a skin
+		//메쉬의 현재 스킨정보
 		FbxSkin* currSkin = reinterpret_cast<FbxSkin*>(mesh->GetDeformer(deformerIndex, FbxDeformer::eSkin));
 		if (!currSkin)
 		{
 			continue;
 		}
-
+		//스킨에서 클러스터 검색
 		unsigned int numOfClusters = currSkin->GetClusterCount();
 		FbxCluster::ELinkMode linkMode;
 		for (unsigned int clusterIndex = 0; clusterIndex < numOfClusters; ++clusterIndex)
 		{
+			//클러스터에서 뼈 받아오기
+
 			FbxCluster* currCluster = currSkin->GetCluster(clusterIndex);
 			std::string currJointName = currCluster->GetLink()->GetName();
 			unsigned int currJointIndex = FindJointIndexUsingName(currJointName);
 
 			//가중치와 인덱스 받아오기
+
 			unsigned int numOfIndices = currCluster->GetControlPointIndicesCount();
 			auto cntPtIdx = currCluster->GetControlPointIndices();
 			double* weight = currCluster->GetControlPointWeights();
@@ -270,38 +290,30 @@ void FBXReader::LoadMesh(FbxNode* node, bool isDirectX) {
 			FbxAMatrix transformLinkMatrix;
 			FbxAMatrix globalBindposeInverseMatrix;
 
-			currCluster->GetTransformMatrix(transformMatrix);	// The transformation of the mesh at binding time //메쉬의 Transform
-			currCluster->GetTransformLinkMatrix(transformLinkMatrix);	// The transformation of the cluster(joint) at binding time from joint space to world space //본의 transform
+			currCluster->GetTransformMatrix(transformMatrix);	//메쉬의 Transform
+			currCluster->GetTransformLinkMatrix(transformLinkMatrix); //뼈대 공간 > 월드공간 transform(BoneOffset)
 			globalBindposeInverseMatrix = transformLinkMatrix.Inverse() * transformMatrix * geometryTransform;
-			//globalBindposeInverseMatrix = transformLinkMatrix * transformMatrix * geometryTransform;
-			//globalBindposeInverseMatrix = transformLinkMatrix.Inverse();
 
 			auto translation = globalBindposeInverseMatrix.GetT();
 			auto rotation = globalBindposeInverseMatrix.GetR();
 			auto scale = globalBindposeInverseMatrix.GetS();
-			/*			
-			translation.mData[2] *= -1;
-			rotation.mData[0] *= -1;
-			rotation.mData[1] *= -1;
-			globalBindposeInverseMatrix.SetT(translation);
-			globalBindposeInverseMatrix.SetR(rotation);
-			*/
+
 			mSkeleton.mJoints[currJointIndex].mGlobalBindposeInverse = LoadFBXMatrix(globalBindposeInverseMatrix);
 
 	
 			//키프레임값 구하기//
 			//현재 클러스터의 뼈대
 			FbxNode* curBoneNode = currCluster->GetLink();
-	
-			// Get animation information
-			// Now only supports one take
-			int animStackCount = mScene->GetSrcObjectCount<FbxAnimStack>();
 
+			//애니메이션 스택 카운터
+			int animStackCount = mScene->GetSrcObjectCount<FbxAnimStack>();
+			int curAnumStack = 0;
 			if (animStackCount > 0) {
-				//디버그용으로 1로 설정!!!!!!!!!!!!!!!!!!!!!
-				FbxAnimStack* currAnimStack = mScene->GetSrcObject< FbxAnimStack>(animStackCount-1);
+				mIsSkinned = true;
+			}
+			while (curAnumStack < animStackCount) {
+				FbxAnimStack* currAnimStack = mScene->GetSrcObject< FbxAnimStack>(curAnumStack);
 				FbxString animStackName = currAnimStack->GetName();
-				mAnimationName = animStackName.Buffer();
 
 				FbxTakeInfo* takeInfo = mScene->GetTakeInfo(animStackName);
 
@@ -311,7 +323,6 @@ void FBXReader::LoadMesh(FbxNode* node, bool isDirectX) {
 				int keyFramesNum = (int)((endTime - startTime) * (double)frameRate);
 				Keyframe* keyFrame;
 
-				/**/
 				double curTime = 0;
 				while (curTime <= endTime) {
 					FbxTime animTime;
@@ -328,22 +339,16 @@ void FBXReader::LoadMesh(FbxNode* node, bool isDirectX) {
 						transform = curBoneNode->EvaluateLocalTransform(animTime);
 					}
 
-					FbxAMatrix localTransform = curBoneNode->EvaluateLocalTransform(animTime);
+					FbxAMatrix localTransform = transform * transformMatrix * geometryTransform;;
 
-					auto translation = transform.GetT();
-					auto quat = transform.GetQ();
-					auto scale = transform.GetS();
+					auto translation = localTransform.GetT();
+					auto rot = localTransform.GetR();
+					auto scale = localTransform.GetS();
+					auto quat = localTransform.GetQ();
 
-					/*				
-					translation.mData[2] *= -1;
-					quat.mData[0] *= -1;
-					quat.mData[1] *= -1;
-					*/
 					keyFrame = new Keyframe();
 					keyFrame->TimePos = curTime;
 					keyFrame->Translation = XMFLOAT3(translation.mData[0], translation.mData[1], translation.mData[2]);
-					//XMStoreFloat4(&keyFrame->RotationQuat, XMQuaternionRotationRollPitchYaw(rotation.mData[0], rotation.mData[1], rotation.mData[2]));
-					//keyFrame->RotationQuat = XMFLOAT4(rotation.mData[0], rotation.mData[1], rotation.mData[2], rotation.mData[3]);
 					keyFrame->RotationQuat = XMFLOAT4(quat.mData[0], quat.mData[1], quat.mData[2], quat.mData[3]);
 					keyFrame->Scale = XMFLOAT3(scale.mData[0], scale.mData[1], scale.mData[2]);
 
@@ -352,17 +357,21 @@ void FBXReader::LoadMesh(FbxNode* node, bool isDirectX) {
 					curTime += 1.0f / frameRate;
 				}
 
+				AnimationClip curClip;
+				curClip.BoneAnimations = mBoneAniamtions;
+				mAnimation.push_back(AnimationInfo(animStackName.Buffer(), curClip));
+
+				++curAnumStack;
 			}
-	
 		}
-
 	}
-
 
 	//Pos, Normal, Uv, TexC 값 계산
 	int triCount = mesh->GetPolygonCount();
-	int num2 = mesh->GetControlPointsCount();
+	int numberOfLayers = mesh->GetLayerCount();
+	int num2 = mesh->GetControlPointsCount();	
 	int vertexCount = 0;
+	int num3 = mesh->GetPolygonVertexCount();
 
 	unordered_map<GeometryGenerator::Vertex, uint32_t> findVertex;
 
@@ -384,7 +393,6 @@ void FBXReader::LoadMesh(FbxNode* node, bool isDirectX) {
 			//텍스쳐UV
 			auto tempUV = ReadUV(mesh, controllPointIndex, vertexCount);
 
-			/**/
 			if (isDirectX) {
 				tempUV.y =  1.0f - tempUV.y;
 			}
@@ -429,7 +437,7 @@ void FBXReader::LoadMesh(FbxNode* node, bool isDirectX) {
 			mIndex.push_back(index);
 			mVertex.push_back(tSkinnedVtx);
 			*/
-			++vertexCount;
+			++vertexCount; 
 		}
 	}
 
@@ -453,7 +461,6 @@ void FBXReader::LoadMesh(FbxNode* node, bool isDirectX) {
 	mSubMesh.push_back(std::move(subData));
 
 	cout << "ReadMesh End" << endl;
-
 
 	return;
 }
@@ -679,7 +686,6 @@ XMFLOAT2& FBXReader::ReadUV(FbxMesh* mesh, int controllPointIndex, int vertexCou
 	}
 
 	fbxsdk::FbxGeometryElementUV* vertexUV = mesh->GetElementUV();
-	int num = mesh->GetElementUVCount();
 	
 	switch (vertexUV->GetMappingMode()) {
 	case FbxGeometryElement::eByControlPoint:
@@ -750,6 +756,7 @@ void FBXReader::LoadSkeletonHierarchy(FbxNode* inRootNode)
 
 void FBXReader::LoadSkeletonHierarchyRecursively(FbxNode* inNode, int inDepth, int myIndex, int inParentIndex)
 {
+	//노드 속성이 스켈레톤이라면
 	if (inNode->GetNodeAttribute() && inNode->GetNodeAttribute()->GetAttributeType() && inNode->GetNodeAttribute()->GetAttributeType() == FbxNodeAttribute::eSkeleton)
 	{
 		Joint currJoint;
@@ -778,9 +785,11 @@ void FBXReader::GetSkinnedData(SkinnedData& data) {
 			offset->push_back(*temp);
 		}
 
-		mAnimClip = new AnimationClip();
-		mAnimClip->BoneAnimations.insert(mAnimClip->BoneAnimations.end(), mBoneAniamtions.begin(), mBoneAniamtions.end());
-		(*clip)[mAnimationName] = *mAnimClip;
+		for (int i = 0; i < mAnimation.size(); ++i) {
+			auto* animClip = new AnimationClip();
+			animClip->BoneAnimations.insert(animClip->BoneAnimations.end(), mAnimation[i].second.BoneAnimations.begin(), mAnimation[i].second.BoneAnimations.end());
+			(*clip)[mAnimation[i].first] = *animClip;
+		}
 
 		data.Set(*hierachy, *offset, *clip);
 	}

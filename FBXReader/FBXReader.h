@@ -38,6 +38,17 @@ public:
 
 	~FBXReader();
 
+public:
+	enum TextureType {
+		DIFFUSE = 0,
+		NORMAL,
+		SPECULAR
+	};
+
+	// Pair[TextureName,TextureFileName]
+	using TextureInfo = std::pair<std::string, std::wstring>;
+	using TextureBundle = std::unordered_map< TextureType, std::vector<TextureInfo>>;
+
 private:
 	FbxManager* mManager = nullptr;
 	FbxIOSettings* mIos = nullptr;
@@ -46,9 +57,7 @@ private:
 
 	char mFileName[256];
 
-	std::vector<std::string> mMaterialNames;
-	std::vector<std::string> mTextureNames;
-	std::vector<std::wstring> mTextureFileNames;
+	std::vector<std::pair<std::string, TextureBundle>> mMaterials;
 
 	Skeleton mSkeleton;
 
@@ -58,9 +67,12 @@ private:
 	GeometryGenerator::MeshData mMeshData;
 	std::vector<SubmeshGeometry> mSubMesh;
 
+	bool mIsSkinned = false;
+
 	SkinnedData mSkinnedData;
-	std::string mAnimationName;
-	AnimationClip* mAnimClip;
+
+	using AnimationInfo = std::pair< std::string, AnimationClip>;
+	std::vector<AnimationInfo> mAnimation;
 
 	std::vector<DirectX::XMFLOAT4X4> mBoneOffset;
 	std::vector<BoneAnimation> mBoneAniamtions;
@@ -71,9 +83,7 @@ public:
 		return mScene->GetRootNode();
 	}
 
-	std::vector<std::string>& GetMaterialNames() { return mMaterialNames; }
-	std::vector<std::string>& GetTextureNames() { return mTextureNames; }
-	std::vector<std::wstring>& GetTextureFileNames() { return mTextureFileNames; }
+	std::vector<std::pair<std::string, TextureBundle>>& GetMaterials() { return mMaterials; }
 
 	void LoadFBXData(FbxNode* node, bool isDirectX = true, int inDepth = 0, int myIndex = 0, int inParentIndex = -1);
 
@@ -88,12 +98,11 @@ public:
 	std::vector<SubmeshGeometry> GetSubmesh() { return mSubMesh; }
 
 	void GetSkinnedData(SkinnedData& data);
-	std::string GetClipName() { return mAnimationName; }
 
 private:
 	void LoadMeshData(FbxNode* node, bool isDirectX = true);
 
-	void LayeredTexture(const FbxProperty& prop);
+	void LayeredTexture(const FbxProperty& prop, std::vector<TextureInfo>& texBundle);
 
 	DirectX::XMFLOAT3& ReadNormal(FbxMesh* mesh, int controllPointIndex, int vertexCounter);
 	DirectX::XMFLOAT3& ReadBinormal(FbxMesh* mesh, int controllPointIndex, int vertexCounter);

@@ -77,9 +77,14 @@ void IOCPServer::AcceptClient() {
 		tempSInfo->mCamera.SetPosition(0.0f, 2.0f, -30.0f);
 		memcpy(&(tempSInfo->clientAddr), &tempClientAddr, addrLen);
 
+		//접속한 클라이언트의 디바이스 정보를 받아옴
+		
+
+
 		//소켓을 CP에 등록
 		CreateIoCompletionPort((HANDLE)tempClientSock, mhIOCP, (ULONG_PTR)tempSInfo, 0);
-		
+
+		//클라이언트 자료구조에 저장
 		clients.push_back(tempSInfo);
 	}
 }

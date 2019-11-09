@@ -160,12 +160,26 @@ struct OVERLAPPEDEX{
 	const DWORD64 headerSize = sizeof(HEADER);
 };
 
+struct DeviceInfo {
+	int mClientWidth;
+	int mClientHeight;
+
+	enum PixelOrder {
+		RGBA = 0,
+		BGRA
+	};
+	PixelOrder mClientRenderType;
+};
+
+
 //SocketInfo 구조체
 struct SocketInfo {
 	SOCKET socket;
 	sockaddr_in clientAddr;
 
 	Camera mCamera;
+
+	DeviceInfo mDeviceInfo;
 
 	QueueEX<std::unique_ptr<Packet>> rQueue;
 	QueueEX<std::unique_ptr<Packet>> wQueue;
@@ -176,7 +190,6 @@ struct SocketInfo {
 
 	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> mDirectCmdListAlloc;	//CmdList Allocator
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> mCommandList;	//Command List
-
 };
 
 //Server클래스
