@@ -10,7 +10,7 @@ MainWindow* MainWindow::GetInstance() {
 	return instance;
 }
 
-bool MainWindow::Initialize(UINT clientNum, USHORT port) {
+bool MainWindow::Initialize(UINT clientNum, USHORT port, std::string sceneName) {
 	WNDCLASS wndCls;
 	ZeroMemory(&wndCls, sizeof(wndCls));
 
@@ -49,7 +49,7 @@ bool MainWindow::Initialize(UINT clientNum, USHORT port) {
 	UpdateWindow(mhMainWnd);
 
 	d3dApp = new D3D12WND(mhMainWnd);
-	d3dApp->InitDirect3D(clientNum, port);
+	d3dApp->InitDirect3D(clientNum, port, sceneName);
 	d3dApp->OnResize();
 
 

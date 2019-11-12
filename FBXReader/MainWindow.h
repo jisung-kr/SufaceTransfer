@@ -31,7 +31,7 @@ private:
 public:
 	static MainWindow* GetInstance();
 
-	bool Initialize(UINT clientNum, USHORT port);
+	bool Initialize(UINT clientNum, USHORT port, std::string sceneName);
 	int Run();
 
 	LRESULT WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam);

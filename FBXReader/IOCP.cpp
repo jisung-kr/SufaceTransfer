@@ -78,8 +78,7 @@ void IOCPServer::AcceptClient() {
 		memcpy(&(tempSInfo->clientAddr), &tempClientAddr, addrLen);
 
 		//접속한 클라이언트의 디바이스 정보를 받아옴
-		
-
+		recv(tempSInfo->socket, (char*)&tempSInfo->mDeviceInfo, sizeof(DeviceInfo), 0);
 
 		//소켓을 CP에 등록
 		CreateIoCompletionPort((HANDLE)tempClientSock, mhIOCP, (ULONG_PTR)tempSInfo, 0);
@@ -147,6 +146,7 @@ void IOCPServer::RunNetwork(void* param) {
 			OutputDebugStringA("Queue에서 Packet 삭제\n");
 			break;
 		}
+		delete overlappedEx;
 	}
 	
 }

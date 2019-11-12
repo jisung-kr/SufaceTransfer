@@ -71,8 +71,9 @@ void FBXReader::LoadMeshData(FbxNode* node, bool isDirectX) {
 	if (attr != nullptr) {
 		if (attr->GetAttributeType() == FbxNodeAttribute::eMesh) {
 			//서브메쉬를 생성해서 각 부분에 맞게 메테리얼과 정점 데이터 생성
-			LoadMesh(node, isDirectX);
 			LoadMaterial(node);
+			LoadMesh(node, isDirectX);
+
 		}
 	}
 
@@ -407,7 +408,7 @@ void FBXReader::LoadMesh(FbxNode* node, bool isDirectX) {
 			tSkinnedVtx.BoneWeights = positions[controllPointIndex].skinnedData.BoneWeights;
 			memcpy(&tSkinnedVtx.BoneIndices, &positions[controllPointIndex].skinnedData.BoneIndices, sizeof(positions[controllPointIndex].skinnedData.BoneIndices));
 
-			/*		*/	
+			/*		
 			//정점 중복체크
 			auto r = findVertex.find(temp);
 			int index = 0;
@@ -428,15 +429,15 @@ void FBXReader::LoadMesh(FbxNode* node, bool isDirectX) {
 				mIndex.push_back(index);
 				mVertex.push_back(tSkinnedVtx);
 			}
-		
-			/*
+		*/	
+			/**/
 			int index = vertexCount;
 			data.Indices32.push_back(index);
 			data.Vertices.push_back(temp);
 
 			mIndex.push_back(index);
 			mVertex.push_back(tSkinnedVtx);
-			*/
+			
 			++vertexCount; 
 		}
 	}
@@ -450,6 +451,8 @@ void FBXReader::LoadMesh(FbxNode* node, bool isDirectX) {
 		totIndexCount += mSubMesh[i].IndexCount;
 	}
 
+	subData.name = mesh->GetName();
+	subData.matName = mMaterials[mMaterials.size() - 1].first;
 	subData.IndexCount = data.Indices32.size();
 	subData.BaseVertexLocation = totVertexCount;
 	subData.StartIndexLocation = totIndexCount;

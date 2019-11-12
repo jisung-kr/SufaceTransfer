@@ -13,6 +13,7 @@
 #include "FBXReader.h"
 #include "WICTextureLoader12.h"
 #include "lz4.h"
+#include "SceneReader.h"
 
 #include <memory>
 
@@ -71,21 +72,6 @@ struct RenderItem
 	SkinnedModelInstance* SkinnedModelInst = nullptr;
 };
 
-/*
-struct CustomRenderItem{
-	CustomRenderItem() = default;
-	CustomRenderItem(const CustomRenderItem& rhs) = delete;
-
-	//각 인스턴스의Transform(위치, 회전값 등등 국소공간변환행렬), 텍스쳐변환행렬, 재질을 설정 가능
-	std::vector<InstanceData> Instances; 
-
-	//메쉬데이터
-	MeshGeometry* Geo = nullptr; 
-
-	//기본도형
-	D3D12_PRIMITIVE_TOPOLOGY PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST; 
-};
-*/
 enum class RenderLayer : int{
 	None = 0,
 	Opaque = 1,
@@ -131,8 +117,12 @@ private:
 	UINT mDsvDescriptorSize = 0;	//Size of DepthStencilView Descriptor
 	UINT mCbvSrvUavDescriptorSize = 0;	//Size of ConstantBuffer-ShaderResourceView Descriptor
 	/*------------------------------------------------------------------------------------------------------*/
-	//DXGI_FORMAT mBackBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;	//Format of BackBuffer
-	DXGI_FORMAT mBackBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;	//Format of BackBuffer - Little Endian
+	DXGI_FORMAT mBackBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM;	//Format of BackBuffer
+	//DXGI_FORMAT mBackBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;	//Format of BackBuffer - Little Endian
+
+	DXGI_FORMAT mBackBufferRGBA = DXGI_FORMAT_R8G8B8A8_UNORM;	//Format of RGBA BackBuffer
+	DXGI_FORMAT mBackBufferBGRA = DXGI_FORMAT_B8G8R8A8_UNORM;	//Format of BGRA BackBuffer
+
 	
 	DXGI_FORMAT mDepthStencilFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;	//Format of DepthStencil
 
@@ -167,7 +157,7 @@ private:
 	std::vector<RenderItem*> mRitemLayer[(int)RenderLayer::MAX];
 
 	std::unordered_map<std::string, std::unique_ptr<MeshGeometry>> mGeometries;
-	std::unordered_map<std::string, std::unique_ptr<Material>> mMaterials;
+	std::vector<std::pair<std::string, std::unique_ptr<Material>>> mMaterials;
 	std::vector<std::pair<std::string, std::unique_ptr<Texture>>> mTextures;
 	std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3DBlob>> mShaders;
 	std::unordered_map<std::string, Microsoft::WRL::ComPtr<ID3D12PipelineState>> mPSOs;
@@ -205,23 +195,19 @@ private:
 
 	/*------------------------------------------------------------------------------------------------------*/
 	std::vector<D3D12_INPUT_ELEMENT_DESC> mSkinnedInputLayout;
-	std::unique_ptr<SkinnedModelInstance> mSkinnedModelInst;
-
-	std::string mSkinnedModelFilename = "Models\\soldier.m3d";
-	SkinnedData mSkinnedInfo;
-	std::vector<M3DLoader::Subset> mSkinnedSubsets;
-	std::vector<M3DLoader::M3dMaterial> mSkinnedMats;
-
+	std::vector<std::unique_ptr<SkinnedModelInstance>> mSkinnedModelInst;
 
 	int skyCubeSrvIdx = 0;
-
 	int skinnedTexSrvIdx = 0;
+	int skinnedAnimIdx = 0;
+
+	SceneReader mScene;
 	
 
 public:
 	Microsoft::WRL::ComPtr<ID3D12Device> GetD3DDevice();
 	D3D12WND* GetD3D12WND();
-	bool InitDirect3D(UINT clientNum, USHORT port);
+	bool InitDirect3D(UINT clientNum, USHORT port, std::string sceneName);
 	void CalculateFrameStatus();
 	/*------------------------------------------------------------------------------------------------------*/
 	void CreateCommandObjects();
@@ -239,15 +225,11 @@ public:
 	void LogOutputDisplayModes(IDXGIOutput* output, DXGI_FORMAT format);
 	/*------------------------------------------------------------------------------------------------------*/
 	void LoadTexture(const std::string key, const std::wstring fileName);
-	void LoadTextures();
 
 	void BuildMaterial(std::string materialName, int DiffuseSrvHeapIndex, int normalSrvHeapIndex, int specularSrvHeapIndex, DirectX::XMFLOAT4 DiffuseAlbedo = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),
 		DirectX::XMFLOAT3 FresnelR0 = DirectX::XMFLOAT3(0.2f, 0.2f, 0.2f), float Roughness = 0.9f);
-	void BuildMaterials();
 
-	void BuildShapeGeometry();
 	void BuildFbxMesh();
-	void BuildWorldRenderItem();
 	void BuildCharacterRenderItem();
 
 	void BuildRootSignature();
@@ -257,8 +239,14 @@ public:
 	void BuildFrameResources();
 
 
+	void LoadScene(std::string fileName);
+	void BuildDefaultShape(std::vector<GeometryAttr> geoAttr);
+	void LoadFBX(std::string fileName, std::string argsName);
+
+	void BuildRenderItem(RenderItemAttr renderItemAttr);
+
 	void CreateReadBackTex();
-	void CopyBuffer();
+	void CopyBuffer(int cliIdx);
 	void UpdateClientPassCB(const GameTimer& gt);
 	FLOAT* GetReadBackBuffer();
 

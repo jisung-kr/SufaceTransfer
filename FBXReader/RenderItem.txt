@@ -1,0 +1,247 @@
+DefaultShape
+	Sphere
+		InstanceIndex:0
+		Position:-9.0 3.5 -15.0
+		Rotation:0.0 0.0 0.0
+		Scale:1.0 1.0 1.0
+		TexturePosition:0.0 0.0 0.0
+		TextureRotation:0.0 0.0 0.0
+		TextureScale:1.0 1.0 1.0
+		Material:stone0
+
+		InstanceIndex:1
+		Position:9.0 3.5 -15.0
+		Rotation:0.0 0.0 0.0
+		Scale:1.0 1.0 1.0
+		TexturePosition:0.0 0.0 0.0
+		TextureRotation:0.0 0.0 0.0
+		TextureScale:1.0 1.0 1.0
+		Material:stone0
+
+		InstanceIndex:2
+		Position:-9.0 3.5 -7.0
+		Rotation:0.0 0.0 0.0
+		Scale:1.0 1.0 1.0
+		TexturePosition:0.0 0.0 0.0
+		TextureRotation:0.0 0.0 0.0
+		TextureScale:1.0 1.0 1.0
+		Material:stone0
+
+		InstanceIndex:3
+		Position:9.0 3.5 -7.0
+		Rotation:0.0 0.0 0.0
+		Scale:1.0 1.0 1.0
+		TexturePosition:0.0 0.0 0.0
+		TextureRotation:0.0 0.0 0.0
+		TextureScale:1.0 1.0 1.0
+		Material:stone0
+
+		InstanceIndex:4
+		Position:-9.0 3.5 1.0
+		Rotation:0.0 0.0 0.0
+		Scale:1.0 1.0 1.0
+		TexturePosition:0.0 0.0 0.0
+		TextureRotation:0.0 0.0 0.0
+		TextureScale:1.0 1.0 1.0
+		Material:stone0
+
+		InstanceIndex:5
+		Position:9.0 3.5 1.0
+		Rotation:0.0 0.0 0.0
+		Scale:1.0 1.0 1.0
+		TexturePosition:0.0 0.0 0.0
+		TextureRotation:0.0 0.0 0.0
+		TextureScale:1.0 1.0 1.0
+		Material:stone0
+
+		InstanceIndex:6
+		Position:-9.0 3.5 9.0
+		Rotation:0.0 0.0 0.0
+		Scale:1.0 1.0 1.0
+		TexturePosition:0.0 0.0 0.0
+		TextureRotation:0.0 0.0 0.0
+		TextureScale:1.0 1.0 1.0
+		Material:stone0
+
+		InstanceIndex:7
+		Position:9.0 3.5 9.0
+		Rotation:0.0 0.0 0.0
+		Scale:1.0 1.0 1.0
+		TexturePosition:0.0 0.0 0.0
+		TextureRotation:0.0 0.0 0.0
+		TextureScale:1.0 1.0 1.0
+		Material:stone0
+
+		InstanceIndex:8
+		Position:-9.0 3.5 17.0
+		Rotation:0.0 0.0 0.0
+		Scale:1.0 1.0 1.0
+		TexturePosition:0.0 0.0 0.0
+		TextureRotation:0.0 0.0 0.0
+		TextureScale:1.0 1.0 1.0
+		Material:stone0
+
+		InstanceIndex:9
+		Position:9.0 3.5 17.0
+		Rotation:0.0 0.0 0.0
+		Scale:1.0 1.0 1.0
+		TexturePosition:0.0 0.0 0.0
+		TextureRotation:0.0 0.0 0.0
+		TextureScale:1.0 1.0 1.0
+		Material:stone0
+
+DefaultShape
+	Cylinder
+		InstanceIndex:0
+		Position:-9.0 1.5 -15.0
+		Rotation:0.0 0.0 0.0
+		Scale:1.0 1.0 1.0
+		TexturePosition:0.0 0.0 0.0
+		TextureRotation:0.0 0.0 0.0
+		TextureScale:1.0 1.0 1.0
+		Material:bricks0
+
+		InstanceIndex:1
+		Position:9.0 1.5 -15.0
+		Rotation:0.0 0.0 0.0
+		Scale:1.0 1.0 1.0
+		TexturePosition:0.0 0.0 0.0
+		TextureRotation:0.0 0.0 0.0
+		TextureScale:1.0 1.0 1.0
+		Material:bricks0
+
+		InstanceIndex:2
+		Position:-9.0 1.5 -7.0
+		Rotation:0.0 0.0 0.0
+		Scale:1.0 1.0 1.0
+		TexturePosition:0.0 0.0 0.0
+		TextureRotation:0.0 0.0 0.0
+		TextureScale:1.0 1.0 1.0
+		Material:bricks0
+
+		InstanceIndex:3
+		Position:9.0 1.5 -7.0
+		Rotation:0.0 0.0 0.0
+		Scale:1.0 1.0 1.0
+		TexturePosition:0.0 0.0 0.0
+		TextureRotation:0.0 0.0 0.0
+		TextureScale:1.0 1.0 1.0
+		Material:bricks0
+
+		InstanceIndex:4
+		Position:-9.0 1.5 1.0
+		Rotation:0.0 0.0 0.0
+		Scale:1.0 1.0 1.0
+		TexturePosition:0.0 0.0 0.0
+		TextureRotation:0.0 0.0 0.0
+		TextureScale:1.0 1.0 1.0
+		Material:bricks0
+
+		InstanceIndex:5
+		Position:9.0 1.5 1.0
+		Rotation:0.0 0.0 0.0
+		Scale:1.0 1.0 1.0
+		TexturePosition:0.0 0.0 0.0
+		TextureRotation:0.0 0.0 0.0
+		TextureScale:1.0 1.0 1.0
+		Material:bricks0
+
+		InstanceIndex:6
+		Position:-9.0 1.5 9.0
+		Rotation:0.0 0.0 0.0
+		Scale:1.0 1.0 1.0
+		TexturePosition:0.0 0.0 0.0
+		TextureRotation:0.0 0.0 0.0
+		TextureScale:1.0 1.0 1.0
+		Material:bricks0
+
+		InstanceIndex:7
+		Position:9.0 1.5 9.0
+		Rotation:0.0 0.0 0.0
+		Scale:1.0 1.0 1.0
+		TexturePosition:0.0 0.0 0.0
+		TextureRotation:0.0 0.0 0.0
+		TextureScale:1.0 1.0 1.0
+		Material:bricks0
+
+		InstanceIndex:8
+		Position:-9.0 1.5 17.0
+		Rotation:0.0 0.0 0.0
+		Scale:1.0 1.0 1.0
+		TexturePosition:0.0 0.0 0.0
+		TextureRotation:0.0 0.0 0.0
+		TextureScale:1.0 1.0 1.0
+		Material:bricks0
+
+		InstanceIndex:9
+		Position:9.0 1.5 17.0
+		Rotation:0.0 0.0 0.0
+		Scale:1.0 1.0 1.0
+		TexturePosition:0.0 0.0 0.0
+		TextureRotation:0.0 0.0 0.0
+		TextureScale:1.0 1.0 1.0
+		Material:bricks0
+
+DefaultShape
+	Grid
+		InstanceIndex:0
+		Position:0.0 0.0 0.0
+		Rotation:0.0 0.0 0.0
+		Scale:1.0 1.0 1.0
+		TexturePosition:0.0 0.0 0.0
+		TextureRotation:0.0 0.0 0.0
+		TextureScale:16.0 16.0 16.0
+		Material:tile0
+
+Boxing.fbx
+	Default
+		InstanceIndex:0
+		Position:0.0 0.0 0.0
+		Rotation:0.0 0.0 0.0
+		Scale:0.02 0.02 0.02
+		TexturePosition:0.0 0.0 0.0
+		TextureRotation:0.0 0.0 0.0
+		TextureScale:1.0 1.0 1.0
+		Material:NULL
+
+		InstanceIndex:1
+		Position:0.0 0.0 10.0
+		Rotation:0.0 0.0 0.0
+		Scale:0.02 0.02 0.02
+		TexturePosition:0.0 0.0 0.0
+		TextureRotation:0.0 0.0 0.0
+		TextureScale:1.0 1.0 1.0
+		Material:NULL
+
+Bee.fbx
+	Default
+		InstanceIndex:0
+		Position:0.0 5.0 0.0
+		Rotation:0.0 0.0 0.0
+		Scale:0.008 0.008 0.008
+		TexturePosition:0.0 0.0 0.0
+		TextureRotation:0.0 0.0 0.0
+		TextureScale:1.0 1.0 1.0
+		Material:NULL
+
+Prone.fbx
+	Default
+		InstanceIndex:0
+		Position:5.0 0.0 0.0
+		Rotation:0.0 0.0 0.0
+		Scale:0.02 0.02 0.02
+		TexturePosition:0.0 0.0 0.0
+		TextureRotation:0.0 0.0 0.0
+		TextureScale:1.0 1.0 1.0
+		Material:NULL
+
+walk.fbx
+	Default
+		InstanceIndex:0
+		Position:-5.0 0.0 5.0
+		Rotation:0.0 0.0 0.0
+		Scale:0.02 0.02 0.02
+		TexturePosition:0.0 0.0 0.0
+		TextureRotation:0.0 0.0 0.0
+		TextureScale:1.0 1.0 1.0
+		Material:NULL

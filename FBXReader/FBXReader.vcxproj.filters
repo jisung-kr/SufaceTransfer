@@ -49,6 +49,12 @@
     <Filter Include="소스 파일\Codec">
       <UniqueIdentifier>{3313a36e-6d81-435a-aeb3-e36812eea71a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="소스 파일\Graphics\SceneReader">
+      <UniqueIdentifier>{6d1f044c-67be-4dd2-9ece-7439ea2559db}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\SceneReader">
+      <UniqueIdentifier>{7d5d4c7a-a6b2-43c7-a0a5-51c0a29601b2}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Camera.cpp">
@@ -104,6 +110,9 @@
     </ClCompile>
     <ClCompile Include="lz4.cpp">
       <Filter>소스 파일\Codec</Filter>
+    </ClCompile>
+    <ClCompile Include="SceneReader.cpp">
+      <Filter>소스 파일\Graphics\SceneReader</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -163,6 +172,9 @@
     </ClInclude>
     <ClInclude Include="lz4.h">
       <Filter>헤더 파일\Codec</Filter>
+    </ClInclude>
+    <ClInclude Include="SceneReader.h">
+      <Filter>헤더 파일\SceneReader</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

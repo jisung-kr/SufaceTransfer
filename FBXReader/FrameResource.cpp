@@ -1,7 +1,7 @@
 #include "FrameResource.h"
 
 
-FrameResource::FrameResource(ID3D12Device* device, UINT passCount, UINT maxInstanceCount, UINT materialCount, UINT clientNum)
+FrameResource::FrameResource(ID3D12Device* device, UINT passCount, UINT maxInstanceCount, UINT materialCount, UINT maxSkinnedCount, UINT clientNum)
 {
 	ThrowIfFailed(device->CreateCommandAllocator(
 		D3D12_COMMAND_LIST_TYPE_DIRECT,
@@ -11,7 +11,7 @@ FrameResource::FrameResource(ID3D12Device* device, UINT passCount, UINT maxInsta
 
 	MaterialBuffer = std::make_unique<UploadBuffer<MaterialData>>(device, materialCount, false);
 	InstanceBuffer = std::make_unique<UploadBuffer<InstanceData>>(device, maxInstanceCount, false);
-	SkinnedCB = std::make_unique<UploadBuffer<SkinnedConstants>>(device, clientNum + 1, true);
+	SkinnedCB = std::make_unique<UploadBuffer<SkinnedConstants>>(device, maxSkinnedCount, true);
 
 	mSurfaces.reserve(clientNum);
 	for (int i = 0; i < clientNum; ++i) {

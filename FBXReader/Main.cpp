@@ -12,7 +12,8 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 	try
 	{
 		//파일 입출력
-		FILE* config = fopen("server_config.txt", "rt");
+		FILE* config;
+		fopen_s(&config, "server_config.txt", "rt");
 		if (config == nullptr) {
 			MessageBoxA(NULL, "Can't Open File", "Error", MB_OK);
 			return -1;
@@ -22,15 +23,17 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 		char maxClientNum[20];
 		char windowWidth[20];
 		char windowHeight[20];
+		char sceneName[20];
 
 		unsigned short serverPort_short;
 		UINT clientNum;
 		UINT width, height;
 
-		fscanf_s(config, "%*[Server_Port=]%s\n", serverPort, sizeof(serverPort));
-		fscanf_s(config, "%*[MaxClientNum=]%s\n", maxClientNum, sizeof(maxClientNum));
-		fscanf_s(config, "%*[WindowWidth=]%s\n", windowWidth, sizeof(windowWidth));
-		fscanf_s(config, "%*[WindowHeight=]%s\n", windowHeight, sizeof(windowHeight));
+		fscanf_s(config, "ServerPort=%s\n", serverPort, sizeof(serverPort));
+		fscanf_s(config, "MaxClientNum=%s\n", maxClientNum, sizeof(maxClientNum));
+		fscanf_s(config, "WindowWidth=%s\n", windowWidth, sizeof(windowWidth));
+		fscanf_s(config, "WindowHeight=%s\n", windowHeight, sizeof(windowHeight));
+		fscanf_s(config, "Scene=%s\n", sceneName, sizeof(sceneName));
 
 		serverPort_short = atoi(serverPort);
 		clientNum = atoi(maxClientNum);
@@ -41,7 +44,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 
 		MainWindow theMain(hInst, width, height);
 
-		if (!theMain.Initialize(clientNum, serverPort_short))
+		if (!theMain.Initialize(clientNum, serverPort_short, sceneName))
 			return 0;
 
 		return theMain.Run();

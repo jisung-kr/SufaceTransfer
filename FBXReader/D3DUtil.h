@@ -106,7 +106,7 @@ public:
 struct SubmeshGeometry
 {
 	std::string name;
-	UINT MatIndex = 0;
+	std::string matName;
 	UINT IndexCount = 0;
 	UINT StartIndexLocation = 0;
 	INT BaseVertexLocation = 0;

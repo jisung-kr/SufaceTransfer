@@ -44,17 +44,18 @@ enum IOCP_FLAG {
 	IOCP_FLAG_MAX
 };
 enum COMMAND {
-	COMMAND_REQ_FRAME = 0,
-	COMMAND_RES_FRAME = 1,
-	COMMAND_INPUT = 2,
+	COMMAND_HELLO = 0,
+	COMMAND_REQ_FRAME,
+	COMMAND_RES_FRAME,
+	COMMAND_INPUT,
 	COMMAND_MAX
 };
 
 enum INPUT_TYPE {
-	INPUT_KEY_W = 0,
-	INPUT_KEY_S = 1,
-	INPUT_KEY_A = 2,
-	INPUT_KEY_D = 3,
+	INPUT_KEY_W,
+	INPUT_KEY_S,
+	INPUT_KEY_A,
+	INPUT_KEY_D,
 	INPUT_AXIS_CAMERA_MOVE,
 	INPUT_AXIS_CAMERA_ROT,
 	INPUT_MAX
@@ -168,7 +169,7 @@ struct DeviceInfo {
 		RGBA = 0,
 		BGRA
 	};
-	PixelOrder mClientRenderType;
+	PixelOrder mClientPixelOreder;
 };
 
 
@@ -190,7 +191,11 @@ struct SocketInfo {
 
 	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> mDirectCmdListAlloc;	//CmdList Allocator
 	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> mCommandList;	//Command List
+
+	Microsoft::WRL::ComPtr<ID3D12Resource> mRenderTargetBuffer;	//RenderTarget Buffer
+	Microsoft::WRL::ComPtr<ID3D12Resource> mDepthStencilBuffer;	//DepthStencil Buffer
 };
+
 
 //Server클래스
 class IOCPServer : public IOCP {
@@ -212,10 +217,6 @@ public:
 
 	void RequestRecv(int sockIdx, bool overlapped = true);	//중첩소켓에 수신요청
 	void RequestSend(int sockIdx, bool overlapped = true);	//중첩소켓에 송신요청
-
-
-	Microsoft::WRL::ComPtr<ID3D12Resource> mRenderTargetBuffer;	//RenderTarget Buffer
-	Microsoft::WRL::ComPtr<ID3D12Resource> mDepthStencilBuffer;	//DepthStencil Buffer
 
 	INT GetClientNum() { return clients.size(); }
 	SocketInfo* GetClient(int idx) { return clients[idx]; }

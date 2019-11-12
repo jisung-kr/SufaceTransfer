@@ -170,6 +170,7 @@
     <ClCompile Include="MainWindow.cpp" />
     <ClCompile Include="MathHelper.cpp" />
     <ClCompile Include="Network.cpp" />
+    <ClCompile Include="SceneReader.cpp" />
     <ClCompile Include="WICTextureLoader12.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -190,6 +191,7 @@
     <ClInclude Include="MainWindow.h" />
     <ClInclude Include="MathHelper.h" />
     <ClInclude Include="Network.h" />
+    <ClInclude Include="SceneReader.h" />
     <ClInclude Include="UploadBuffer.h" />
     <ClInclude Include="WICTextureLoader12.h" />
   </ItemGroup>

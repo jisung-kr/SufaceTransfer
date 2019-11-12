@@ -1,0 +1,28 @@
+Name:default
+	Diffuse:Textures/white1x1.dds
+	Normal:NULL
+	Specular:NULL
+	DiffuseAlbedo:1.0 1.0 1.0 1.0
+	FresnelR0:1.0 1.0 1.0
+	Roughness:1.0
+Name:bricks0
+	Diffuse:Textures/bricks.dds
+	Normal:Textures/bricks_nmap.dds
+	Specular:NULL
+	DiffuseAlbedo:1.0 1.0 1.0 1.0
+	FresnelR0:0.1 0.1 0.1
+	Roughness:0.3
+Name:stone0
+	Diffuse:Textures/stone.dds
+	Normal:NULL
+	Specular:NULL
+	DiffuseAlbedo:0.9 0.9 0.9 1.0
+	FresnelR0:0.05 0.05 0.05
+	Roughness:0.3
+Name:tile0
+	Diffuse:Textures/tile.dds
+	Normal:Textures/tile_nmap.dds
+	Specular:NULL
+	DiffuseAlbedo:1.0 1.0 1.0 1.0
+	FresnelR0:0.05 0.05 0.05
+	Roughness:0.2

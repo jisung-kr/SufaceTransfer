@@ -41,7 +41,6 @@ private:
 	std::vector<DirectX::XMFLOAT4X4> mBoneOffsets;	//»À ¿ÀÇÁ¼Â(SRT)
 	std::unordered_map<std::string, AnimationClip> mAnimations;
 
-
 public:
 	UINT BoneCount() const;
 
