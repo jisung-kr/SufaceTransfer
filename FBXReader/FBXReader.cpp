@@ -35,14 +35,14 @@ FBXReader::FBXReader(const char* fileName) {
 	// 임포터 파괴
 	mImporter->Destroy();
 
-	/*
+	/*	
 	FbxAxisSystem sceneAxisSystem = mScene->GetGlobalSettings().GetAxisSystem();
 	FbxAxisSystem outAxisSystem(FbxAxisSystem::eDirectX);
 	if (sceneAxisSystem != outAxisSystem)
 		outAxisSystem.ConvertScene(mScene);
 	
 	FbxAxisSystem::DirectX.ConvertScene(mScene);
-		*/
+	*/
 	FbxGeometryConverter converter(mManager);
 	converter.Triangulate(mScene, true);
 	
@@ -59,7 +59,6 @@ void FBXReader::LoadFBXData(FbxNode* node, bool isDirectX, int inDepth, int myIn
 
 	//노드 순회하면서 eMesh데이터 받아오기(정점, 메테리얼, 애니메이션 데이터 등)
 	LoadMeshData(node,isDirectX);
-
 
 	OutputDebugStringA("Success Load FBX\n");
 }
@@ -315,7 +314,6 @@ void FBXReader::LoadMesh(FbxNode* node, bool isDirectX) {
 			while (curAnumStack < animStackCount) {
 				FbxAnimStack* currAnimStack = mScene->GetSrcObject< FbxAnimStack>(curAnumStack);
 				FbxString animStackName = currAnimStack->GetName();
-
 				FbxTakeInfo* takeInfo = mScene->GetTakeInfo(animStackName);
 
 				float frameRate = (float)FbxTime::GetFrameRate(mScene->GetGlobalSettings().GetTimeMode());
@@ -369,10 +367,8 @@ void FBXReader::LoadMesh(FbxNode* node, bool isDirectX) {
 
 	//Pos, Normal, Uv, TexC 값 계산
 	int triCount = mesh->GetPolygonCount();
-	int numberOfLayers = mesh->GetLayerCount();
-	int num2 = mesh->GetControlPointsCount();	
 	int vertexCount = 0;
-	int num3 = mesh->GetPolygonVertexCount();
+
 
 	unordered_map<GeometryGenerator::Vertex, uint32_t> findVertex;
 
@@ -408,7 +404,6 @@ void FBXReader::LoadMesh(FbxNode* node, bool isDirectX) {
 			tSkinnedVtx.BoneWeights = positions[controllPointIndex].skinnedData.BoneWeights;
 			memcpy(&tSkinnedVtx.BoneIndices, &positions[controllPointIndex].skinnedData.BoneIndices, sizeof(positions[controllPointIndex].skinnedData.BoneIndices));
 
-			/*		
 			//정점 중복체크
 			auto r = findVertex.find(temp);
 			int index = 0;
@@ -429,37 +424,25 @@ void FBXReader::LoadMesh(FbxNode* node, bool isDirectX) {
 				mIndex.push_back(index);
 				mVertex.push_back(tSkinnedVtx);
 			}
-		*/	
-			/**/
-			int index = vertexCount;
-			data.Indices32.push_back(index);
-			data.Vertices.push_back(temp);
-
-			mIndex.push_back(index);
-			mVertex.push_back(tSkinnedVtx);
 			
 			++vertexCount; 
 		}
 	}
 
 	//서브메시 속성들 계산
-	int totVertexCount = 0;
-	totVertexCount += mMeshData.Vertices.size();
+	int baseVertexLoc = 0;
+	baseVertexLoc += mVertex.size() - data.Vertices.size();
 
-	int totIndexCount = 0;
+	int startIndexLoc = 0;
 	for (int i = 0; i < mSubMesh.size(); ++i) {
-		totIndexCount += mSubMesh[i].IndexCount;
+		startIndexLoc += mSubMesh[i].IndexCount;
 	}
 
 	subData.name = mesh->GetName();
 	subData.matName = mMaterials[mMaterials.size() - 1].first;
 	subData.IndexCount = data.Indices32.size();
-	subData.BaseVertexLocation = totVertexCount;
-	subData.StartIndexLocation = totIndexCount;
-
-	//전체 메쉬데이터에 현재 서브메쉬 추가
-	mMeshData.Vertices.insert(mMeshData.Vertices.end(), data.Vertices.begin(), data.Vertices.end());
-	mMeshData.Indices32.insert(mMeshData.Indices32.end(), data.Indices32.begin(), data.Indices32.end());
+	subData.BaseVertexLocation = baseVertexLoc;
+	subData.StartIndexLocation = startIndexLoc;
 
 	mSubMesh.push_back(std::move(subData));
 

@@ -64,7 +64,6 @@ private:
 	std::vector<SkinnedVertex> mVertex;
 	std::vector<uint32_t> mIndex;
 
-	GeometryGenerator::MeshData mMeshData;
 	std::vector<SubmeshGeometry> mSubMesh;
 
 	bool mIsSkinned = false;
@@ -92,7 +91,6 @@ public:
 
 	void LoadSkeletonHierarchy(FbxNode* inRootNode);
 
-	GeometryGenerator::MeshData GetMeshData() { return mMeshData; }
 	std::vector<SkinnedVertex> GetVertices() { return mVertex; }
 	std::vector<uint32_t> GetIndices() { return mIndex; }
 	std::vector<SubmeshGeometry> GetSubmesh() { return mSubMesh; }

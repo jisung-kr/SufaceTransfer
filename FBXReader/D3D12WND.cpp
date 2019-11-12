@@ -1479,11 +1479,10 @@ void D3D12WND::LoadFBX(std::string fileName, std::string argsName) {
 	}
 
 	//Vertex 설정
-	GeometryGenerator::MeshData data = read.GetMeshData();
 	std::vector<SkinnedVertex> skinVtx = read.GetVertices();
 	std::vector<SkinnedVertex> vertices(skinVtx.size());
 
-	for (size_t i = 0; i < data.Vertices.size(); ++i)
+	for (size_t i = 0; i < skinVtx.size(); ++i)
 	{
 		vertices[i].Pos = skinVtx[i].Pos;
 		vertices[i].Normal = skinVtx[i].Normal;
@@ -1531,119 +1530,6 @@ void D3D12WND::LoadFBX(std::string fileName, std::string argsName) {
 	mGeometries[geo->Name] = std::move(geo);
 }
 
-void D3D12WND::BuildFbxMesh() {
-
-	//이곳에서 Fbx로 부터 각 정점 받아오기 수행
-	FBXReader read("Prone.fbx");
-
-	read.LoadFBXData(read.GetRootNode(), false);
-
-	SkinnedData* temp = new SkinnedData();
-	read.GetSkinnedData(*temp);
-
-	if (temp->BoneCount() > 0) {
-		auto skinned = make_unique<SkinnedModelInstance>();
-		skinned->SkinnedInfo = temp;
-		skinned->FinalTransforms.resize(skinned->SkinnedInfo->BoneCount());
-		skinned->TimePos = 0.0f;
-		skinned->ClipName = "mixamo.com";
-
-		mSkinnedModelInst.push_back(std::move(skinned));
-	}
-
-	skinnedTexSrvIdx = mTextures.size();
-
-	//텍스쳐 생성 및 메테리얼 생성
-	auto& mat = read.GetMaterials();
-	int baseIdx = skinnedTexSrvIdx;
-
-	for (int i = 0; i < mat.size(); ++i) {
-		auto& curMat = mat[i];
-
-		bool hasDiffuse = false;
-		bool hasNormal = false;
-		bool hasSpecular = false;
-
-		if (curMat.second[FBXReader::TextureType::DIFFUSE].size() != 0) {
-			hasDiffuse = true;
-			auto& curDiffuse = curMat.second[FBXReader::TextureType::DIFFUSE][0];
-			LoadTexture(curDiffuse.first, curDiffuse.second);
-		}
-		
-		if (curMat.second[FBXReader::TextureType::NORMAL].size() != 0) {
-			hasNormal = true;
-			auto& curNormal = curMat.second[FBXReader::TextureType::NORMAL][0];
-			LoadTexture(curNormal.first, curNormal.second);
-		}
-		
-		if (curMat.second[FBXReader::TextureType::SPECULAR].size() != 0) {
-			hasSpecular = true;
-			auto& curSpec = curMat.second[FBXReader::TextureType::SPECULAR][0];
-			LoadTexture(curSpec.first, curSpec.second);
-		}
-		int diffuseSrvIdx = baseIdx;
-		int normalSrvIdx = diffuseSrvIdx + (hasNormal ? 1 : 0);
-		int specularSrvIdx = normalSrvIdx + (hasSpecular ? 1 : 0);
-
-		BuildMaterial(curMat.first, diffuseSrvIdx, hasNormal ? normalSrvIdx : -1, hasSpecular ? specularSrvIdx : -1);
-		//BuildMaterial(curMat.first, diffuseSrvIdx, -1, -1);
-
-		baseIdx = specularSrvIdx + 1;
-	}
-
-	//Vertex 설정
-	GeometryGenerator::MeshData data = read.GetMeshData();
-	std::vector<SkinnedVertex> skinVtx = read.GetVertices();
-	std::vector<SkinnedVertex> vertices(skinVtx.size());
-
-	for (size_t i = 0; i < data.Vertices.size(); ++i)
-	{
-		vertices[i].Pos = skinVtx[i].Pos;
-		vertices[i].Normal = skinVtx[i].Normal;
-		vertices[i].TexC = skinVtx[i].TexC;
-		vertices[i].TangentU = skinVtx[i].TangentU;
-		if (vertices[i].TangentU.x == 0.0f && vertices[i].TangentU.y== 0.0f && vertices[i].TangentU.z == 0.0f) {
-			vertices[i].TangentU = XMFLOAT3(vertices[i].TexC.x, 0.0f, 0.0f);
-		}
-
-		memcpy(&vertices[i].BoneIndices, &skinVtx[i].BoneIndices, sizeof(skinVtx[i].BoneIndices));
-		vertices[i].BoneWeights = skinVtx[i].BoneWeights;
-	}
-
-	//인덱스 설정
-	std::vector<std::uint32_t> indices = read.GetIndices();
-
-	const UINT vbByteSize = (UINT)vertices.size() * sizeof(SkinnedVertex);
-	const UINT ibByteSize = (UINT)indices.size() * sizeof(std::uint32_t);
-
-	auto geo = std::make_unique<MeshGeometry>();
-	geo->Name = "beeGeo";
-
-	ThrowIfFailed(D3DCreateBlob(vbByteSize, &geo->VertexBufferCPU));
-	CopyMemory(geo->VertexBufferCPU->GetBufferPointer(), vertices.data(), vbByteSize);
-
-	ThrowIfFailed(D3DCreateBlob(ibByteSize, &geo->IndexBufferCPU));
-	CopyMemory(geo->IndexBufferCPU->GetBufferPointer(), indices.data(), ibByteSize);
-
-	geo->VertexBufferGPU = D3DUtil::CreateDefaultBuffer(md3dDevice.Get(),
-		mCommandList.Get(), vertices.data(), vbByteSize, geo->VertexBufferUploader);
-
-	geo->IndexBufferGPU = D3DUtil::CreateDefaultBuffer(md3dDevice.Get(),
-		mCommandList.Get(), indices.data(), ibByteSize, geo->IndexBufferUploader);
-
-	geo->VertexByteStride = sizeof(SkinnedVertex);
-	geo->VertexBufferByteSize = vbByteSize;
-	geo->IndexFormat = DXGI_FORMAT_R32_UINT;
-	geo->IndexBufferByteSize = ibByteSize;
-
-	for (int i = 0; i < read.GetSubmesh().size(); ++i) {
-		auto curSub = read.GetSubmesh()[i];
-		geo->DrawArgs[std::to_string(i)] = curSub;
-	}
-
-	mGeometries[geo->Name] = std::move(geo);
-
-}
 
 void D3D12WND::BuildRenderItem(RenderItemAttr renderItemAttr) {
 
