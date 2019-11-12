@@ -1138,21 +1138,19 @@ void D3D12WND::BuildDescriptorHeaps() {
 		hDescriptor.Offset(1, mCbvSrvUavDescriptorSize);
 	}
 
-	/*		*/
-	skyCubeSrvIdx = tex2DList.size();
-	LoadTexture("skybox", L"Textures/desertcube1024.dds");
+	/*	skybox 설정	*/
+	for (int i = 0; i < mTextures.size(); ++i) {
+		if (mTextures[i].first.compare("skybox") == 0) {
+			srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
+			srvDesc.TextureCube.MostDetailedMip = 0;
+			srvDesc.TextureCube.MipLevels = mTextures[i].second->Resource->GetDesc().MipLevels;
+			srvDesc.TextureCube.ResourceMinLODClamp = 0.0f;
+			srvDesc.Format = mTextures[i].second->Resource->GetDesc().Format;
 
-	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
-	srvDesc.TextureCube.MostDetailedMip = 0;
-	srvDesc.TextureCube.MipLevels = mTextures[skyCubeSrvIdx].second->Resource->GetDesc().MipLevels;
-	srvDesc.TextureCube.ResourceMinLODClamp = 0.0f;
-	srvDesc.Format = mTextures[mTextures.size() - 1].second->Resource->GetDesc().Format;
-
-	md3dDevice->CreateShaderResourceView(mTextures[skyCubeSrvIdx].second->Resource.Get(), &srvDesc, hDescriptor);
-
-	BuildMaterial("sky", skyCubeSrvIdx, -1, -1, XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f), XMFLOAT3(0.1f, 0.1f, 0.1f), 1.0f);
-	
+			md3dDevice->CreateShaderResourceView(mTextures[i].second->Resource.Get(), &srvDesc, hDescriptor);
+		}
+	}
 }
 
 void D3D12WND::BuildShadersAndInputLayout() {
@@ -1599,7 +1597,7 @@ void D3D12WND::BuildRenderItem(RenderItemAttr renderItemAttr) {
 			mAllRitems.push_back(std::move(renderItem));
 
 			//애니메이션 존재할 경우 SkinnedOpaque로 입력
-			if (renderItemAttr.GeometryInfo->IsAnimation.compare("False") == 0)
+			if (mAllRitems[mAllRitems.size() - 1]->SkinnedModelInst == nullptr)
 				mRitemLayer[(int)RenderLayer::Opaque].push_back(mAllRitems[mAllRitems.size() - 1].get());
 			else
 				mRitemLayer[(int)RenderLayer::SkinnedOpaque].push_back(mAllRitems[mAllRitems.size() - 1].get());
@@ -1607,7 +1605,7 @@ void D3D12WND::BuildRenderItem(RenderItemAttr renderItemAttr) {
 
 		}
 
-		if (renderItemAttr.GeometryInfo->IsAnimation.compare("True") == 0) 
+		if (mAllRitems[mAllRitems.size() - 1]->SkinnedModelInst != nullptr)
 			skinnedAnimIdx++;
 		
 
@@ -1675,7 +1673,7 @@ void D3D12WND::BuildRenderItem(RenderItemAttr renderItemAttr) {
 		mAllRitems.push_back(std::move(renderItem));
 
 		//애니메이션 존재할 경우 SkinnedOpaque로 입력
-		if (renderItemAttr.GeometryInfo->IsAnimation.compare("False") == 0)
+		if (mAllRitems[mAllRitems.size() - 1]->SkinnedModelInst == nullptr)
 			mRitemLayer[(int)RenderLayer::Opaque].push_back(mAllRitems[mAllRitems.size() - 1].get());
 		else
 			mRitemLayer[(int)RenderLayer::SkinnedOpaque].push_back(mAllRitems[mAllRitems.size() - 1].get());
