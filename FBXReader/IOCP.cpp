@@ -74,7 +74,7 @@ void IOCPServer::AcceptClient() {
 		//접속한 클라이언트 SocketInfo 생성
 		SocketInfo* tempSInfo = new SocketInfo();
 		tempSInfo->socket = tempClientSock;
-		tempSInfo->mCamera.SetPosition(0.0f, 2.0f, -30.0f);
+		tempSInfo->mCamera.SetPosition(30.0f, 0.0f, -160.0f);
 		memcpy(&(tempSInfo->clientAddr), &tempClientAddr, addrLen);
 
 		//접속한 클라이언트의 디바이스 정보를 받아옴

@@ -34,6 +34,11 @@ struct PassConstants
 
 	DirectX::XMFLOAT4 AmbientLight = { 0.0f, 0.0f, 0.0f, 1.0f };
 
+	DirectX::XMFLOAT4 FogColor = { 0.3f, 0.3f, 0.3f, 1.0f };
+	float gFogStart = 100.0f;
+	float gFogRange = 5000.0f;
+	DirectX::XMFLOAT2 cbPerPassPad2;
+
 	// Indices [0, NUM_DIR_LIGHTS) are directional lights;
 	// indices [NUM_DIR_LIGHTS, NUM_DIR_LIGHTS+NUM_POINT_LIGHTS) are point lights;
 	// indices [NUM_DIR_LIGHTS+NUM_POINT_LIGHTS, NUM_DIR_LIGHTS+NUM_POINT_LIGHT+NUM_SPOT_LIGHTS)
@@ -44,7 +49,7 @@ struct MaterialData
 {
 	DirectX::XMFLOAT4 DiffuseAlbedo = { 1.0f, 1.0f, 1.0f, 1.0f };
 	DirectX::XMFLOAT3 FresnelR0 = { 0.01f, 0.01f, 0.01f };
-	float Roughness = 64.0f;
+	float Roughness = 1.0f;
 
 	// Used in texture mapping.
 	DirectX::XMFLOAT4X4 MatTransform = MathHelper::Identity4x4();

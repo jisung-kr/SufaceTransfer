@@ -224,7 +224,7 @@ public:
 	void LogAdapterOutputs(IDXGIAdapter* adapter);
 	void LogOutputDisplayModes(IDXGIOutput* output, DXGI_FORMAT format);
 	/*------------------------------------------------------------------------------------------------------*/
-	void LoadTexture(const std::string key, const std::wstring fileName);
+	bool LoadTexture(const std::string key, const std::wstring fileName);
 
 	void BuildMaterial(std::string materialName, int DiffuseSrvHeapIndex, int normalSrvHeapIndex, int specularSrvHeapIndex, DirectX::XMFLOAT4 DiffuseAlbedo = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),
 		DirectX::XMFLOAT3 FresnelR0 = DirectX::XMFLOAT3(0.2f, 0.2f, 0.2f), float Roughness = 0.9f);

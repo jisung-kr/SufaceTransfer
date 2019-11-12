@@ -1,65 +1,13 @@
 DefaultShape
 	Box	
-		InstanceNum:0
-		VisibleInstanceNum:0
-		IsAnim:False
-		TimePos:0.0
-		ClipName:NULL
 	Sphere
-		InstanceNum:10
-		VisibleInstanceNum:10
-		IsAnim:False
-		TimePos:0.0
-		ClipName:NULL
 	Geosphere
-		InstanceNum:0
-		VisibleInstanceNum:0
-		IsAnim:False
-		TimePos:0.0
-		ClipName:NULL
 	Cylinder
-		InstanceNum:10
-		VisibleInstanceNum:10
-		IsAnim:False
-		TimePos:0.0
-		ClipName:NULL
 	Grid
-		InstanceNum:1
-		VisibleInstanceNum:1
-		IsAnim:False
-		TimePos:0.0
-		ClipName:NULL
 	Quad
-		InstanceNum:0
-		VisibleInstanceNum:0
-		IsAnim:False
-		TimePos:0.0
-		ClipName:NULL
-Boxing.fbx
+F3.fbx
 	Default
-		InstanceNum:2
-		VisibleInstanceNum:2
-		IsAnim:True
-		TimePos:0.0
-		ClipName:mixamo.com
-Bee.fbx
+Low_poly_UFO.fbx
 	Default
-		InstanceNum:1
-		VisibleInstanceNum:1
-		IsAnim:False
-		TimePos:0.0
-		ClipName:NULL
-Prone.fbx
+Waving.fbx
 	Default
-		InstanceNum:1
-		VisibleInstanceNum:1
-		IsAnim:True
-		TimePos:0.0
-		ClipName:mixamo.com
-walk.fbx
-	Default
-		InstanceNum:1
-		VisibleInstanceNum:1
-		IsAnim:True
-		TimePos:0.0
-		ClipName:mixamo.com

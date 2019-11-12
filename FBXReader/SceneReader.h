@@ -13,12 +13,7 @@
 
 struct GeometryAttr {
 	std::string DrawArgsName;
-	unsigned int InstanceNum;
-	unsigned int VisibleInstanceNum;
 
-	std::string IsAnimation;
-	float TimePos;
-	std::string ClipName;
 };
 
 struct MaterialAttr {
@@ -41,6 +36,12 @@ struct RenderItemAttr {
 	std::string GeometryName;
 	GeometryAttr* GeometryInfo;
 
+	unsigned int InstanceNum;
+	unsigned int VisibleInstanceNum;
+	std::string IsAnimation;
+	float TimePos;
+	std::string ClipName;
+
 	std::vector<unsigned int> InstanceIndices;
 
 	std::vector< DirectX::XMFLOAT3> Positions;
@@ -56,14 +57,11 @@ struct RenderItemAttr {
 };
 
 
-
-
 //씬 리더기로 씬 텍스트 파일에서
 //한 씬을 구성하는데 필요한 지오메트리, 텍스쳐/메테리얼, 렌더아이템, 타임테이블을 불러온다
 class SceneReader {
 public:
 	SceneReader() = default;
-
 
 private:
 	//씬 안에는 아래의 파일명들이 존재

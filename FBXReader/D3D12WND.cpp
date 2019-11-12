@@ -91,7 +91,7 @@ bool D3D12WND::InitDirect3D(UINT clientNum, USHORT port, std::string sceneName) 
 	mClientHeight = rt.bottom - rt.top; 
 
 	//서버측 카메라 위치 설정
-	mCamera.SetPosition(0.0f, 2.0f, -30.0f);
+	mCamera.SetPosition(30.0f, 0.0f, -160.0f);
 
 	/* 서버 소켓 생성및 초기화 */
 	server = new IOCPServer(clientNum);
@@ -116,21 +116,6 @@ bool D3D12WND::InitDirect3D(UINT clientNum, USHORT port, std::string sceneName) 
 
 	//LoadScene
 	LoadScene(sceneName);
-
-
-	//텍스쳐 불러오기
-	//LoadTextures();
-
-	//메테리얼 생성
-	//BuildMaterials();
-
-	//지오메트리(정점데이터, 인덱스데이터)생성
-	//BuildShapeGeometry();
-	//BuildFbxMesh();
-
-	//렌더아이템 생성
-	//BuildWorldRenderItem();
-	//BuildCharacterRenderItem();
 
 	BuildRootSignature();
 	BuildDescriptorHeaps();
@@ -473,7 +458,7 @@ void D3D12WND::OnResize() {
 
 	mScissorRect = { 0, 0, mClientWidth, mClientHeight };
 
-	mCamera.SetLens(0.25f*MathHelper::Pi, AspectRatio(), 1.0f, 1000.0f);
+	mCamera.SetLens(0.25f*MathHelper::Pi, AspectRatio(), 1.0f, 10000.0f);
 
 	for (int i = 0; i < server->GetClientNum(); ++i) {
 		auto curClinet = server->GetClient(i);
@@ -499,7 +484,7 @@ void D3D12WND::Draw(const GameTimer& gt) {
 		if (curClient->rQueue.Size() > 0) {
 			auto cmdAlloc = curClient->mDirectCmdListAlloc;
 			auto cmdList = curClient->mCommandList;
-
+			
 			//명령할당자, 명령리스트 리셋
 			ThrowIfFailed(cmdAlloc->Reset());
 			ThrowIfFailed(cmdList->Reset(cmdAlloc.Get(), mPSOs["opaque"].Get()));
@@ -524,7 +509,7 @@ void D3D12WND::Draw(const GameTimer& gt) {
 				mDsvDescriptorSize);
 
 			//디버깅을 위해 잠시빼둠
-			cmdList->ClearRenderTargetView(rtvHandle, Colors::SteelBlue, 0, nullptr);
+			cmdList->ClearRenderTargetView(rtvHandle, (float*)& mMainPassCB.FogColor, 0, nullptr);
 
 			cmdList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
@@ -636,7 +621,7 @@ void D3D12WND::Draw(const GameTimer& gt) {
 		D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
 
 	//RTV, DSV 클리어
-	mCommandList->ClearRenderTargetView(CurrentBackBufferView(), Colors::SteelBlue, 0, nullptr);
+	mCommandList->ClearRenderTargetView(CurrentBackBufferView(), (float*)& mMainPassCB.FogColor, 0, nullptr);
 	mCommandList->ClearDepthStencilView(DepthStencilView(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
 	mCommandList->OMSetRenderTargets(1, &CurrentBackBufferView(), true, &DepthStencilView());
@@ -724,16 +709,16 @@ void D3D12WND::OnKeyboardInput(const GameTimer& gt) {
 		isWire_frame = !isWire_frame;
 
 	if (GetAsyncKeyState('W') & 0x8000)
-		mCamera.Walk(20.0f*dt);
+		mCamera.Walk(50.0f*dt);
 
 	if (GetAsyncKeyState('S') & 0x8000)
-		mCamera.Walk(-20.0f *dt);
+		mCamera.Walk(-50.0f *dt);
 
 	if (GetAsyncKeyState('A') & 0x8000)
-		mCamera.Strafe(-20.0f *dt);
+		mCamera.Strafe(-50.0f *dt);
 
 	if (GetAsyncKeyState('D') & 0x8000)
-		mCamera.Strafe(20.0f *dt);
+		mCamera.Strafe(50.0f *dt);
 
 	if (GetAsyncKeyState(VK_UP) & 0x8000) {
 		float dy = XMConvertToRadians(0.25f*static_cast<float>(0.5f));
@@ -855,7 +840,7 @@ void D3D12WND::UpdateMaterialBuffer(const GameTimer& gt) {
 			matData.DiffuseMapIndex = mat->DiffuseSrvHeapIndex;
 			matData.NormalMapIndex = mat->NormalSrvHeapIndex;
 			matData.SpecularMapIndex = mat->SpecularSrvHeapIndex;
-
+			
 			currMaterialBuffer->CopyData(mat->MatCBIndex, matData);
 
 			// Next FrameResource need to be updated too.
@@ -882,17 +867,23 @@ void D3D12WND::UpdateMainPassCB(const GameTimer& gt) {
 	mMainPassCB.EyePosW = mCamera.GetPosition3f();
 	mMainPassCB.RenderTargetSize = XMFLOAT2((float)mClientWidth, (float)mClientHeight);
 	mMainPassCB.InvRenderTargetSize = XMFLOAT2(1.0f / mClientWidth, 1.0f / mClientHeight);
-	mMainPassCB.NearZ = 1.0f;
-	mMainPassCB.FarZ = 1000.0f;
+	mMainPassCB.NearZ = mCamera.GetNearZ();
+	mMainPassCB.FarZ = mCamera.GetFarZ();
 	mMainPassCB.TotalTime = gt.TotalTime();
 	mMainPassCB.DeltaTime = gt.DeltaTime();
-	mMainPassCB.AmbientLight = { 0.25f, 0.25f, 0.35f, 1.0f };
-	mMainPassCB.Lights[0].Direction = { 0.57735f, -0.57735f, 0.57735f };
-	mMainPassCB.Lights[0].Strength = { 0.8f, 0.8f, 0.8f };
-	mMainPassCB.Lights[1].Direction = { -0.57735f, -0.57735f, 0.57735f };
-	mMainPassCB.Lights[1].Strength = { 0.4f, 0.4f, 0.4f };
-	mMainPassCB.Lights[2].Direction = { 0.0f, -0.707f, -0.707f };
-	mMainPassCB.Lights[2].Strength = { 0.2f, 0.2f, 0.2f };
+	mMainPassCB.AmbientLight = { 0.25f, 0.25f, 0.25f, 1.0f };
+
+	mMainPassCB.Lights[0].Direction = { -0.9f, 0.0f, 0.0f };
+	mMainPassCB.Lights[0].Strength = { 1.0f, 1.0f, 1.0f };
+
+	mMainPassCB.Lights[1].Direction = { -10.0f, 0.0f, 0.0f };
+	mMainPassCB.Lights[1].Strength = { 1.0f, 1.0f, 1.0f };
+
+	mMainPassCB.Lights[2].Direction = { 0.0f, -1.0f, 0.0f };
+	mMainPassCB.Lights[2].Strength = { 1.0f, 1.0f, 1.0f };
+
+	mMainPassCB.Lights[3].Direction = { 0.0f, -1.0f, 0.0f };
+	mMainPassCB.Lights[3].Strength = { 1.0f, 1.0f, 1.0f };
 
 	auto currPassCB = mCurrFrameResource->PassCB.get();
 	currPassCB->CopyData(0, mMainPassCB);
@@ -919,25 +910,30 @@ void D3D12WND::UpdateClientPassCB(const GameTimer& gt) {
 		mClientPassCB.EyePosW = curClient->mCamera.GetPosition3f();
 		mClientPassCB.RenderTargetSize = XMFLOAT2((float)curClient->mDeviceInfo.mClientWidth, (float)curClient->mDeviceInfo.mClientHeight);
 		mClientPassCB.InvRenderTargetSize = XMFLOAT2(1.0f / curClient->mDeviceInfo.mClientWidth, 1.0f / curClient->mDeviceInfo.mClientHeight);
-		mClientPassCB.NearZ = 1.0f;
-		mClientPassCB.FarZ = 1000.0f;
+		mClientPassCB.NearZ = curClient->mCamera.GetNearZ();
+		mClientPassCB.FarZ = curClient->mCamera.GetFarZ();
 		mClientPassCB.TotalTime = gt.TotalTime();
 		mClientPassCB.DeltaTime = gt.DeltaTime();
-		mClientPassCB.AmbientLight = { 0.25f, 0.25f, 0.35f, 1.0f };
-		mClientPassCB.Lights[0].Direction = { 0.57735f, -0.57735f, 0.57735f };
-		mClientPassCB.Lights[0].Strength = { 0.8f, 0.8f, 0.8f };
-		mClientPassCB.Lights[1].Direction = { -0.57735f, -0.57735f, 0.57735f };
-		mClientPassCB.Lights[1].Strength = { 0.4f, 0.4f, 0.4f };
-		mClientPassCB.Lights[2].Direction = { 0.0f, -0.707f, -0.707f };
-		mClientPassCB.Lights[2].Strength = { 0.2f, 0.2f, 0.2f };
+		mClientPassCB.AmbientLight = { 0.7f, 0.7f, 0.7f, 1.0f };
+
+		mClientPassCB.Lights[0].Direction = { 1.0f, 0.0f, 0.0f };
+		mClientPassCB.Lights[0].Strength = { 1.0f, 1.0f, 1.0f };
+
+		mClientPassCB.Lights[1].Strength = { 1.0f, 1.0f, 1.0f };
+		mClientPassCB.Lights[1].Position = { 5.0f, 0.0f, 0.0f };
+		mClientPassCB.Lights[1].FalloffStart = 0.0f;
+		mClientPassCB.Lights[1].FalloffEnd = 1000.0f;
 
 		auto currPassCB = mCurrFrameResource->PassCB.get();
 		currPassCB->CopyData(1 + i, mClientPassCB);
 	}
 	
 }
-
-void D3D12WND::LoadTexture(const std::string key, const std::wstring fileName) {
+inline bool exists_test3(const std::string& name) {
+	struct stat buffer;
+	return (stat(name.c_str(), &buffer) == 0);
+}
+bool D3D12WND::LoadTexture(const std::string key, const std::wstring fileName) {
 	auto tempTex = std::make_unique<Texture>();
 	tempTex->Name = key;
 	tempTex->Filename = fileName;
@@ -947,6 +943,11 @@ void D3D12WND::LoadTexture(const std::string key, const std::wstring fileName) {
 	//문자열 뒤 부터 "."의 위치 검색 후 확장자명만 받아오기
 	auto dotIdx = fileName.find_last_of(L".");
 	sscanf(ws2s(fileName).c_str() + dotIdx, "%*[.]%s", ext);
+
+	//파일 존재하지 않을 경우 리턴
+	if (!exists_test3(ws2s(fileName))) {
+		return false;
+	}
 
 	if (strcmp(ext, "dds") == 0) {
 		ThrowIfFailed(DirectX::CreateDDSTextureFromFile12(md3dDevice.Get(),
@@ -977,6 +978,7 @@ void D3D12WND::LoadTexture(const std::string key, const std::wstring fileName) {
 	}
 
 	mTextures.push_back(make_pair(tempTex->Name, std::move(tempTex)));
+	return true;
 }
 
 void D3D12WND::LoadScene(std::string fileName) {
@@ -996,18 +998,18 @@ void D3D12WND::LoadScene(std::string fileName) {
 
 		//Load Diffuse Texture
 		if (e.DiffuseTextureName.compare("NULL") != 0) {
-			LoadTexture(e.DiffuseTextureName, s2ws(e.DiffuseTextureName));
+			LoadTexture(e.MaterialName + "_diffuse", s2ws(e.DiffuseTextureName));
 		}
 
 		//Load Normal Texture 
 		if (e.NormalTextureName.compare("NULL") != 0) {
-			LoadTexture(e.NormalTextureName, s2ws(e.NormalTextureName));
+			LoadTexture(e.MaterialName + "_normal", s2ws(e.NormalTextureName));
 			hasNormal = true;
 		}
 
 		//Load Specular Texture
 		if (e.SpecularTextureName.compare("NULL") != 0) {
-			LoadTexture(e.SpecularTextureName, s2ws(e.SpecularTextureName));
+			LoadTexture(e.MaterialName + "_specular", s2ws(e.SpecularTextureName));
 		}
 
 		int diffuseSrvIdx = idx;
@@ -1062,7 +1064,7 @@ void D3D12WND::BuildRootSignature() {
 	skyboxTexTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0); //skyboxTex
 
 	CD3DX12_DESCRIPTOR_RANGE texTable;
-	texTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 16, 1, 0); //tex
+	texTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 20, 1, 0); //tex
 
 	// Root parameter can be a table, root descriptor or root constants.
 	CD3DX12_ROOT_PARAMETER slotRootParameter[6];
@@ -1114,46 +1116,52 @@ void D3D12WND::BuildDescriptorHeaps() {
 	// Create the SRV heap.
 	//
 	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
-	srvHeapDesc.NumDescriptors = tex2DList.size() + 6;
+	srvHeapDesc.NumDescriptors = tex2DList.size();
 	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	ThrowIfFailed(md3dDevice->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&mSrvDescriptorHeap)));
 
-
-	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-	srvDesc.Texture2D.MostDetailedMip = 0;
-	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
-
 	CD3DX12_CPU_DESCRIPTOR_HANDLE hDescriptor(mSrvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
-
-	for (UINT i = 0; i < (UINT)tex2DList.size(); ++i)
-	{
-		srvDesc.Format = tex2DList[i]->GetDesc().Format;
-		srvDesc.Texture2D.MipLevels = tex2DList[i]->GetDesc().MipLevels;
-		md3dDevice->CreateShaderResourceView(tex2DList[i].Get(), &srvDesc, hDescriptor);
-
-		// next descriptor
-		hDescriptor.Offset(1, mCbvSrvUavDescriptorSize);
-	}
-
-	/*	skybox 설정	*/
+	
+	//텍스쳐 자원뷰 생성
 	for (int i = 0; i < mTextures.size(); ++i) {
-		if (mTextures[i].first.compare("skybox") == 0) {
+		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+
+		if (mTextures[i].first.find("skybox") != -1) {
+			skyCubeSrvIdx = i;
 			srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
 			srvDesc.TextureCube.MostDetailedMip = 0;
-			srvDesc.TextureCube.MipLevels = mTextures[i].second->Resource->GetDesc().MipLevels;
 			srvDesc.TextureCube.ResourceMinLODClamp = 0.0f;
+			srvDesc.TextureCube.MipLevels = mTextures[i].second->Resource->GetDesc().MipLevels;
 			srvDesc.Format = mTextures[i].second->Resource->GetDesc().Format;
 
 			md3dDevice->CreateShaderResourceView(mTextures[i].second->Resource.Get(), &srvDesc, hDescriptor);
 		}
+		/**/ 
+		else {
+			srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+			srvDesc.Texture2D.MostDetailedMip = 0;
+			srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+			srvDesc.Texture2D.MipLevels = mTextures[i].second->Resource->GetDesc().MipLevels;
+			srvDesc.Format = mTextures[i].second->Resource->GetDesc().Format;
+
+			md3dDevice->CreateShaderResourceView(mTextures[i].second->Resource.Get(), &srvDesc, hDescriptor);
+		}
+
+		// next descriptor
+		hDescriptor.Offset(1, mCbvSrvUavDescriptorSize);
+		
 	}
 }
 
 void D3D12WND::BuildShadersAndInputLayout() {
+	const D3D_SHADER_MACRO defines[] =
+	{
+		"FOG", "1",
+		NULL, NULL
+	};
 
 	const D3D_SHADER_MACRO skinnedDefines[] =
 	{
@@ -1163,7 +1171,7 @@ void D3D12WND::BuildShadersAndInputLayout() {
 
 	mShaders["standardVS"] = D3DUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "VS", "vs_5_1");
 	mShaders["skinnedVS"] = D3DUtil::CompileShader(L"Shaders\\Default.hlsl", skinnedDefines, "VS", "vs_5_1");
-	mShaders["opaquePS"] = D3DUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "PS", "ps_5_1");
+	mShaders["opaquePS"] = D3DUtil::CompileShader(L"Shaders\\Default.hlsl", defines, "PS", "ps_5_1");
 
 	mShaders["skyVS"] = D3DUtil::CompileShader(L"Shaders\\Sky.hlsl", nullptr, "VS", "vs_5_1");
 	mShaders["skyPS"] = D3DUtil::CompileShader(L"Shaders\\Sky.hlsl", nullptr, "PS", "ps_5_1");
@@ -1207,7 +1215,7 @@ void D3D12WND::BuildPSOs() {
 		mShaders["opaquePS"]->GetBufferSize()
 	};
 	auto temp = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-
+	//temp.CullMode = D3D12_CULL_MODE_NONE;
 	opaquePsoDesc.RasterizerState = temp;
 	opaquePsoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 	opaquePsoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
@@ -1453,19 +1461,22 @@ void D3D12WND::LoadFBX(std::string fileName, std::string argsName) {
 		if (curMat.second[FBXReader::TextureType::DIFFUSE].size() != 0) {
 			hasDiffuse = true;
 			auto& curDiffuse = curMat.second[FBXReader::TextureType::DIFFUSE][0];
-			LoadTexture(curDiffuse.first, curDiffuse.second);
+			if (!LoadTexture(curDiffuse.first, curDiffuse.second))
+				break;
 		}
 
 		if (curMat.second[FBXReader::TextureType::NORMAL].size() != 0) {
 			hasNormal = true;
 			auto& curNormal = curMat.second[FBXReader::TextureType::NORMAL][0];
-			LoadTexture(curNormal.first, curNormal.second);
+			if (!LoadTexture(curNormal.first, curNormal.second))
+				break;
 		}
 
 		if (curMat.second[FBXReader::TextureType::SPECULAR].size() != 0) {
 			hasSpecular = true;
 			auto& curSpec = curMat.second[FBXReader::TextureType::SPECULAR][0];
-			LoadTexture(curSpec.first, curSpec.second);
+			if (!LoadTexture(curSpec.first, curSpec.second))
+				break;
 		}
 		int diffuseSrvIdx = baseIdx;
 		int normalSrvIdx = diffuseSrvIdx + (hasNormal ? 1 : 0);
@@ -1551,21 +1562,21 @@ void D3D12WND::BuildRenderItem(RenderItemAttr renderItemAttr) {
 			}
 
 			renderItem->InstanceSrvIndex = instanceSrvIdx;
-			renderItem->InstanceNum = renderItemAttr.GeometryInfo->InstanceNum;
-			renderItem->VisibleInstanceNum = renderItemAttr.GeometryInfo->VisibleInstanceNum;
+			renderItem->InstanceNum = renderItemAttr.InstanceNum;
+			renderItem->VisibleInstanceNum = renderItemAttr.VisibleInstanceNum;
 			
-			if (renderItemAttr.GeometryInfo->IsAnimation.compare("True") == 0) {
+			if (renderItemAttr.IsAnimation.compare("True") == 0) {
 				renderItem->SkinnedModelInst = mSkinnedModelInst[animCBIdx].get();
-				renderItem->SkinnedModelInst->TimePos = renderItemAttr.GeometryInfo->TimePos;
-				renderItem->SkinnedModelInst->ClipName = renderItemAttr.GeometryInfo->ClipName;
+				renderItem->SkinnedModelInst->TimePos = renderItemAttr.TimePos;
+				renderItem->SkinnedModelInst->ClipName = renderItemAttr.ClipName;
 				renderItem->SkinnedCBIndex = animCBIdx;
 			}
 
-			instanceSrvIdx += renderItemAttr.GeometryInfo->InstanceNum;
+			instanceSrvIdx += renderItemAttr.InstanceNum;
 
 			//인스턴스 설정
-			renderItem->Instances.resize(renderItemAttr.GeometryInfo->InstanceNum);
-			for (UINT i = 0; i < renderItemAttr.GeometryInfo->InstanceNum; ++i) {
+			renderItem->Instances.resize(renderItemAttr.InstanceNum);
+			for (UINT i = 0; i < renderItemAttr.InstanceNum; ++i) {
 
 				XMMATRIX pos = XMMatrixTranslation(renderItemAttr.Positions[i].x, renderItemAttr.Positions[i].y, renderItemAttr.Positions[i].z);
 				XMMATRIX scale = XMMatrixScaling(renderItemAttr.Scales[i].x, renderItemAttr.Scales[i].y, renderItemAttr.Scales[i].z);
@@ -1581,13 +1592,25 @@ void D3D12WND::BuildRenderItem(RenderItemAttr renderItemAttr) {
 
 				//Material 검색
 
-				UINT matIdx = mAllRitems.size() + 1;
-				for (int j = 0; j < mMaterials.size(); ++j) {
-					auto& curName = mMaterials[j].first;
+				UINT matIdx = 0;
+				if (renderItemAttr.MaterialName[i].compare("NULL") == 0) {
+					for (int j = 0; j < mMaterials.size(); ++j) {
+						auto& curName = mMaterials[j].first;
 
-					if (curName.compare(e.second.matName) == 0) {
-						matIdx = j;
-						break;
+						if (curName.compare(e.second.matName) == 0) {
+							matIdx = j;
+							break;
+						}
+					}
+				}
+				else {
+					for (int j = 0; j < mMaterials.size(); ++j) {
+						auto& curName = mMaterials[j].first;
+
+						if (curName.compare(renderItemAttr.MaterialName[i]) == 0) {
+							matIdx = j;
+							break;
+						}
 					}
 				}
 
@@ -1607,7 +1630,6 @@ void D3D12WND::BuildRenderItem(RenderItemAttr renderItemAttr) {
 
 		if (mAllRitems[mAllRitems.size() - 1]->SkinnedModelInst != nullptr)
 			skinnedAnimIdx++;
-		
 
 	}
 	else {
@@ -1627,21 +1649,21 @@ void D3D12WND::BuildRenderItem(RenderItemAttr renderItemAttr) {
 		}
 
 		renderItem->InstanceSrvIndex = instanceSrvIdx;
-		renderItem->InstanceNum = renderItemAttr.GeometryInfo->InstanceNum;
-		renderItem->VisibleInstanceNum = renderItemAttr.GeometryInfo->VisibleInstanceNum;
+		renderItem->InstanceNum = renderItemAttr.InstanceNum;
+		renderItem->VisibleInstanceNum = renderItemAttr.VisibleInstanceNum;
 
-		if (renderItemAttr.GeometryInfo->IsAnimation.compare("True") == 0) {
+		if (renderItemAttr.IsAnimation.compare("True") == 0) {
 			renderItem->SkinnedModelInst = mSkinnedModelInst[animCBIdx].get();
-			renderItem->SkinnedModelInst->TimePos = renderItemAttr.GeometryInfo->TimePos;
-			renderItem->SkinnedModelInst->ClipName = renderItemAttr.GeometryInfo->ClipName;
+			renderItem->SkinnedModelInst->TimePos = renderItemAttr.TimePos;
+			renderItem->SkinnedModelInst->ClipName = renderItemAttr.ClipName;
 			renderItem->SkinnedCBIndex = animCBIdx;
 		}
 
-		instanceSrvIdx += renderItemAttr.GeometryInfo->InstanceNum;
+		instanceSrvIdx += renderItemAttr.InstanceNum;
 
 		//인스턴스 설정
-		renderItem->Instances.resize(renderItemAttr.GeometryInfo->InstanceNum);
-		for (UINT i = 0; i < renderItemAttr.GeometryInfo->InstanceNum; ++i) {
+		renderItem->Instances.resize(renderItemAttr.InstanceNum);
+		for (UINT i = 0; i < renderItemAttr.InstanceNum; ++i) {
 
 			XMMATRIX pos = XMMatrixTranslation(renderItemAttr.Positions[i].x, renderItemAttr.Positions[i].y, renderItemAttr.Positions[i].z);
 			XMMATRIX scale = XMMatrixScaling(renderItemAttr.Scales[i].x, renderItemAttr.Scales[i].y, renderItemAttr.Scales[i].z);
@@ -1657,7 +1679,7 @@ void D3D12WND::BuildRenderItem(RenderItemAttr renderItemAttr) {
 
 			//Material 검색
 
-			UINT matIdx = mAllRitems.size() + 1;
+			UINT matIdx = 0;
 			for (int j = 0; j < mMaterials.size(); ++j) {
 				auto& curName = mMaterials[j].first;
 
@@ -1673,51 +1695,15 @@ void D3D12WND::BuildRenderItem(RenderItemAttr renderItemAttr) {
 		mAllRitems.push_back(std::move(renderItem));
 
 		//애니메이션 존재할 경우 SkinnedOpaque로 입력
-		if (mAllRitems[mAllRitems.size() - 1]->SkinnedModelInst == nullptr)
+		if (renderItemAttr.MaterialName[0].compare("skybox") == 0)
+			mRitemLayer[(int)RenderLayer::Sky].push_back(mAllRitems[mAllRitems.size() - 1].get());
+		else if (mAllRitems[mAllRitems.size() - 1]->SkinnedModelInst == nullptr)
 			mRitemLayer[(int)RenderLayer::Opaque].push_back(mAllRitems[mAllRitems.size() - 1].get());
 		else
 			mRitemLayer[(int)RenderLayer::SkinnedOpaque].push_back(mAllRitems[mAllRitems.size() - 1].get());
 
 	}
 
-}
-
-void D3D12WND::BuildCharacterRenderItem() {
-	//서브 메쉬 별로 렌더 아이템 생성
-	for (int i = 0; i < mGeometries["beeGeo"]->DrawArgs.size(); ++i) {
-		auto curSubRItem = std::make_unique<RenderItem>();
-		curSubRItem->Geo = mGeometries["beeGeo"].get();
-		curSubRItem->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-
-		curSubRItem->IndexCount = curSubRItem->Geo->DrawArgs[std::to_string(i)].IndexCount;
-		curSubRItem->StartIndexLocation = curSubRItem->Geo->DrawArgs[std::to_string(i)].StartIndexLocation;
-		curSubRItem->BaseVertexLocation = curSubRItem->Geo->DrawArgs[std::to_string(i)].BaseVertexLocation;
-		curSubRItem->InstanceSrvIndex = 22 + i;
-		curSubRItem->InstanceNum = 1;
-		curSubRItem->VisibleInstanceNum = 1;
-		curSubRItem->SkinnedModelInst = mSkinnedModelInst[mRitemLayer[(int)RenderLayer::SkinnedOpaque].size()].get();	//!!FBX를 읽고 바로 하는게 아니라 마지막에 불러온 값이 들어감
-		curSubRItem->SkinnedCBIndex = mRitemLayer[(int)RenderLayer::SkinnedOpaque].size();
-		curSubRItem->Instances.resize(1);
-
-		XMMATRIX pos = XMMatrixTranslation(0.0f, 0.0f, 10.0f);
-		XMMATRIX scale = XMMatrixScaling(0.02f, 0.02f, 0.02f);
-		XMMATRIX rotation = XMMatrixRotationRollPitchYaw(XMConvertToRadians(0), XMConvertToRadians(180), XMConvertToRadians(0));
-		
-		XMStoreFloat4x4(&curSubRItem->Instances[0].World, rotation * scale * pos);
-		//XMStoreFloat4x4(&curSubRItem->Instances[0].TexTransform, rotation);
-		//curSubRItem->Instances[0].World = MathHelper::Identity4x4();;
-		curSubRItem->Instances[0].TexTransform = MathHelper::Identity4x4();
-		curSubRItem->Instances[0].MaterialIndex = 3 + i;
-
-		mAllRitems.push_back(std::move(curSubRItem));
-
-		if (mSkinnedModelInst[mRitemLayer[(int)RenderLayer::SkinnedOpaque].size()].get() == nullptr)
-			mRitemLayer[(int)RenderLayer::Opaque].push_back(mAllRitems[mAllRitems.size() - 1].get());
-		else
-			mRitemLayer[(int)RenderLayer::SkinnedOpaque].push_back(mAllRitems[mAllRitems.size() - 1].get());
-
-	}
-	
 }
 
 void D3D12WND::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<RenderItem*>& ritems) {

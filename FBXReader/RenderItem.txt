@@ -1,246 +1,141 @@
 DefaultShape
 	Sphere
-		InstanceIndex:0
-		Position:-9.0 3.5 -15.0
-		Rotation:0.0 0.0 0.0
-		Scale:1.0 1.0 1.0
-		TexturePosition:0.0 0.0 0.0
-		TextureRotation:0.0 0.0 0.0
-		TextureScale:1.0 1.0 1.0
-		Material:stone0
-
-		InstanceIndex:1
-		Position:9.0 3.5 -15.0
-		Rotation:0.0 0.0 0.0
-		Scale:1.0 1.0 1.0
-		TexturePosition:0.0 0.0 0.0
-		TextureRotation:0.0 0.0 0.0
-		TextureScale:1.0 1.0 1.0
-		Material:stone0
-
-		InstanceIndex:2
-		Position:-9.0 3.5 -7.0
-		Rotation:0.0 0.0 0.0
-		Scale:1.0 1.0 1.0
-		TexturePosition:0.0 0.0 0.0
-		TextureRotation:0.0 0.0 0.0
-		TextureScale:1.0 1.0 1.0
-		Material:stone0
-
-		InstanceIndex:3
-		Position:9.0 3.5 -7.0
-		Rotation:0.0 0.0 0.0
-		Scale:1.0 1.0 1.0
-		TexturePosition:0.0 0.0 0.0
-		TextureRotation:0.0 0.0 0.0
-		TextureScale:1.0 1.0 1.0
-		Material:stone0
-
-		InstanceIndex:4
-		Position:-9.0 3.5 1.0
-		Rotation:0.0 0.0 0.0
-		Scale:1.0 1.0 1.0
-		TexturePosition:0.0 0.0 0.0
-		TextureRotation:0.0 0.0 0.0
-		TextureScale:1.0 1.0 1.0
-		Material:stone0
-
-		InstanceIndex:5
-		Position:9.0 3.5 1.0
-		Rotation:0.0 0.0 0.0
-		Scale:1.0 1.0 1.0
-		TexturePosition:0.0 0.0 0.0
-		TextureRotation:0.0 0.0 0.0
-		TextureScale:1.0 1.0 1.0
-		Material:stone0
-
-		InstanceIndex:6
-		Position:-9.0 3.5 9.0
-		Rotation:0.0 0.0 0.0
-		Scale:1.0 1.0 1.0
-		TexturePosition:0.0 0.0 0.0
-		TextureRotation:0.0 0.0 0.0
-		TextureScale:1.0 1.0 1.0
-		Material:stone0
-
-		InstanceIndex:7
-		Position:9.0 3.5 9.0
-		Rotation:0.0 0.0 0.0
-		Scale:1.0 1.0 1.0
-		TexturePosition:0.0 0.0 0.0
-		TextureRotation:0.0 0.0 0.0
-		TextureScale:1.0 1.0 1.0
-		Material:stone0
-
-		InstanceIndex:8
-		Position:-9.0 3.5 17.0
-		Rotation:0.0 0.0 0.0
-		Scale:1.0 1.0 1.0
-		TexturePosition:0.0 0.0 0.0
-		TextureRotation:0.0 0.0 0.0
-		TextureScale:1.0 1.0 1.0
-		Material:stone0
-
-		InstanceIndex:9
-		Position:9.0 3.5 17.0
-		Rotation:0.0 0.0 0.0
-		Scale:1.0 1.0 1.0
-		TexturePosition:0.0 0.0 0.0
-		TextureRotation:0.0 0.0 0.0
-		TextureScale:1.0 1.0 1.0
-		Material:stone0
-
-DefaultShape
-	Cylinder
-		InstanceIndex:0
-		Position:-9.0 1.5 -15.0
-		Rotation:0.0 0.0 0.0
-		Scale:1.0 1.0 1.0
-		TexturePosition:0.0 0.0 0.0
-		TextureRotation:0.0 0.0 0.0
-		TextureScale:1.0 1.0 1.0
-		Material:bricks0
-
-		InstanceIndex:1
-		Position:9.0 1.5 -15.0
-		Rotation:0.0 0.0 0.0
-		Scale:1.0 1.0 1.0
-		TexturePosition:0.0 0.0 0.0
-		TextureRotation:0.0 0.0 0.0
-		TextureScale:1.0 1.0 1.0
-		Material:bricks0
-
-		InstanceIndex:2
-		Position:-9.0 1.5 -7.0
-		Rotation:0.0 0.0 0.0
-		Scale:1.0 1.0 1.0
-		TexturePosition:0.0 0.0 0.0
-		TextureRotation:0.0 0.0 0.0
-		TextureScale:1.0 1.0 1.0
-		Material:bricks0
-
-		InstanceIndex:3
-		Position:9.0 1.5 -7.0
-		Rotation:0.0 0.0 0.0
-		Scale:1.0 1.0 1.0
-		TexturePosition:0.0 0.0 0.0
-		TextureRotation:0.0 0.0 0.0
-		TextureScale:1.0 1.0 1.0
-		Material:bricks0
-
-		InstanceIndex:4
-		Position:-9.0 1.5 1.0
-		Rotation:0.0 0.0 0.0
-		Scale:1.0 1.0 1.0
-		TexturePosition:0.0 0.0 0.0
-		TextureRotation:0.0 0.0 0.0
-		TextureScale:1.0 1.0 1.0
-		Material:bricks0
-
-		InstanceIndex:5
-		Position:9.0 1.5 1.0
-		Rotation:0.0 0.0 0.0
-		Scale:1.0 1.0 1.0
-		TexturePosition:0.0 0.0 0.0
-		TextureRotation:0.0 0.0 0.0
-		TextureScale:1.0 1.0 1.0
-		Material:bricks0
-
-		InstanceIndex:6
-		Position:-9.0 1.5 9.0
-		Rotation:0.0 0.0 0.0
-		Scale:1.0 1.0 1.0
-		TexturePosition:0.0 0.0 0.0
-		TextureRotation:0.0 0.0 0.0
-		TextureScale:1.0 1.0 1.0
-		Material:bricks0
-
-		InstanceIndex:7
-		Position:9.0 1.5 9.0
-		Rotation:0.0 0.0 0.0
-		Scale:1.0 1.0 1.0
-		TexturePosition:0.0 0.0 0.0
-		TextureRotation:0.0 0.0 0.0
-		TextureScale:1.0 1.0 1.0
-		Material:bricks0
-
-		InstanceIndex:8
-		Position:-9.0 1.5 17.0
-		Rotation:0.0 0.0 0.0
-		Scale:1.0 1.0 1.0
-		TexturePosition:0.0 0.0 0.0
-		TextureRotation:0.0 0.0 0.0
-		TextureScale:1.0 1.0 1.0
-		Material:bricks0
-
-		InstanceIndex:9
-		Position:9.0 1.5 17.0
-		Rotation:0.0 0.0 0.0
-		Scale:1.0 1.0 1.0
-		TexturePosition:0.0 0.0 0.0
-		TextureRotation:0.0 0.0 0.0
-		TextureScale:1.0 1.0 1.0
-		Material:bricks0
-
-DefaultShape
-	Grid
+	InstanceNum:1
+	VisibleInstanceNum:1
+	IsAnim:False
+	TimePos:0.0
+	ClipName:NULL
 		InstanceIndex:0
 		Position:0.0 0.0 0.0
 		Rotation:0.0 0.0 0.0
 		Scale:1.0 1.0 1.0
 		TexturePosition:0.0 0.0 0.0
 		TextureRotation:0.0 0.0 0.0
-		TextureScale:16.0 16.0 16.0
-		Material:tile0
-
-Boxing.fbx
-	Default
-		InstanceIndex:0
-		Position:0.0 0.0 0.0
-		Rotation:0.0 0.0 0.0
-		Scale:0.02 0.02 0.02
-		TexturePosition:0.0 0.0 0.0
-		TextureRotation:0.0 0.0 0.0
 		TextureScale:1.0 1.0 1.0
-		Material:NULL
+		Material:skybox
 
-		InstanceIndex:1
-		Position:0.0 0.0 10.0
-		Rotation:0.0 0.0 0.0
-		Scale:0.02 0.02 0.02
-		TexturePosition:0.0 0.0 0.0
-		TextureRotation:0.0 0.0 0.0
-		TextureScale:1.0 1.0 1.0
-		Material:NULL
-
-Bee.fbx
+F3.fbx
 	Default
+	InstanceNum:3
+	VisibleInstanceNum:3
+	IsAnim:False
+	TimePos:0.0
+	ClipName:NULL
 		InstanceIndex:0
-		Position:0.0 5.0 0.0
-		Rotation:0.0 0.0 0.0
+		Position:0.0 -10.0 -150.0
+		Rotation:-90.0 0.0 0.0
 		Scale:0.008 0.008 0.008
 		TexturePosition:0.0 0.0 0.0
 		TextureRotation:0.0 0.0 0.0
 		TextureScale:1.0 1.0 1.0
-		Material:NULL
+		Material:F3
 
-Prone.fbx
-	Default
-		InstanceIndex:0
-		Position:5.0 0.0 0.0
-		Rotation:0.0 0.0 0.0
-		Scale:0.02 0.02 0.02
+		InstanceIndex:1
+		Position:15.0 0.0 -150.0
+		Rotation:-90.0 0.0 0.0
+		Scale:0.008 0.008 0.008
 		TexturePosition:0.0 0.0 0.0
 		TextureRotation:0.0 0.0 0.0
 		TextureScale:1.0 1.0 1.0
-		Material:NULL
+		Material:F3
 
-walk.fbx
-	Default
+		InstanceIndex:2
+		Position:30.0 -10.0 -150.0
+		Rotation:-90.0 0.0 0.0
+		Scale:0.008 0.008 0.008
+		TexturePosition:0.0 0.0 0.0
+		TextureRotation:0.0 0.0 0.0
+		TextureScale:1.0 1.0 1.0
+		Material:F3
+
+DefaultShape
+	Sphere
+	InstanceNum:6
+	VisibleInstanceNum:6
+	IsAnim:False
+	TimePos:0.0
+	ClipName:NULL
 		InstanceIndex:0
-		Position:-5.0 0.0 5.0
+		Position:2000.0 0.0 0.0
 		Rotation:0.0 0.0 0.0
-		Scale:0.02 0.02 0.02
+		Scale:390.0 390.0 390.0
+		TexturePosition:0.0 0.0 0.0
+		TextureRotation:0.0 0.0 0.0
+		TextureScale:1.0 1.0 1.0
+		Material:Sun
+
+		InstanceIndex:1
+		Position:1200.0 0.0 0.0
+		Rotation:0.0 0.0 0.0
+		Scale:25.0 25.0 25.0
+		TexturePosition:0.0 0.0 0.0
+		TextureRotation:0.0 0.0 0.0
+		TextureScale:1.0 1.0 1.0
+		Material:Mercury
+
+		InstanceIndex:2
+		Position:500.0 0.0 0.0
+		Rotation:0.0 0.0 0.0
+		Scale:84.0 84.0 84.0
+		TexturePosition:0.0 0.0 0.0
+		TextureRotation:0.0 0.0 0.0
+		TextureScale:1.0 1.0 1.0
+		Material:Venus
+
+		InstanceIndex:3
+		Position:0.0 0.0 0.0
+		Rotation:0.0 0.0 0.0
+		Scale:80.0 80.0 80.0
+		TexturePosition:0.0 0.0 0.0
+		TextureRotation:0.0 0.0 0.0
+		TextureScale:1.0 1.0 1.0
+		Material:Earth
+
+		InstanceIndex:4
+		Position:-500.0 0.0 0.0
+		Rotation:0.0 0.0 0.0
+		Scale:80.0 80.0 80.0
+		TexturePosition:0.0 0.0 0.0
+		TextureRotation:0.0 0.0 0.0
+		TextureScale:1.0 1.0 1.0
+		Material:Mars
+	
+		InstanceIndex:5
+		Position:-1300.0 0.0 0.0
+		Rotation:0.0 0.0 0.0
+		Scale:180.0 180.0 180.0
+		TexturePosition:0.0 0.0 0.0
+		TextureRotation:0.0 0.0 0.0
+		TextureScale:1.0 1.0 1.0
+		Material:Jupiter
+
+Low_poly_UFO.fbx
+	Default
+	InstanceNum:1
+	VisibleInstanceNum:1
+	IsAnim:False
+	TimePos:0.0
+	ClipName:NULL
+		InstanceIndex:0
+		Position:-200.0 30.0 -200.0
+		Rotation:-90.0 0.0 0.0
+		Scale:0.8 0.8 0.8
+		TexturePosition:0.0 0.0 0.0
+		TextureRotation:0.0 0.0 0.0
+		TextureScale:1.0 1.0 1.0
+		Material:UFO
+
+Waving.fbx
+	Default
+	InstanceNum:1
+	VisibleInstanceNum:1
+	IsAnim:True
+	TimePos:0.0
+	ClipName:mixamo.com
+		InstanceIndex:0
+		Position:0.0 0.0 0.0
+		Rotation:0.0 0.0 0.0
+		Scale:1.0 1.0 1.0
 		TexturePosition:0.0 0.0 0.0
 		TextureRotation:0.0 0.0 0.0
 		TextureScale:1.0 1.0 1.0

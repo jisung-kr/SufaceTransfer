@@ -5,24 +5,66 @@ Name:default
 	DiffuseAlbedo:1.0 1.0 1.0 1.0
 	FresnelR0:1.0 1.0 1.0
 	Roughness:1.0
-Name:bricks0
-	Diffuse:Textures/bricks.dds
-	Normal:Textures/bricks_nmap.dds
-	Specular:NULL
-	DiffuseAlbedo:1.0 1.0 1.0 1.0
-	FresnelR0:0.1 0.1 0.1
-	Roughness:0.3
-Name:stone0
-	Diffuse:Textures/stone.dds
+Name:skybox
+	Diffuse:Textures/blueNebular1024.dds
 	Normal:NULL
 	Specular:NULL
-	DiffuseAlbedo:0.9 0.9 0.9 1.0
-	FresnelR0:0.05 0.05 0.05
-	Roughness:0.3
-Name:tile0
-	Diffuse:Textures/tile.dds
-	Normal:Textures/tile_nmap.dds
-	Specular:NULL
+	DiffuseAlbedo:1.0 1.0 1.0 1.0
+	FresnelR0:1.0 1.0 1.0
+	Roughness:1.0
+Name:F3
+	Diffuse:Textures_F3/SF_Corvette-F3_diffuse.jpg
+	Normal:Textures_F3/SF_Corvette-F3_normal.jpg
+	Specular:Textures_F3/SF_Corvette-F3_specular.jpg
+	DiffuseAlbedo:1.0 1.0 1.0 1.0
+	FresnelR0:0.7 0.7 0.7
+	Roughness:0.8
+Name:UFO
+	Diffuse:Texture_UFO/ufo_diffuse.png
+	Normal:Texture_UFO/ufo_normal.png
+	Specular:Texture_UFO/ufo_spec.png
 	DiffuseAlbedo:1.0 1.0 1.0 1.0
 	FresnelR0:0.05 0.05 0.05
 	Roughness:0.2
+Name:Sun
+	Diffuse:Textures_Planet/2k_sun.jpg
+	Normal:NULL
+	Specular:NULL
+	DiffuseAlbedo:1.0 1.0 1.0 1.0
+	FresnelR0:0.6 0.6 0.6
+	Roughness:1.0
+Name:Mercury
+	Diffuse:Textures_Planet/2k_mercury.jpg
+	Normal:NULL
+	Specular:NULL
+	DiffuseAlbedo:1.0 1.0 1.0 1.0
+	FresnelR0:0.6 0.6 0.6
+	Roughness:1.0
+Name:Venus
+	Diffuse:Textures_Planet/2k_venus_surface.jpg
+	Normal:NULL
+	Specular:Textures_Planet/2k_venus_atmosphere
+	DiffuseAlbedo:1.0 1.0 1.0 1.0
+	FresnelR0:0.6 0.6 0.6
+	Roughness:1.0
+Name:Earth
+	Diffuse:Textures_Planet/2k_earth_daymap.jpg
+	Normal:NULL
+	Specular:NULL
+	DiffuseAlbedo:1.0 1.0 1.0 1.0
+	FresnelR0:0.6 0.6 0.6
+	Roughness:1.0
+Name:Mars
+	Diffuse:Textures_Planet/2k_mars.jpg
+	Normal:NULL
+	Specular:NULL
+	DiffuseAlbedo:1.0 1.0 1.0 1.0
+	FresnelR0:0.6 0.6 0.6
+	Roughness:1.0
+Name:Jupiter
+	Diffuse:Textures_Planet/2k_jupiter.jpg
+	Normal:NULL
+	Specular:NULL
+	DiffuseAlbedo:1.0 1.0 1.0 1.0
+	FresnelR0:0.6 0.6 0.6
+	Roughness:1.0

@@ -126,7 +126,6 @@ float4 PS(VertexOut pin) : SV_Target
 
 	float4 normalMapSample = gTextureMaps[normalMapIndex].Sample(gsamAnisotropicWrap, pin.TexC);
 	float3 bumpedNormalW = NormalSampleToWorldSpace(normalMapSample.rgb, pin.NormalW, pin.TangentW);
-
 	
 	// 법선매핑을 끄려면 주석을 해제
 	if (normalMapIndex == 0xFFFFFFFF) {
@@ -135,14 +134,17 @@ float4 PS(VertexOut pin) : SV_Target
 
 
     // Vector from point being lit to eye. 
-    float3 toEyeW = normalize(gEyePosW - pin.PosW);
+	float3 toEyeW = gEyePosW - pin.PosW;
+	float distToEye = length(toEyeW);
+	toEyeW /= distToEye; // normalize
+
 
     // Light terms.
     float4 ambient = gAmbientLight * diffuseAlbedo;
 
     const float shininess = (1.0f - roughness) * normalMapSample.a;
     Material mat = { diffuseAlbedo, fresnelR0, shininess };
-    float3 shadowFactor = 0.6f;
+    float3 shadowFactor = 1.0f;
 	float4 directLight = ComputeLighting(gLights, mat, pin.PosW, bumpedNormalW, toEyeW, shadowFactor);
 
     float4 litColor = ambient + directLight;
@@ -167,8 +169,15 @@ float4 PS(VertexOut pin) : SV_Target
 
 	litColor.rgb += shininess * fresnelFactor * reflectionColor.rgb ;
 
+#ifdef FOG
+	float fogAmount = saturate((distToEye - gFogStart) / gFogRange);
+	litColor = lerp(litColor, gFogColor, fogAmount);
+#endif
+
     // Common convention to take alpha from diffuse albedo.
     litColor.a = diffuseAlbedo.a;
+
+
 
     return litColor;
 

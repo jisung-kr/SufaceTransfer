@@ -67,39 +67,7 @@ void SceneReader::ReadGeometryFile() {
 			sscanf_s(str, "\t%s\n", argsName, MAX_BUFFER);
 			attr.DrawArgsName.assign(argsName);
 
-			//InstNum
-			in.getline(str, MAX_LINE);
-			unsigned int instNum = 0;
-			sscanf_s(str, "\t\tInstanceNum:%d\n", &instNum);
-			attr.InstanceNum = instNum;
 
-			//VisibleInstNum
-			in.getline(str, MAX_LINE);
-			unsigned int visibleInstNum = 0;
-			sscanf_s(str, "\t\tVisibleInstanceNum:%d\n", &visibleInstNum);
-
-			if (instNum <= visibleInstNum)
-				attr.VisibleInstanceNum = visibleInstNum;
-			else
-				attr.VisibleInstanceNum = 0;
-
-			//IsAnim
-			in.getline(str, MAX_LINE);
-			char isAnim[MAX_BUFFER] = { 0, };
-			sscanf_s(str, "\t\tIsAnim:%s\n", isAnim, MAX_BUFFER);
-			attr.IsAnimation.assign(isAnim);
-
-			//TimePos
-			in.getline(str, MAX_LINE);
-			float timePos = 0.0f;
-			sscanf_s(str, "\t\tTimePos:%f\n", &timePos);
-			attr.TimePos = timePos;
-
-			//ClipName
-			in.getline(str, MAX_LINE);
-			char clipName[MAX_BUFFER] = { 0, };
-			sscanf_s(str, "\t\tClipName:%s\n", clipName, MAX_BUFFER);
-			attr.ClipName.assign(clipName);
 
 
 			mGeometryAttrs[geoName].push_back(attr);
@@ -223,7 +191,41 @@ void SceneReader::ReadRenderItemFile() {
 				}
 			}
 
-			for (unsigned int i = 0; i < attr.GeometryInfo->InstanceNum; ++i) {
+			//InstNum
+			in.getline(str, MAX_LINE);
+			unsigned int instNum = 0;
+			sscanf_s(str, "\tInstanceNum:%d\n", &instNum);
+			attr.InstanceNum = instNum;
+
+			//VisibleInstNum
+			in.getline(str, MAX_LINE);
+			unsigned int visibleInstNum = 0;
+			sscanf_s(str, "\tVisibleInstanceNum:%d\n", &visibleInstNum);
+
+			if (instNum <= visibleInstNum)
+				attr.VisibleInstanceNum = visibleInstNum;
+			else
+				attr.VisibleInstanceNum = 0;
+
+			//IsAnim
+			in.getline(str, MAX_LINE);
+			char isAnim[MAX_BUFFER] = { 0, };
+			sscanf_s(str, "\tIsAnim:%s\n", isAnim, MAX_BUFFER);
+			attr.IsAnimation.assign(isAnim);
+
+			//TimePos
+			in.getline(str, MAX_LINE);
+			float timePos = 0.0f;
+			sscanf_s(str, "\tTimePos:%f\n", &timePos);
+			attr.TimePos = timePos;
+
+			//ClipName
+			in.getline(str, MAX_LINE);
+			char clipName[MAX_BUFFER] = { 0, };
+			sscanf_s(str, "\tClipName:%s\n", clipName, MAX_BUFFER);
+			attr.ClipName.assign(clipName);
+
+			for (unsigned int i = 0; i < attr.InstanceNum; ++i) {
 				//InstanceIndex
 				in.getline(str, MAX_LINE);
 				unsigned int InstanceNum = 0;
