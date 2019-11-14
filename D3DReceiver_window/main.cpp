@@ -19,7 +19,6 @@ UINT mClientHeight;
 
 std::thread* mNetworkReadThread = nullptr;
 std::thread* mNetworkWriteThread = nullptr;
-std::thread* mRenderingThread = nullptr;
 
 GameTimer mTimer;
 
@@ -153,7 +152,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 
 					}
 
-				});
+					});
 			}
 
 			if (mNetworkWriteThread == nullptr) {
@@ -168,27 +167,19 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR cmdLine, int nCmd
 
 					}
 
-				});
+					});
 			}
-	
-	
-			if (mRenderingThread == nullptr) {
-				mRenderingThread = new std::thread([&]() -> void {
-					while (true) {
-						mTimer.Tick();
 
-						if (client->SizeRQueue() > 0) {
+			mTimer.Tick();
 
-							CalculateFrameStatus();
+			if (client->SizeRQueue() > 0) {
 
-							Render();	//·»´õ¸µ
+				CalculateFrameStatus();
 
-							client->PopPacketRQueue();
+				Render();	//·»´õ¸µ
 
-						}
-					}
-					
-				});
+				client->PopPacketRQueue();
+
 			}
 		}
 	}
