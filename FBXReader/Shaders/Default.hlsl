@@ -158,7 +158,7 @@ float4 PS(VertexOut pin) : SV_Target
     litColor += directLight;
 #endif
 
-	/*
+	/*	*/
 	// Add in specular reflections.
 	float3 r = reflect(-toEyeW, bumpedNormalW);
 	float4 reflectionColor = gCubeMap.Sample(gsamLinearWrap, r);
@@ -178,7 +178,7 @@ float4 PS(VertexOut pin) : SV_Target
 	}
 
 	litColor.rgb += shininess * fresnelFactor * reflectionColor.rgb ;
-	*/
+
 #ifdef FOG
 	float fogAmount = saturate((distToEye - gFogStart) / gFogRange);
 	litColor = lerp(litColor, gFogColor, fogAmount);

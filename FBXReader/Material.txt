@@ -39,39 +39,39 @@ Name:Mercury
 	Specular:NULL
 	DiffuseAlbedo:1.0 1.0 1.0 1.0
 	FresnelR0:0.6 0.6 0.6
-	Roughness:0.9
+	Roughness:0.99
 Name:Venus
 	Diffuse:Textures_Planet/2k_venus_surface.jpg
 	Normal:NULL
 	Specular:Textures_Planet/2k_venus_atmosphere
 	DiffuseAlbedo:1.0 1.0 1.0 1.0
 	FresnelR0:0.6 0.6 0.6
-	Roughness:0.9
+	Roughness:0.99
 Name:Earth
 	Diffuse:Textures_Planet/2k_earth_daymap.jpg
 	Normal:NULL
 	Specular:NULL
 	DiffuseAlbedo:1.0 1.0 1.0 1.0
 	FresnelR0:0.6 0.6 0.6
-	Roughness:0.9
+	Roughness:0.99
 Name:Mars
 	Diffuse:Textures_Planet/2k_mars.jpg
 	Normal:NULL
 	Specular:NULL
 	DiffuseAlbedo:1.0 1.0 1.0 1.0
 	FresnelR0:0.6 0.6 0.6
-	Roughness:0.9
+	Roughness:0.99
 Name:Jupiter
 	Diffuse:Textures_Planet/2k_jupiter.jpg
 	Normal:NULL
 	Specular:NULL
 	DiffuseAlbedo:1.0 1.0 1.0 1.0
 	FresnelR0:0.6 0.6 0.6
-	Roughness:0.9
+	Roughness:0.99
 Name:Stone
 	Diffuse:Textures_stone/Asteroid_2012_D14_Diffuse.png
 	Normal:NULL
 	Specular:Textures_stone/Asteroid_2012_D14_Bump.png
 	DiffuseAlbedo:1.0 1.0 1.0 1.0
 	FresnelR0:0.6 0.6 0.6
-	Roughness:0.9
+	Roughness:0.99
