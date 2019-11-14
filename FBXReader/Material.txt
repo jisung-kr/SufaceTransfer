@@ -68,3 +68,10 @@ Name:Jupiter
 	DiffuseAlbedo:1.0 1.0 1.0 1.0
 	FresnelR0:0.6 0.6 0.6
 	Roughness:1.0
+Name:Stone
+	Diffuse:Textures_stone/Asteroid_2012_D14_Diffuse.png
+	Normal:NULL
+	Specular:Textures_stone/Asteroid_2012_D14_Bump.png
+	DiffuseAlbedo:1.0 1.0 1.0 1.0
+	FresnelR0:0.6 0.6 0.6
+	Roughness:1.0

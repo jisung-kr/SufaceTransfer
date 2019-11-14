@@ -191,6 +191,13 @@ void SceneReader::ReadRenderItemFile() {
 				}
 			}
 
+			//RenderItemName
+			in.getline(str, MAX_LINE);
+			char renderItemName[MAX_BUFFER] = { 0, };
+			sscanf_s(str, "\tRenderItemName:%s\n", renderItemName, MAX_BUFFER);
+
+			attr.RenderItemName.assign(renderItemName);
+
 			//InstNum
 			in.getline(str, MAX_LINE);
 			unsigned int instNum = 0;
@@ -226,6 +233,7 @@ void SceneReader::ReadRenderItemFile() {
 			attr.ClipName.assign(clipName);
 
 			for (unsigned int i = 0; i < attr.InstanceNum; ++i) {
+
 				//InstanceIndex
 				in.getline(str, MAX_LINE);
 				unsigned int InstanceNum = 0;
@@ -324,11 +332,65 @@ void SceneReader::ReadTimetableFile() {
 		return;
 	}
 
+
 	char str[MAX_LINE];
 
+
 	while (in) {
+		TimetableAttr attr;
+		char renderItemName[MAX_BUFFER] = { 0, };
+		int count;
+
+		//RendeItemName #keyframeNum
 		in.getline(str, MAX_LINE);
-		std::cout << str << std::endl;
+		sscanf_s(str, "%s\t#%d\n", renderItemName, MAX_BUFFER, &count);
+
+		attr.RenderItemName.assign(renderItemName);
+
+		for (int i = 0; i < count; ++i) {
+			//Keyframe
+			Keyframe keyFrame;
+
+			//TimePos
+			float timePos = 0.0f;
+			in.getline(str, MAX_LINE);
+			sscanf_s(str, "\tTimePos:%f\n", &timePos);
+			keyFrame.TimePos = timePos;
+
+			//Position
+			{
+				in.getline(str, MAX_LINE);
+				float x = 0, y = 0, z = 0;
+				sscanf_s(str, "\tPosition:%f %f %f\n", &x, &y, &z);
+
+				keyFrame.Translation = (DirectX::XMFLOAT3(x, y, z));
+			}
+
+			//Rotation - Quaternion
+			{
+				in.getline(str, MAX_LINE);
+				float x = 0, y = 0, z = 0, w = 0;
+				sscanf_s(str, "\tQuaternion:%f %f %f %f\n", &x, &y, &z, &w);
+
+				keyFrame.RotationQuat = (DirectX::XMFLOAT4(x, y, z, w));
+			}
+
+			//Scale
+			{
+				in.getline(str, MAX_LINE);
+				float x = 0, y = 0, z = 0;
+				sscanf_s(str, "\tScale:%f %f %f\n", &x, &y, &z);
+
+				keyFrame.Scale = (DirectX::XMFLOAT3(x, y, z));
+			}
+
+			attr.Keyframes.push_back(keyFrame);
+
+			in.getline(str, MAX_LINE);
+		}
+
+		mTimetableAttrs.push_back(attr);
+
 	}
 
 	in.close();

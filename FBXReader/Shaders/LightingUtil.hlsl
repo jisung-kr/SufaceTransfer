@@ -43,19 +43,19 @@ float3 SchlickFresnel(float3 R0, float3 normal, float3 lightVec)
 
 float3 BlinnPhong(float3 lightStrength, float3 lightVec, float3 normal, float3 toEye, Material mat)
 {
-    const float m = mat.Shininess * 256.0f;
-    float3 halfVec = normalize(toEye + lightVec);
+	const float m = mat.Shininess * 256.0f;
+	float3 halfVec = normalize(toEye + lightVec);
 
-    float roughnessFactor = (m + 8.0f)*pow(max(dot(halfVec, normal), 0.0f), m) / 8.0f;
-    float3 fresnelFactor = SchlickFresnel(mat.FresnelR0, halfVec, lightVec);
+	float roughnessFactor = (m + 8.0f) * pow(max(dot(halfVec, normal), 0.0f), m) / 8.0f;
+	float3 fresnelFactor = SchlickFresnel(mat.FresnelR0, halfVec, lightVec);
 
-    float3 specAlbedo = fresnelFactor*roughnessFactor;
+	float3 specAlbedo = fresnelFactor * roughnessFactor;
 
-    // Our spec formula goes outside [0,1] range, but we are 
-    // doing LDR rendering.  So scale it down a bit.
-    specAlbedo = specAlbedo / (specAlbedo + 1.0f);
+	// Our spec formula goes outside [0,1] range, but we are 
+	// doing LDR rendering.  So scale it down a bit.
+	specAlbedo = specAlbedo / (specAlbedo + 1.0f);
 
-    return (mat.DiffuseAlbedo.rgb + specAlbedo) * lightStrength;
+	return (mat.DiffuseAlbedo.rgb + specAlbedo) * lightStrength;
 }
 
 //---------------------------------------------------------------------------------------

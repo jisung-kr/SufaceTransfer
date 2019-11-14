@@ -6,6 +6,8 @@
 #include <vector>
 #include <unordered_map>
 
+#include "AnimationHelper.h"
+
 #define MAX_BUFFER 128
 #define MAX_LINE 256
 #define MAX_FILENAMELEN 64
@@ -36,11 +38,14 @@ struct RenderItemAttr {
 	std::string GeometryName;
 	GeometryAttr* GeometryInfo;
 
+	std::string RenderItemName;
 	unsigned int InstanceNum;
 	unsigned int VisibleInstanceNum;
 	std::string IsAnimation;
 	float TimePos;
 	std::string ClipName;
+
+	//Instance Attr
 
 	std::vector<unsigned int> InstanceIndices;
 
@@ -53,7 +58,12 @@ struct RenderItemAttr {
 	std::vector< DirectX::XMFLOAT3> TextureScales;
 
 	std::vector<std::string> MaterialName;
+};
 
+
+struct TimetableAttr {
+	std::string RenderItemName;
+	std::vector< Keyframe> Keyframes;
 };
 
 
@@ -78,6 +88,7 @@ private:
 	std::unordered_map<std::string, std::vector<GeometryAttr>> mGeometryAttrs;
 	std::vector<MaterialAttr> mMaterialAttrs;
 	std::vector<RenderItemAttr> mRenderItemAttrs;
+	std::vector< TimetableAttr> mTimetableAttrs;
 
 public:
 	bool Init(std::string fName);
@@ -94,6 +105,7 @@ public:
 	std::unordered_map<std::string, std::vector<GeometryAttr>>& GetGeometryAttrs() { return mGeometryAttrs; }
 	std::vector<MaterialAttr>& GetMaterialAttrs() { return mMaterialAttrs; }
 	std::vector<RenderItemAttr>& GetRenderItemAttrs() { return mRenderItemAttrs; }
+	std::vector<TimetableAttr>& GetTimetableAttrs() { return mTimetableAttrs; }
 
 	void ShowFileName() {
 		std::cout << mGeoMetryFileName << std::endl;

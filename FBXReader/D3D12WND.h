@@ -70,6 +70,9 @@ struct RenderItem
 
 	UINT SkinnedCBIndex = -1;
 	SkinnedModelInstance* SkinnedModelInst = nullptr;
+
+	BoneAnimation* BoneAnimation = nullptr;
+	float TimetableTimePos = 0.0f;
 };
 
 enum class RenderLayer : int{
@@ -77,6 +80,7 @@ enum class RenderLayer : int{
 	Opaque = 1,
 	Sky,
 	SkinnedOpaque,
+	Sun,
 	MAX
 };
 
@@ -202,6 +206,8 @@ private:
 	int skinnedAnimIdx = 0;
 
 	SceneReader mScene;
+
+
 	
 
 public:
@@ -229,21 +235,17 @@ public:
 	void BuildMaterial(std::string materialName, int DiffuseSrvHeapIndex, int normalSrvHeapIndex, int specularSrvHeapIndex, DirectX::XMFLOAT4 DiffuseAlbedo = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),
 		DirectX::XMFLOAT3 FresnelR0 = DirectX::XMFLOAT3(0.2f, 0.2f, 0.2f), float Roughness = 0.9f);
 
-	void BuildFbxMesh();
-	void BuildCharacterRenderItem();
-
 	void BuildRootSignature();
 	void BuildDescriptorHeaps();
 	void BuildShadersAndInputLayout();
 	void BuildPSOs();
 	void BuildFrameResources();
 
-
 	void LoadScene(std::string fileName);
 	void BuildDefaultShape(std::vector<GeometryAttr> geoAttr);
 	void LoadFBX(std::string fileName, std::string argsName);
 
-	void BuildRenderItem(RenderItemAttr renderItemAttr);
+	void BuildRenderItem(RenderItemAttr renderItemAttr, std::vector<Keyframe> keyframes);
 
 	void CreateReadBackTex();
 	void CopyBuffer(int cliIdx);

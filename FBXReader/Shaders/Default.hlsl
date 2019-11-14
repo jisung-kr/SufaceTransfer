@@ -132,7 +132,6 @@ float4 PS(VertexOut pin) : SV_Target
 		bumpedNormalW = pin.NormalW;
 	}
 
-
     // Vector from point being lit to eye. 
 	float3 toEyeW = gEyePosW - pin.PosW;
 	float distToEye = length(toEyeW);
@@ -142,12 +141,15 @@ float4 PS(VertexOut pin) : SV_Target
     // Light terms.
     float4 ambient = gAmbientLight * diffuseAlbedo;
 
-    const float shininess = (1.0f - roughness) * normalMapSample.a;
-    Material mat = { diffuseAlbedo, fresnelR0, shininess };
-    float3 shadowFactor = 1.0f;
-	float4 directLight = ComputeLighting(gLights, mat, pin.PosW, bumpedNormalW, toEyeW, shadowFactor);
+	const float shininess = (1.0f - roughness) * normalMapSample.a;
+	float4 litColor = ambient;
+	Material mat = { diffuseAlbedo, fresnelR0, shininess };
+	float3 shadowFactor = 1.0f;
 
-    float4 litColor = ambient + directLight;
+#ifndef SUN
+	float4 directLight = ComputeLighting(gLights, mat, pin.PosW, bumpedNormalW, toEyeW, shadowFactor);
+    litColor += directLight;
+#endif
 
 	// Add in specular reflections.
 	float3 r = reflect(-toEyeW, bumpedNormalW);

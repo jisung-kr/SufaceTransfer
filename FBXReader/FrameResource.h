@@ -10,7 +10,9 @@ struct InstanceData
 {
 	DirectX::XMFLOAT4X4 World = MathHelper::Identity4x4();
 	DirectX::XMFLOAT4X4 TexTransform = MathHelper::Identity4x4();
+	DirectX::XMFLOAT4X4 OriginWorld = MathHelper::Identity4x4();
 	UINT MaterialIndex;
+	UINT InstancePad0;
 	UINT InstancePad1;
 	UINT InstancePad2;
 };

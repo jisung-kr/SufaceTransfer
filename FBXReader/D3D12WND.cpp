@@ -91,7 +91,7 @@ bool D3D12WND::InitDirect3D(UINT clientNum, USHORT port, std::string sceneName) 
 	mClientHeight = rt.bottom - rt.top; 
 
 	//서버측 카메라 위치 설정
-	mCamera.SetPosition(30.0f, 0.0f, -160.0f);
+	mCamera.SetPosition(30.0f, 0.0f, -320.0f);
 
 	/* 서버 소켓 생성및 초기화 */
 	server = new IOCPServer(clientNum);
@@ -462,7 +462,7 @@ void D3D12WND::OnResize() {
 
 	for (int i = 0; i < server->GetClientNum(); ++i) {
 		auto curClinet = server->GetClient(i);
-		curClinet->mCamera.SetLens(0.25f * MathHelper::Pi, static_cast<float>(curClinet->mDeviceInfo.mClientWidth) / curClinet->mDeviceInfo.mClientHeight, 1.0f, 1000.0f);
+		curClinet->mCamera.SetLens(0.25f * MathHelper::Pi, static_cast<float>(curClinet->mDeviceInfo.mClientWidth) / curClinet->mDeviceInfo.mClientHeight, 1.0f, 10000.0f);
 	}
 
 	BoundingFrustum::CreateFromMatrix(mCamFrustum, mCamera.GetProj());
@@ -540,6 +540,9 @@ void D3D12WND::Draw(const GameTimer& gt) {
 			cmdList->SetGraphicsRootConstantBufferView(2, passCBAddress);
 
 			//여기서 그리기 수행
+			cmdList->SetPipelineState(mPSOs["sunOpaque"].Get());
+			DrawRenderItems(cmdList.Get(), mRitemLayer[(int)RenderLayer::Sun]);
+
 			cmdList->SetPipelineState(mPSOs["opaque"].Get());
 			DrawRenderItems(cmdList.Get(), mRitemLayer[(int)RenderLayer::Opaque]);
 
@@ -548,7 +551,6 @@ void D3D12WND::Draw(const GameTimer& gt) {
 
 			cmdList->SetPipelineState(mPSOs["sky"].Get());
 			DrawRenderItems(cmdList.Get(), mRitemLayer[(int)RenderLayer::Sky]);
-
 
 			//리소스 배리어 전환
 			cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(curClient->mRenderTargetBuffer.Get(),
@@ -651,6 +653,9 @@ void D3D12WND::Draw(const GameTimer& gt) {
 
 
 	//여기서 그리기 수행
+	mCommandList->SetPipelineState(mPSOs["sunOpaque"].Get());
+	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::Sun]);
+
 	mCommandList->SetPipelineState(mPSOs["opaque"].Get());
 	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::Opaque]);
 
@@ -680,6 +685,50 @@ void D3D12WND::Draw(const GameTimer& gt) {
 
 void D3D12WND::Update(const GameTimer& gt) {
 	OnKeyboardInput(gt);
+
+
+	//Timetable
+	for (auto& e : mAllRitems) {
+		if (e->BoneAnimation == nullptr)
+			continue;
+
+		XMFLOAT4X4 prevWorld;	//이전 보간값 World행렬
+		e->BoneAnimation->Interpolate(e->TimetableTimePos, prevWorld);
+
+		e->TimetableTimePos += gt.DeltaTime();
+		if (e->TimetableTimePos >= e->BoneAnimation->GetEndTime())
+		{
+			// Loop animation back to beginning.
+			e->TimetableTimePos = 0.0f;
+
+			prevWorld = MathHelper::Identity4x4();
+		}
+
+		XMFLOAT4X4 World;
+		e->BoneAnimation->Interpolate(e->TimetableTimePos, World);
+
+		for (int i = 0; i < e->InstanceNum; ++i) {
+			XMVECTOR pos, rot, scale;
+			XMMatrixDecompose(&scale , &rot, &pos, XMLoadFloat4x4(&World));
+
+			XMVECTOR prevPos, prevRot, prevScale;
+			XMMatrixDecompose(&prevScale, &prevRot, &prevPos, XMLoadFloat4x4(&prevWorld));
+
+			XMVECTOR originPos, originRot, originScale;
+			XMMatrixDecompose(&originScale, &originRot, &originPos, XMLoadFloat4x4(&e->Instances[i].OriginWorld));
+
+			pos = originPos + pos;	//Vector로서 원래Pos값 이동
+			rot = XMQuaternionMultiply(originRot, rot);
+			scale = originScale * scale;
+
+			XMVECTOR zero = XMVectorZero();
+			XMVECTOR one = XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f);
+			
+			XMStoreFloat4x4(&e->Instances[i].World, XMMatrixAffineTransformation(scale, zero, rot, pos));
+		}
+	}
+
+
 
 	mCurrFrameResourceIndex = (mCurrFrameResourceIndex + 1) % gNumFrameResources;
 	mCurrFrameResource = mFrameResources[mCurrFrameResourceIndex].get();
@@ -871,19 +920,12 @@ void D3D12WND::UpdateMainPassCB(const GameTimer& gt) {
 	mMainPassCB.FarZ = mCamera.GetFarZ();
 	mMainPassCB.TotalTime = gt.TotalTime();
 	mMainPassCB.DeltaTime = gt.DeltaTime();
-	mMainPassCB.AmbientLight = { 0.25f, 0.25f, 0.25f, 1.0f };
+	mMainPassCB.AmbientLight = { 1.0f, 1.0f, 1.0f, 1.0f };
 
-	mMainPassCB.Lights[0].Direction = { -0.9f, 0.0f, 0.0f };
-	mMainPassCB.Lights[0].Strength = { 1.0f, 1.0f, 1.0f };
-
-	mMainPassCB.Lights[1].Direction = { -10.0f, 0.0f, 0.0f };
-	mMainPassCB.Lights[1].Strength = { 1.0f, 1.0f, 1.0f };
-
-	mMainPassCB.Lights[2].Direction = { 0.0f, -1.0f, 0.0f };
-	mMainPassCB.Lights[2].Strength = { 1.0f, 1.0f, 1.0f };
-
-	mMainPassCB.Lights[3].Direction = { 0.0f, -1.0f, 0.0f };
-	mMainPassCB.Lights[3].Strength = { 1.0f, 1.0f, 1.0f };
+	mMainPassCB.Lights[0].Position = { 3000.0f, 0.0f, 0.0f };
+	mMainPassCB.Lights[0].Strength = { 0.9f, 0.9f, 0.9f };
+	mMainPassCB.Lights[0].FalloffStart = 0.5f;
+	mMainPassCB.Lights[0].FalloffEnd = 10000.f;
 
 	auto currPassCB = mCurrFrameResource->PassCB.get();
 	currPassCB->CopyData(0, mMainPassCB);
@@ -914,15 +956,12 @@ void D3D12WND::UpdateClientPassCB(const GameTimer& gt) {
 		mClientPassCB.FarZ = curClient->mCamera.GetFarZ();
 		mClientPassCB.TotalTime = gt.TotalTime();
 		mClientPassCB.DeltaTime = gt.DeltaTime();
-		mClientPassCB.AmbientLight = { 0.7f, 0.7f, 0.7f, 1.0f };
+		mClientPassCB.AmbientLight = { 1.0f, 1.0f, 1.0f, 1.0f };
 
-		mClientPassCB.Lights[0].Direction = { 1.0f, 0.0f, 0.0f };
-		mClientPassCB.Lights[0].Strength = { 1.0f, 1.0f, 1.0f };
-
-		mClientPassCB.Lights[1].Strength = { 1.0f, 1.0f, 1.0f };
-		mClientPassCB.Lights[1].Position = { 5.0f, 0.0f, 0.0f };
-		mClientPassCB.Lights[1].FalloffStart = 0.0f;
-		mClientPassCB.Lights[1].FalloffEnd = 1000.0f;
+		mClientPassCB.Lights[0].Position = { 3000.0f, 0.0f, 0.0f };
+		mClientPassCB.Lights[0].Strength = { 0.9f, 0.9f, 0.9f };
+		mClientPassCB.Lights[0].FalloffStart = 0.5f;
+		mClientPassCB.Lights[0].FalloffEnd = 10000.f;
 
 		auto currPassCB = mCurrFrameResource->PassCB.get();
 		currPassCB->CopyData(1 + i, mClientPassCB);
@@ -1044,17 +1083,26 @@ void D3D12WND::LoadScene(std::string fileName) {
 		}
 	}
 
+	//타임테이블 불러오기
+	mScene.ReadTimetableFile();
+	auto timetableAttrs = mScene.GetTimetableAttrs();
+
 	//렌더아이템 생성
 	mScene.ReadRenderItemFile();
 	auto renderItemAttrs = mScene.GetRenderItemAttrs();
-
+	
 	for (int i = 0; i < renderItemAttrs.size(); ++i) {
-		BuildRenderItem(renderItemAttrs[i]);
+		std::vector<Keyframe> keyframe;
+		for (int j = 0; j < timetableAttrs.size(); ++j) {
+			if (renderItemAttrs[i].RenderItemName.compare(timetableAttrs[j].RenderItemName) == 0) {
+				keyframe = timetableAttrs[j].Keyframes;
+				break;
+			}
+		}
+
+		BuildRenderItem(renderItemAttrs[i], keyframe);
 	}
 
-
-	//타임테이블 불러오기
-	mScene.ReadTimetableFile();
 
 }
 
@@ -1163,6 +1211,12 @@ void D3D12WND::BuildShadersAndInputLayout() {
 		NULL, NULL
 	};
 
+	const D3D_SHADER_MACRO sunDefines[] =
+	{
+		"SUN", "1",
+		NULL, NULL
+	};
+
 	const D3D_SHADER_MACRO skinnedDefines[] =
 	{
 		"SKINNED", "1",
@@ -1171,7 +1225,8 @@ void D3D12WND::BuildShadersAndInputLayout() {
 
 	mShaders["standardVS"] = D3DUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "VS", "vs_5_1");
 	mShaders["skinnedVS"] = D3DUtil::CompileShader(L"Shaders\\Default.hlsl", skinnedDefines, "VS", "vs_5_1");
-	mShaders["opaquePS"] = D3DUtil::CompileShader(L"Shaders\\Default.hlsl", defines, "PS", "ps_5_1");
+	mShaders["opaquePS"] = D3DUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "PS", "ps_5_1");
+	mShaders["sunPS"] = D3DUtil::CompileShader(L"Shaders\\Default.hlsl", sunDefines, "PS", "ps_5_1");
 
 	mShaders["skyVS"] = D3DUtil::CompileShader(L"Shaders\\Sky.hlsl", nullptr, "VS", "vs_5_1");
 	mShaders["skyPS"] = D3DUtil::CompileShader(L"Shaders\\Sky.hlsl", nullptr, "PS", "ps_5_1");
@@ -1215,7 +1270,7 @@ void D3D12WND::BuildPSOs() {
 		mShaders["opaquePS"]->GetBufferSize()
 	};
 	auto temp = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-	//temp.CullMode = D3D12_CULL_MODE_NONE;
+	//temp.FillMode = D3D12_FILL_MODE_WIREFRAME;
 	opaquePsoDesc.RasterizerState = temp;
 	opaquePsoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 	opaquePsoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
@@ -1228,6 +1283,24 @@ void D3D12WND::BuildPSOs() {
 	opaquePsoDesc.DSVFormat = mDepthStencilFormat;
 
 	ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(&opaquePsoDesc, IID_PPV_ARGS(&mPSOs["opaque"])));
+
+	//
+	// PSO for sun pass.
+	//
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC sunOpaquePsoDesc = opaquePsoDesc;
+	sunOpaquePsoDesc.VS =
+	{
+		reinterpret_cast<BYTE*>(mShaders["standardVS"]->GetBufferPointer()),
+		mShaders["standardVS"]->GetBufferSize()
+	};
+	sunOpaquePsoDesc.PS =
+	{
+		reinterpret_cast<BYTE*>(mShaders["sunPS"]->GetBufferPointer()),
+		mShaders["sunPS"]->GetBufferSize()
+	};
+	ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(&sunOpaquePsoDesc, IID_PPV_ARGS(&mPSOs["sunOpaque"])));
+
+
 
 	//
 	// PSO for skinned pass.
@@ -1540,7 +1613,7 @@ void D3D12WND::LoadFBX(std::string fileName, std::string argsName) {
 }
 
 
-void D3D12WND::BuildRenderItem(RenderItemAttr renderItemAttr) {
+void D3D12WND::BuildRenderItem(RenderItemAttr renderItemAttr, std::vector<Keyframe> keyframes) {
 
 	UINT animCBIdx = skinnedAnimIdx;
 
@@ -1564,12 +1637,17 @@ void D3D12WND::BuildRenderItem(RenderItemAttr renderItemAttr) {
 			renderItem->InstanceSrvIndex = instanceSrvIdx;
 			renderItem->InstanceNum = renderItemAttr.InstanceNum;
 			renderItem->VisibleInstanceNum = renderItemAttr.VisibleInstanceNum;
-			
+
 			if (renderItemAttr.IsAnimation.compare("True") == 0) {
 				renderItem->SkinnedModelInst = mSkinnedModelInst[animCBIdx].get();
 				renderItem->SkinnedModelInst->TimePos = renderItemAttr.TimePos;
 				renderItem->SkinnedModelInst->ClipName = renderItemAttr.ClipName;
 				renderItem->SkinnedCBIndex = animCBIdx;
+			}
+			else if (keyframes.size() > 0) {
+				BoneAnimation* boneAni = new BoneAnimation();
+				boneAni->Keyframes = keyframes;
+				renderItem->BoneAnimation = boneAni;
 			}
 
 			instanceSrvIdx += renderItemAttr.InstanceNum;
@@ -1583,6 +1661,7 @@ void D3D12WND::BuildRenderItem(RenderItemAttr renderItemAttr) {
 				XMMATRIX rotation = XMMatrixRotationRollPitchYaw(XMConvertToRadians(renderItemAttr.Rotations[i].x), XMConvertToRadians(renderItemAttr.Rotations[i].y), XMConvertToRadians(renderItemAttr.Rotations[i].z));
 
 				XMStoreFloat4x4(&renderItem->Instances[i].World, rotation * scale * pos);
+				XMStoreFloat4x4(&renderItem->Instances[i].OriginWorld, rotation * scale * pos);
 
 				XMMATRIX tesPos = XMMatrixTranslation(renderItemAttr.TexturePositions[i].x, renderItemAttr.TexturePositions[i].y, renderItemAttr.TexturePositions[i].z);
 				XMMATRIX texScale = XMMatrixScaling(renderItemAttr.TextureScales[i].x, renderItemAttr.TextureScales[i].y, renderItemAttr.TextureScales[i].z);
@@ -1620,7 +1699,11 @@ void D3D12WND::BuildRenderItem(RenderItemAttr renderItemAttr) {
 			mAllRitems.push_back(std::move(renderItem));
 
 			//애니메이션 존재할 경우 SkinnedOpaque로 입력
-			if (mAllRitems[mAllRitems.size() - 1]->SkinnedModelInst == nullptr)
+			if (renderItemAttr.RenderItemName.compare("Sun") == 0)
+				mRitemLayer[(int)RenderLayer::Sun].push_back(mAllRitems[mAllRitems.size() - 1].get());
+			else if (renderItemAttr.RenderItemName.compare("skybox") == 0)
+				mRitemLayer[(int)RenderLayer::Sky].push_back(mAllRitems[mAllRitems.size() - 1].get());
+			else if (mAllRitems[mAllRitems.size() - 1]->SkinnedModelInst == nullptr)
 				mRitemLayer[(int)RenderLayer::Opaque].push_back(mAllRitems[mAllRitems.size() - 1].get());
 			else
 				mRitemLayer[(int)RenderLayer::SkinnedOpaque].push_back(mAllRitems[mAllRitems.size() - 1].get());
@@ -1669,7 +1752,8 @@ void D3D12WND::BuildRenderItem(RenderItemAttr renderItemAttr) {
 			XMMATRIX scale = XMMatrixScaling(renderItemAttr.Scales[i].x, renderItemAttr.Scales[i].y, renderItemAttr.Scales[i].z);
 			XMMATRIX rotation = XMMatrixRotationRollPitchYaw(XMConvertToRadians(renderItemAttr.Rotations[i].x), XMConvertToRadians(renderItemAttr.Rotations[i].y), XMConvertToRadians(renderItemAttr.Rotations[i].z));
 
-			XMStoreFloat4x4(&renderItem->Instances[i].World, rotation * scale * pos);
+			XMStoreFloat4x4(&renderItem->Instances[i].World, rotation* scale* pos);
+			XMStoreFloat4x4(&renderItem->Instances[i].OriginWorld, rotation* scale* pos);
 
 			XMMATRIX tesPos = XMMatrixTranslation(renderItemAttr.TexturePositions[i].x, renderItemAttr.TexturePositions[i].y, renderItemAttr.TexturePositions[i].z);
 			XMMATRIX texScale = XMMatrixScaling(renderItemAttr.TextureScales[i].x, renderItemAttr.TextureScales[i].y, renderItemAttr.TextureScales[i].z);
@@ -1695,7 +1779,9 @@ void D3D12WND::BuildRenderItem(RenderItemAttr renderItemAttr) {
 		mAllRitems.push_back(std::move(renderItem));
 
 		//애니메이션 존재할 경우 SkinnedOpaque로 입력
-		if (renderItemAttr.MaterialName[0].compare("skybox") == 0)
+		if(renderItemAttr.RenderItemName.compare("Sun") == 0)
+			mRitemLayer[(int)RenderLayer::Sun].push_back(mAllRitems[mAllRitems.size() - 1].get());
+		else if (renderItemAttr.RenderItemName.compare("skybox") == 0)
 			mRitemLayer[(int)RenderLayer::Sky].push_back(mAllRitems[mAllRitems.size() - 1].get());
 		else if (mAllRitems[mAllRitems.size() - 1]->SkinnedModelInst == nullptr)
 			mRitemLayer[(int)RenderLayer::Opaque].push_back(mAllRitems[mAllRitems.size() - 1].get());

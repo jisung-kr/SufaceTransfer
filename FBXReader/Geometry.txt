@@ -11,3 +11,5 @@ Low_poly_UFO.fbx
 	Default
 Waving.fbx
 	Default
+Stone.fbx
+	Default
