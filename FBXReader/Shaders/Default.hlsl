@@ -140,17 +140,25 @@ float4 PS(VertexOut pin) : SV_Target
 
     // Light terms.
     float4 ambient = gAmbientLight * diffuseAlbedo;
+	float shininess = 0.0f;
 
-	const float shininess = (1.0f - roughness) * normalMapSample.a;
+	if (normalMapIndex == 0xFFFFFFFF) {
+		shininess = (1.0f - roughness);
+	}
+	else {
+		shininess = (1.0f - roughness) * normalMapSample.a;
+	}
+
 	float4 litColor = ambient;
 	Material mat = { diffuseAlbedo, fresnelR0, shininess };
-	float3 shadowFactor = 1.0f;
-
+	float3 shadowFactor = 0.6f;
+	/**/
 #ifndef SUN
 	float4 directLight = ComputeLighting(gLights, mat, pin.PosW, bumpedNormalW, toEyeW, shadowFactor);
     litColor += directLight;
 #endif
 
+	/*
 	// Add in specular reflections.
 	float3 r = reflect(-toEyeW, bumpedNormalW);
 	float4 reflectionColor = gCubeMap.Sample(gsamLinearWrap, r);
@@ -170,7 +178,7 @@ float4 PS(VertexOut pin) : SV_Target
 	}
 
 	litColor.rgb += shininess * fresnelFactor * reflectionColor.rgb ;
-
+	*/
 #ifdef FOG
 	float fogAmount = saturate((distToEye - gFogStart) / gFogRange);
 	litColor = lerp(litColor, gFogColor, fogAmount);
