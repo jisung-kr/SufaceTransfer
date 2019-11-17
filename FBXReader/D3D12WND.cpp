@@ -792,6 +792,7 @@ void D3D12WND::OnKeyboardInput(const GameTimer& gt) {
 
 	if (GetAsyncKeyState('2') & 0x8000)
 		mFrustumCullingEnabled = false;
+
 	mCamera.UpdateViewMatrix();
 
 	for (int i = 0; i < server->GetClientNum(); ++i) {
@@ -924,7 +925,7 @@ void D3D12WND::UpdateMainPassCB(const GameTimer& gt) {
 
 	mMainPassCB.Lights[0].Position = { 3000.0f, 0.0f, 0.0f };
 	mMainPassCB.Lights[0].Strength = { 0.9f, 0.9f, 0.9f };
-	mMainPassCB.Lights[0].FalloffStart = 0.5f;
+	mMainPassCB.Lights[0].FalloffStart = 1.0f;
 	mMainPassCB.Lights[0].FalloffEnd = 10000.f;
 
 	auto currPassCB = mCurrFrameResource->PassCB.get();
@@ -960,7 +961,7 @@ void D3D12WND::UpdateClientPassCB(const GameTimer& gt) {
 
 		mClientPassCB.Lights[0].Position = { 3000.0f, 0.0f, 0.0f };
 		mClientPassCB.Lights[0].Strength = { 0.9f, 0.9f, 0.9f };
-		mClientPassCB.Lights[0].FalloffStart = 0.5f;
+		mClientPassCB.Lights[0].FalloffStart = 1.0f;
 		mClientPassCB.Lights[0].FalloffEnd = 10000.f;
 
 		auto currPassCB = mCurrFrameResource->PassCB.get();
@@ -1927,19 +1928,27 @@ void D3D12WND::CopyBuffer(int cliIdx) {
 			mCurrFrameResource->mSurfaces[cliIdx]->Map(0, &range, (void**)& tempBuf);
 			mCurrFrameResource->mSurfaces[cliIdx]->Unmap(0, 0);
 
-			//데이터 압축
+			/*
+			//데이터 압축 - LZ4
 			char* compressed_msg = new char[size];
 			size_t compressed_size = 0;
-
 			compressed_size = LZ4_compress_default((char*)tempBuf, compressed_msg, size, size);
-
-			qlz_state_compress stateComp;
-			size_t compQuickLZSize = 0;
-			compQuickLZSize = qlz_compress((char*)tempBuf, compressed_msg, size, &stateComp);
 
 			std::unique_ptr<Packet> packet = std::make_unique<Packet>(new CHEADER(COMMAND::COMMAND_RES_FRAME, compressed_size));
 			packet->mData.len = compressed_size;
 			packet->mData.buf = compressed_msg;
+			*/
+			//데이터 압축 -QuickLZ
+			char* compressed_msg = new char[size];
+			qlz_state_compress stateComp;
+			size_t compQuickLZSize = 0;
+			compQuickLZSize = qlz_compress((char*)tempBuf, compressed_msg, size, &stateComp);
+
+			std::unique_ptr<Packet> packet = std::make_unique<Packet>(new CHEADER(COMMAND::COMMAND_RES_FRAME, compQuickLZSize));
+			packet->mData.len = compQuickLZSize;
+			packet->mData.buf = compressed_msg;
+
+
 
 			curClient->wQueue.PushItem(std::move(packet));
 
@@ -1969,7 +1978,7 @@ void D3D12WND::InputPump(const GameTimer& gt) {
 			std::unique_ptr<Packet> packet = std::move(curClient->inputRQueue.FrontItem());
 			INPUT_DATA* inputData = (INPUT_DATA*)packet->mData.buf;
 			const float dtC = inputData->deltaTime;
-			const float dt = gt.DeltaTime() + 2* dtC;
+			const float dt = gt.DeltaTime() - 2* dtC;
 
 			if (inputData->mInputType == INPUT_TYPE::INPUT_KEY_W) {
 				curClient->mCamera.Walk(50.0f * dt);
@@ -2025,7 +2034,6 @@ void D3D12WND::SendFrame() {
 	for (int i = 0; i < server->GetClientNum(); ++i) {
 		server->RequestSend(i);
 	}
-
 }
 
 void D3D12WND::CreateRTVDSV_Server() {
