@@ -1921,47 +1921,25 @@ void D3D12WND::CopyBuffer(int cliIdx) {
 	if (curClient->rQueue.Size() > 0) {
 		HEADER* header = (HEADER*)curClient->rQueue.FrontItem()->mHeader.buf;
 		if (ntohl(header->mCommand) == COMMAND::COMMAND_REQ_FRAME) {
-			/*	*/
-			//데이터 압축
+
+			//buffer로 렌더링결과 매핑
 			void** tempBuf;
 			mCurrFrameResource->mSurfaces[cliIdx]->Map(0, &range, (void**)& tempBuf);
 			mCurrFrameResource->mSurfaces[cliIdx]->Unmap(0, 0);
 
+			//데이터 압축
 			char* compressed_msg = new char[size];
 			size_t compressed_size = 0;
 
-			//멀티스레드 고려
-			/*
-			const int count = 4;
-			char** compressed_msg1 = new char* [count];
-			size_t compressed_size1[count];
-
-			for (int j = 0; j < count; ++j) {
-				compressed_msg1[j] = new char[size / count];
-			}
-
-			for (int j = 0; j < count; ++j) {
-				compressed_size1[j] = LZ4_compress_default((char*)tempBuf + j * (size / count), compressed_msg1[j], size / count, size / count);
-				//compressed_size1[j] = LZ4_compress_fast((char*)tempBuf + j*(size/ count), compressed_msg1[j], size / count, size / count, 6);
-			}
-			//compressed_size = LZ4_compress_default((char*)tempBuf, compressed_msg, size, size);
-
-		*/
-		//compressed_size = LZ4_compress_fast((char*)tempBuf, compressed_msg, size, size, 2);
 			compressed_size = LZ4_compress_default((char*)tempBuf, compressed_msg, size, size);
+
+			qlz_state_compress stateComp;
+			size_t compQuickLZSize = 0;
+			compQuickLZSize = qlz_compress((char*)tempBuf, compressed_msg, size, &stateComp);
 
 			std::unique_ptr<Packet> packet = std::make_unique<Packet>(new CHEADER(COMMAND::COMMAND_RES_FRAME, compressed_size));
 			packet->mData.len = compressed_size;
 			packet->mData.buf = compressed_msg;
-
-			/*
-			//패킷 생성
-			std::unique_ptr<Packet> packet = std::make_unique<Packet>(new CHEADER(COMMAND::COMMAND_RES_FRAME, size));
-			packet->mData.len = size;
-
-			mCurrFrameResource->mSurfaces[i]->Map(0, &range, (void**)& packet->mData.buf);
-			mCurrFrameResource->mSurfaces[i]->Unmap(0, 0);
-			*/
 
 			curClient->wQueue.PushItem(std::move(packet));
 
@@ -1969,41 +1947,6 @@ void D3D12WND::CopyBuffer(int cliIdx) {
 			curClient->rQueue.PopItem();
 		}
 	}
-
-	/*
-	for (int i = 0; i < server->GetClientNum(); ++i) {
-		auto curClient = server->GetClient(i);
-
-		DWORD size = curClient->mDeviceInfo.mClientWidth * curClient->mDeviceInfo.mClientHeight * sizeof(FLOAT);
-		D3D12_RANGE range{ 0, size };
-
-		if (curClient->rQueue.Size() > 0) {
-			HEADER* header = (HEADER*)curClient->rQueue.FrontItem()->mHeader.buf;
-			if (ntohl(header->mCommand) == COMMAND::COMMAND_REQ_FRAME) {
-
-				//데이터 압축
-				void** tempBuf;
-				mCurrFrameResource->mSurfaces[i]->Map(0, &range, (void**)& tempBuf);
-				mCurrFrameResource->mSurfaces[i]->Unmap(0, 0);
-
-				char* compressed_msg = new char[size];
-				size_t compressed_size = 0;
-
-				//compressed_size = LZ4_compress_fast((char*)tempBuf, compressed_msg, size, size, 2);
-				compressed_size = LZ4_compress_default((char*)tempBuf, compressed_msg, size, size);
-
-				std::unique_ptr<Packet> packet = std::make_unique<Packet>(new CHEADER(COMMAND::COMMAND_RES_FRAME, compressed_size));
-				packet->mData.len = compressed_size;
-				packet->mData.buf = compressed_msg;
-					
-				curClient->wQueue.PushItem(std::move(packet));
-
-				curClient->rQueue.FrontItem().release();
-				curClient->rQueue.PopItem();
-			}
-		}
-	}
-	*/
 
 }
 
@@ -2029,28 +1972,28 @@ void D3D12WND::InputPump(const GameTimer& gt) {
 			const float dt = gt.DeltaTime() + 2* dtC;
 
 			if (inputData->mInputType == INPUT_TYPE::INPUT_KEY_W) {
-				curClient->mCamera.Walk(20.0f * dt);
+				curClient->mCamera.Walk(50.0f * dt);
 				OutputDebugStringA("Input W\n");
 			}
 
 			if (inputData->mInputType == INPUT_TYPE::INPUT_KEY_S) {
-				curClient->mCamera.Walk(-20.0f * dt);
+				curClient->mCamera.Walk(-50.0f * dt);
 				OutputDebugStringA("Input S\n");
 			}
 
 			if (inputData->mInputType == INPUT_TYPE::INPUT_KEY_A) {
-				curClient->mCamera.Strafe(-20.0f * dt);
+				curClient->mCamera.Strafe(-50.0f * dt);
 				OutputDebugStringA("Input A\n");
 			}
 
 			if (inputData->mInputType == INPUT_TYPE::INPUT_KEY_D) {
-				curClient->mCamera.Strafe(20.0f * dt);
+				curClient->mCamera.Strafe(50.0f * dt);
 				OutputDebugStringA("Input D\n");
 			}
 
 
 			if (inputData->mInputType == INPUT_TYPE::INPUT_AXIS_CAMERA_MOVE) {
-				float speed = 20.0f;
+				float speed = 50.0f;
 				float dx = inputData->x * speed * dt;
 				float dy = inputData->y * speed * dt;
 

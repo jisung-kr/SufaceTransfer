@@ -6,7 +6,7 @@ Name:default
 	FresnelR0:1.0 1.0 1.0
 	Roughness:1.0
 Name:skybox
-	Diffuse:Textures/blueNebular1024.dds
+	Diffuse:Textures/darkGalaxy1024.dds
 	Normal:NULL
 	Specular:NULL
 	DiffuseAlbedo:1.0 1.0 1.0 1.0

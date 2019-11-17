@@ -13,6 +13,7 @@
 #include "FBXReader.h"
 #include "WICTextureLoader12.h"
 #include "lz4.h"
+#include "QuickLZ.h"
 #include "SceneReader.h"
 
 #include <memory>

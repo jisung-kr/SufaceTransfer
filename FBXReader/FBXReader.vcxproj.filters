@@ -114,6 +114,9 @@
     <ClCompile Include="SceneReader.cpp">
       <Filter>소스 파일\Graphics\SceneReader</Filter>
     </ClCompile>
+    <ClCompile Include="QuickLZ.cpp">
+      <Filter>소스 파일\Codec</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h">
@@ -175,6 +178,9 @@
     </ClInclude>
     <ClInclude Include="SceneReader.h">
       <Filter>헤더 파일\SceneReader</Filter>
+    </ClInclude>
+    <ClInclude Include="QuickLZ.h">
+      <Filter>헤더 파일\Codec</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
