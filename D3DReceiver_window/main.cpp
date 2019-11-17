@@ -1,6 +1,7 @@
 #include "Receiver.h"
 #include "GameTimer.h"
 #include "lz4.h"
+#include "QuickLZ.h"
 
 #include <WindowsX.h>
 #include <thread>
@@ -244,11 +245,19 @@ void Render() {
 		hdc = GetDC(mhMainWnd);
 		hMemDC = CreateCompatibleDC(hdc);
 
-		//압축해제
 		int srcDataSize = mClientHeight * mClientWidth * 4;
+		/*
+		//압축해제 - LZ4
+
 		char* srcData = new char[srcDataSize];
 		int size = LZ4_decompress_fast(client->GetData(), srcData, srcDataSize);
-		
+		*/
+
+		//압축해제 - QuickLZ
+		char* srcData = new char[srcDataSize];
+		qlz_state_decompress stateDecomp;
+		int size2 = qlz_decompress(client->GetData(), srcData, &stateDecomp);
+
 		hBitmap = CreateBitmap(mClientWidth, mClientHeight, 1, 32, srcData);	//Bitmap생성
 
 		hOldBitmap = (HBITMAP)SelectObject(hMemDC, hBitmap);
@@ -340,8 +349,6 @@ void OnMouseMove(WPARAM btnState, int x, int y) {
 		data->mInputType = INPUT_TYPE::INPUT_AXIS_CAMERA_ROT;
 		data->z= dx;
 		data->w = dy;
-
-		//data->deltaTime = timer.DeltaTime();
 
 		OutputDebugStringA("Mouse 입력\n");
 		client->PushPacketWQueue(std::make_unique<Packet>(new CHEADER(COMMAND::COMMAND_INPUT, dataSize), data));

@@ -13,6 +13,12 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="소스 파일\Codec">
+      <UniqueIdentifier>{9687b351-9db9-4fe6-9bad-bdd6c8de5a88}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\Codec">
+      <UniqueIdentifier>{a37b7e9f-decb-4512-bec5-02ca6aa5dc77}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -28,7 +34,10 @@
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="lz4.cpp">
-      <Filter>소스 파일</Filter>
+      <Filter>소스 파일\Codec</Filter>
+    </ClCompile>
+    <ClCompile Include="QuickLZ.cpp">
+      <Filter>소스 파일\Codec</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -42,7 +51,10 @@
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="lz4.h">
-      <Filter>헤더 파일</Filter>
+      <Filter>헤더 파일\Codec</Filter>
+    </ClInclude>
+    <ClInclude Include="QuickLZ.h">
+      <Filter>헤더 파일\Codec</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

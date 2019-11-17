@@ -141,6 +141,7 @@ bool Client::SendMSG() {
 			return false;
 		}
 		isUsingInputWQueue = false;
+		delete packet.release();
 		OutputDebugStringA("Queue에서 InputPacket 삭제\n");
 	}
 
@@ -155,6 +156,7 @@ bool Client::SendMSG() {
 			return false;
 		}
 		isUsingWQueue = false;
+		delete packet.release();
 		OutputDebugStringA("Queue에서 Packet 삭제\n");
 	}
 
