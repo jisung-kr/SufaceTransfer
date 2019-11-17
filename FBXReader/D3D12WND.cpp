@@ -1978,31 +1978,32 @@ void D3D12WND::InputPump(const GameTimer& gt) {
 			std::unique_ptr<Packet> packet = std::move(curClient->inputRQueue.FrontItem());
 			INPUT_DATA* inputData = (INPUT_DATA*)packet->mData.buf;
 			const float dtC = inputData->deltaTime;
-			const float dt = gt.DeltaTime() - 2* dtC;
+			const float dt = gt.DeltaTime();// -2 * dtC;
+
+			float speed = 50.0f;
 
 			if (inputData->mInputType == INPUT_TYPE::INPUT_KEY_W) {
-				curClient->mCamera.Walk(50.0f * dt);
+				curClient->mCamera.Walk(speed * dt);
 				OutputDebugStringA("Input W\n");
 			}
 
 			if (inputData->mInputType == INPUT_TYPE::INPUT_KEY_S) {
-				curClient->mCamera.Walk(-50.0f * dt);
+				curClient->mCamera.Walk(-speed * dt);
 				OutputDebugStringA("Input S\n");
 			}
 
 			if (inputData->mInputType == INPUT_TYPE::INPUT_KEY_A) {
-				curClient->mCamera.Strafe(-50.0f * dt);
+				curClient->mCamera.Strafe(-speed * dt);
 				OutputDebugStringA("Input A\n");
 			}
 
 			if (inputData->mInputType == INPUT_TYPE::INPUT_KEY_D) {
-				curClient->mCamera.Strafe(50.0f * dt);
+				curClient->mCamera.Strafe(speed * dt);
 				OutputDebugStringA("Input D\n");
 			}
 
 
 			if (inputData->mInputType == INPUT_TYPE::INPUT_AXIS_CAMERA_MOVE) {
-				float speed = 50.0f;
 				float dx = inputData->x * speed * dt;
 				float dy = inputData->y * speed * dt;
 
