@@ -87,9 +87,6 @@
     <ClCompile Include="GeometryGenerator.cpp">
       <Filter>소스 파일\Graphics</Filter>
     </ClCompile>
-    <ClCompile Include="Network.cpp">
-      <Filter>소스 파일\Network</Filter>
-    </ClCompile>
     <ClCompile Include="IOCP.cpp">
       <Filter>소스 파일\Network</Filter>
     </ClCompile>
@@ -97,9 +94,6 @@
       <Filter>소스 파일\Queue</Filter>
     </ClCompile>
     <ClCompile Include="AnimationHelper.cpp">
-      <Filter>소스 파일\Graphics\Animation</Filter>
-    </ClCompile>
-    <ClCompile Include="LoadM3d.cpp">
       <Filter>소스 파일\Graphics\Animation</Filter>
     </ClCompile>
     <ClCompile Include="FBXReader.cpp">
@@ -152,9 +146,6 @@
     <ClInclude Include="GeometryGenerator.h">
       <Filter>헤더 파일\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="Network.h">
-      <Filter>헤더 파일\Network</Filter>
-    </ClInclude>
     <ClInclude Include="IOCP.h">
       <Filter>헤더 파일\Network</Filter>
     </ClInclude>
@@ -162,9 +153,6 @@
       <Filter>헤더 파일\Queue</Filter>
     </ClInclude>
     <ClInclude Include="AnimationHelper.h">
-      <Filter>헤더 파일\Graphics\Animation</Filter>
-    </ClInclude>
-    <ClInclude Include="LoadM3d.h">
       <Filter>헤더 파일\Graphics\Animation</Filter>
     </ClInclude>
     <ClInclude Include="WICTextureLoader12.h">

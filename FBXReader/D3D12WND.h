@@ -1,6 +1,5 @@
 #pragma once
 #include "IOCP.h"
-//#include "Network.h"
 #include "BitmapQueue.h"
 #include "D3DUtil.h"
 #include "GameTimer.h"
@@ -9,7 +8,6 @@
 #include "GeometryGenerator.h"
 #include "AnimationHelper.h"
 #include "FrameResource.h"
-#include "LoadM3d.h"
 #include "FBXReader.h"
 #include "WICTextureLoader12.h"
 #include "lz4.h"

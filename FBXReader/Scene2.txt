@@ -1,4 +1,0 @@
-GeometryFile:Scene2/Geometry.txt
-MaterialFile:Scene2/Material.txt
-RenderIteFile:Scene2/RenderItem.txt
-TimeTableFile:Scene2/TimeTable.txt

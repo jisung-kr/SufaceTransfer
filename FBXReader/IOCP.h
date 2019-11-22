@@ -10,8 +10,7 @@
 #include "Camera.h"
 #include "BitmapQueue.h"
 
-
-
+#pragma comment(lib, "ws2_32.lib")
 
 //IOCP 가상클래스
 class IOCP {

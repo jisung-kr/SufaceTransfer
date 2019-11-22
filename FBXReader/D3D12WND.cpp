@@ -1949,7 +1949,6 @@ void D3D12WND::CopyBuffer(int cliIdx) {
 			packet->mData.buf = compressed_msg;
 
 
-
 			curClient->wQueue.PushItem(std::move(packet));
 
 			curClient->rQueue.FrontItem().release();
